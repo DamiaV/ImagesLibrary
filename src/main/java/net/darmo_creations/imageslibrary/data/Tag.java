@@ -1,0 +1,79 @@
+package net.darmo_creations.imageslibrary.data;
+
+import javafx.util.*;
+import org.jetbrains.annotations.*;
+
+import java.util.*;
+
+/**
+ * This class represents an tag. Tags can be associated to images, unless their {@link #definition()} is not null.
+ */
+public final class Tag extends DatabaseObject {
+  private String label;
+  private TagType type;
+  private String definition;
+
+  /**
+   * Create a new tag.
+   *
+   * @param id         The tag’s database ID.
+   * @param label      The tag’s label.
+   * @param type       The tag’s type. May be null.
+   * @param definition The tag’s definition. May be null.
+   */
+  Tag(int id, String label, @Nullable TagType type, @Nullable String definition) {
+    super(id);
+    this.setLabel(label);
+    this.setType(type);
+    this.setDefinition(definition);
+  }
+
+  /**
+   * This tag’s label.
+   */
+  public String label() {
+    return this.label;
+  }
+
+  /**
+   * Set this tag’s label.
+   *
+   * @param label The new label.
+   */
+  void setLabel(String label) {
+    this.label = Objects.requireNonNull(label);
+  }
+
+  /**
+   * This tag’s type.
+   */
+  public Optional<TagType> type() {
+    return Optional.ofNullable(this.type);
+  }
+
+  /**
+   * Set this tag’s type.
+   *
+   * @param type The new type. May be null.
+   */
+  void setType(@Nullable TagType type) {
+    this.type = type;
+  }
+
+  /**
+   * This tag’s definition.
+   */
+  public Optional<String> definition() {
+    return Optional.ofNullable(this.definition);
+  }
+
+  /**
+   * Set this tag’s definition. The new definition’s syntax will not be checked,
+   * it is the responsability of the caller to do so.
+   *
+   * @param definition The new definition. May be null.
+   */
+  void setDefinition(@Nullable String definition) {
+    this.definition = definition;
+  }
+}
