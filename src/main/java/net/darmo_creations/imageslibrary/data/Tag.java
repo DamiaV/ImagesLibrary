@@ -78,4 +78,17 @@ public final class Tag extends DatabaseObject implements TagLike {
   void setDefinition(@Nullable String definition) {
     this.definition = definition;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || this.getClass() != o.getClass()) return false;
+    Tag tag = (Tag) o;
+    return Objects.equals(this.label, tag.label) && Objects.equals(this.type, tag.type) && Objects.equals(this.definition, tag.definition);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.label, this.type, this.definition);
+  }
 }

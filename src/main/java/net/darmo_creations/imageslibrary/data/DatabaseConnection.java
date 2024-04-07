@@ -23,14 +23,7 @@ import java.util.stream.*;
  * <p>
  * Instances maintain an internal cache of all tags and tag types.
  */
-@SuppressWarnings("unused") // TEMP to better see other TODOs
 public final class DatabaseConnection implements AutoCloseable {
-  /**
-   * This database path, when passed to the constructor of this class,
-   * indicates that the connection should use an in-memory database instance.
-   */
-  public static final String MEMORY_DB_PATH = ":memory:";
-
   /**
    * A map of all pseudo-tags that can be used in tag queries.
    */
@@ -91,30 +84,36 @@ public final class DatabaseConnection implements AutoCloseable {
    * Create a new connection to the given SQLite database file.
    *
    * @param file The file containing the database. If it does not exist, it will be created.
-   * @throws IOException If the file exists but is not a database file or is incompatible.
+   *             If null, the database will be loaded in-memory only.
+   * @throws DatabaseOperationError If the file exists but is not a database file or is incompatible.
    */
-  public DatabaseConnection(Path file) throws IOException {
-    Objects.requireNonNull(file);
-    this.logger = Logger.getLogger("DB (%s)".formatted(file));
-    this.logger.info("Connecting to database file at %s".formatted(file));
+  public DatabaseConnection(@Nullable Path file, Level loggingLevel) throws DatabaseOperationError {
+    final String fileName = file == null ? ":memory:" : file.toString();
+    this.logger = Logger.getLogger("DB (%s)".formatted(fileName));
+    this.logger.setLevel(loggingLevel);
+    this.logger.info("Connecting to database file at %s".formatted(fileName));
     try {
-      this.connection = DriverManager.getConnection("jdbc:sqlite:%s".formatted(file));
+      this.connection = DriverManager.getConnection("jdbc:sqlite:%s".formatted(fileName));
       this.injectCustomFunctions();
       this.connection.setAutoCommit(false);
-      this.executeQuery("PRAGMA FOREIGN_KEYS = ON");
+      this.executeUpdateQuery("PRAGMA FOREIGN_KEYS = ON");
       this.logger.info("Foreign keys enabled");
-      if (!Files.exists(file)) // If the DB file does not exist, create it
+      if (file == null || !Files.exists(file)) // If the DB file does not exist, create it
         this.setupDatabase();
       else
         this.checkSchemaVersion();
     } catch (SQLException | IOException e) {
       if (e instanceof IOException ex)
-        throw this.logThrownError(ex); // No need to wrap
-      throw this.logThrownError(new IOException(e));
+        throw this.logThrownError(new DatabaseOperationError(getErrorCode(ex), ex));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode((SQLException) e), e));
     }
     this.logger.info("Connection established.");
 
-    this.initCaches();
+    try {
+      this.initCaches();
+    } catch (IOException e) {
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+    }
   }
 
   /**
@@ -174,7 +173,7 @@ public final class DatabaseConnection implements AutoCloseable {
   private void checkSchemaVersion() throws SQLException {
     final var pythonErrorMsg = "Python-generated database detected, please convert it before using it with this app";
     // Check if the "images.hash" column is missing
-    try (final var resultSet1 = this.selectQuery("PRAGMA TABLE_INFO (images)")) {
+    try (final var resultSet1 = this.executeSelectQuery("PRAGMA TABLE_INFO (images)")) {
       boolean hashFound = false;
       while (resultSet1.next()) {
         if (resultSet1.getString("name").equals("hash")) {
@@ -186,12 +185,12 @@ public final class DatabaseConnection implements AutoCloseable {
         throw this.logThrownError(new SQLException(pythonErrorMsg));
     }
     // Check if the "version" table is present
-    try (final var resultSet = this.selectQuery(CHECK_FOR_PYTHON_DB_0001_QUERY)) {
+    try (final var resultSet = this.executeSelectQuery(CHECK_FOR_PYTHON_DB_0001_QUERY)) {
       if (resultSet.next())
         throw this.logThrownError(new SQLException(pythonErrorMsg));
     }
 
-    try (final var resultSet = this.selectQuery("PRAGMA USER_VERSION")) {
+    try (final var resultSet = this.executeSelectQuery("PRAGMA USER_VERSION")) {
       resultSet.next();
       final int schemaVersion = resultSet.getInt(1);
       if (schemaVersion > CURRENT_SCHEMA_VERSION)
@@ -254,6 +253,7 @@ public final class DatabaseConnection implements AutoCloseable {
     }
     this.commit();
 
+    // Update caches
     for (final var entry : generatedIds) {
       final int id = entry.getKey();
       final TagTypeUpdate tagTypeUpdate = entry.getValue();
@@ -299,6 +299,7 @@ public final class DatabaseConnection implements AutoCloseable {
     }
     this.commit();
 
+    // Update caches
     for (final var tagTypeUpdate : tagTypeUpdates) {
       final TagType tagType = this.tagTypesCache.get(tagTypeUpdate.id());
       tagType.setLabel(tagTypeUpdate.label());
@@ -316,6 +317,7 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   public void deleteTagTypes(final Set<TagType> tagTypes) throws DatabaseOperationError {
     this.deleteObjects(tagTypes, "tag_types");
+    // Update caches
     for (final var tagType : tagTypes) {
       this.tagTypesCache.remove(tagType.id());
       this.tagTypesCounts.remove(tagType.id());
@@ -346,7 +348,7 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   @Contract(pure = true, value = "-> new")
   @Unmodifiable
-  public Map<Integer, Integer> getAllTagCounts() {
+  public Map<Integer, Integer> getAllTagsCounts() {
     return Collections.unmodifiableMap(this.tagsCounts);
   }
 
@@ -373,18 +375,20 @@ public final class DatabaseConnection implements AutoCloseable {
     }
     this.commit();
 
-    IntStream.range(0, tagUpdates.size())
-        .mapToObj(i -> tagUpdates.get(i).withId(generatedIds.get(i)))
-        .forEach(tagUpdate -> {
-          final int id = tagUpdate.id();
-          this.tagsCache.put(id, new Tag(
-              id,
-              tagUpdate.label(),
-              tagUpdate.type().map(tt -> this.tagTypesCache.get(tt.id())).orElse(null),
-              tagUpdate.definition().orElse(null)
-          ));
-          this.tagsCounts.put(id, 0);
-        });
+    // Update caches
+    for (int i = 0; i < tagUpdates.size(); i++) {
+      final TagUpdate tagUpdate = tagUpdates.get(i).withId(generatedIds.get(i));
+      final int id = tagUpdate.id();
+      this.tagsCache.put(id, new Tag(
+          id,
+          tagUpdate.label(),
+          tagUpdate.type().map(tt -> this.tagTypesCache.get(tt.id())).orElse(null),
+          tagUpdate.definition().orElse(null)
+      ));
+      this.tagsCounts.put(id, 0);
+      tagUpdate.type().ifPresent(
+          tagType -> this.tagTypesCounts.put(tagType.id(), this.tagTypesCounts.get(tagType.id()) + 1));
+    }
   }
 
   /**
@@ -441,11 +445,23 @@ public final class DatabaseConnection implements AutoCloseable {
     }
     this.commit();
 
+    // Update caches
     for (final var tagUpdate : tagUpdates) {
       final Tag tag = this.tagsCache.get(tagUpdate.id());
-      tag.setLabel(tagUpdate.label());
-      tag.setType(tagUpdate.type().orElse(null));
       tag.setDefinition(tagUpdate.definition().orElse(null));
+      tag.setLabel(tagUpdate.label());
+      if (tag.type().isPresent()) {
+        final TagType oldTagType = tag.type().get();
+        this.tagTypesCounts.put(oldTagType.id(), this.tagTypesCounts.get(oldTagType.id()) - 1);
+      }
+      final var typeOpt = tagUpdate.type();
+      if (typeOpt.isPresent()) {
+        final TagType newTagType = typeOpt.get();
+        this.tagTypesCounts.put(newTagType.id(), this.tagTypesCounts.get(newTagType.id()) + 1);
+        tag.setType(newTagType);
+      } else {
+        tag.setType(null);
+      }
     }
   }
 
@@ -511,10 +527,12 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   public void deleteTags(final Set<Tag> tags) throws DatabaseOperationError {
     this.deleteObjects(tags, "tags");
-    // The query succeeded, update cache
+    // Update caches
     for (final var tagUpdate : tags) {
       this.tagsCache.remove(tagUpdate.id());
       this.tagsCounts.remove(tagUpdate.id());
+      tagUpdate.type().ifPresent(
+          tagType -> this.tagTypesCounts.put(tagType.id(), this.tagTypesCounts.get(tagType.id()) - 1));
     }
   }
 
@@ -559,7 +577,7 @@ public final class DatabaseConnection implements AutoCloseable {
     final var sql = query.asSQL();
     if (sql.isEmpty())
       return pictures;
-    try (final var resultSet = this.selectQuery(sql.get())) {
+    try (final var resultSet = this.executeSelectQuery(sql.get())) {
       while (resultSet.next())
         pictures.add(new Picture(
             resultSet.getInt("id"),
@@ -592,7 +610,7 @@ public final class DatabaseConnection implements AutoCloseable {
   @Contract(pure = true, value = "-> new")
   public Set<Picture> getImagesWithNoTags() throws DatabaseOperationError {
     final Set<Picture> pictures = new HashSet<>();
-    try (final var resultSet = this.selectQuery(IMAGES_WITHOUT_TAGS_QUERY)) {
+    try (final var resultSet = this.executeSelectQuery(IMAGES_WITHOUT_TAGS_QUERY)) {
       while (resultSet.next())
         pictures.add(new Picture(
             resultSet.getInt("id"),
@@ -1092,15 +1110,15 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   private void setupDatabase() throws SQLException, IOException {
     this.logger.info("Creating database file…");
-    final InputStream stream = this.getClass().getResourceAsStream(SETUP_FILE_NAME);
+    final var stream = this.getClass().getResourceAsStream("/" + SETUP_FILE_NAME);
     if (stream == null)
       throw this.logThrownError(new IOException("Missing file: %s".formatted(SETUP_FILE_NAME)));
-    final StringBuilder query = new StringBuilder();
-    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
+    final var query = new StringBuilder();
+    try (final var reader = new BufferedReader(new InputStreamReader(stream))) {
       for (String line; (line = reader.readLine()) != null; )
-        query.append(line);
+        query.append(line).append('\n');
     }
-    this.executeQuery(query.toString());
+    this.executeUpdateQuery(query.toString());
     this.logger.info("Done");
   }
 
@@ -1108,7 +1126,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * Initalize the internal tag and tag type caches.
    */
   private void initCaches() throws IOException {
-    try (final var resultSet = this.selectQuery("SELECT id, label, symbol, color FROM tag_types")) {
+    try (final var resultSet = this.executeSelectQuery("SELECT id, label, symbol, color FROM tag_types")) {
       while (resultSet.next()) {
         final int id = resultSet.getInt("id");
         this.tagTypesCache.put(id, new TagType(
@@ -1122,7 +1140,7 @@ public final class DatabaseConnection implements AutoCloseable {
       throw this.logThrownError(new IOException(e));
     }
 
-    try (final var resultSet = this.selectQuery("SELECT id, label, type_id, definition FROM tags")) {
+    try (final var resultSet = this.executeSelectQuery("SELECT id, label, type_id, definition FROM tags")) {
       while (resultSet.next()) {
         final int id = resultSet.getInt("id");
         this.tagsCache.put(id, new Tag(
@@ -1144,9 +1162,9 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param query The SQL query to execute, may contain several statements.
    */
-  private void executeQuery(@SQLite String query) throws SQLException {
+  private void executeUpdateQuery(@SQLite String query) throws SQLException {
     try (final var statement = this.connection.createStatement()) {
-      statement.execute(query);
+      statement.executeUpdate(query);
     } catch (SQLException e) {
       this.connection.rollback();
       throw this.logThrownError(e);
@@ -1161,7 +1179,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @return The rows returned by the given query in a {@link ResultSet} object.
    */
   @Contract(pure = true, value = "_ -> new")
-  private ResultSet selectQuery(@SQLite String query) throws SQLException {
+  private ResultSet executeSelectQuery(@SQLite String query) throws SQLException {
     try (final var statement = this.connection.createStatement()) {
       return statement.executeQuery(query);
     }

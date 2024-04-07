@@ -39,4 +39,17 @@ public final class Picture extends DatabaseObject implements PictureLike {
   public Hash hash() {
     return this.hash;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || this.getClass() != o.getClass()) return false;
+    Picture picture = (Picture) o;
+    return Objects.equals(this.path, picture.path) && Objects.equals(this.hash, picture.hash);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.path, this.hash);
+  }
 }

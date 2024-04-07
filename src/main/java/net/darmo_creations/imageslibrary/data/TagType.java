@@ -75,4 +75,17 @@ public final class TagType extends DatabaseObject implements TagTypeLike {
   void setColor(int color) {
     this.color = color;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || this.getClass() != o.getClass()) return false;
+    TagType tagType = (TagType) o;
+    return this.symbol == tagType.symbol && this.color == tagType.color && Objects.equals(this.label, tagType.label);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.label, this.symbol, this.color);
+  }
 }
