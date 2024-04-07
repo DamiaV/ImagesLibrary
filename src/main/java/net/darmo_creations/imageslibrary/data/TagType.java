@@ -5,7 +5,7 @@ import java.util.*;
 /**
  * This class represents the type of a tag.
  */
-public final class TagType extends DatabaseObject {
+public final class TagType extends DatabaseObject implements TagTypeLike {
   private String label;
   private char symbol;
   private int color;
@@ -28,6 +28,7 @@ public final class TagType extends DatabaseObject {
   /**
    * This tag type’s label.
    */
+  @Override
   public String label() {
     return this.label;
   }
@@ -44,6 +45,7 @@ public final class TagType extends DatabaseObject {
   /**
    * This tag type’s symbol.
    */
+  @Override
   public char symbol() {
     return this.symbol;
   }
@@ -60,6 +62,7 @@ public final class TagType extends DatabaseObject {
   /**
    * This tag type’s color.
    */
+  @Override
   public int color() {
     return this.color;
   }

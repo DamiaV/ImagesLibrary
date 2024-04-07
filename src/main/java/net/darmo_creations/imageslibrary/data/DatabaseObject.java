@@ -4,6 +4,7 @@ package net.darmo_creations.imageslibrary.data;
  * This class represents a single database table row.
  */
 public abstract sealed class DatabaseObject
+    implements DatabaseElement
     permits Picture, Tag, TagType {
   private final int id;
 
@@ -19,6 +20,7 @@ public abstract sealed class DatabaseObject
   /**
    * This object’s database ID.
    */
+  @Override
   public int id() {
     return this.id;
   }

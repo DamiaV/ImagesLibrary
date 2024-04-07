@@ -6,20 +6,20 @@ import java.util.*;
 
 /**
  * This class indicates how to update a tag in the database.
- *
- * @param id         The ID of the tag to update.
- * @param label      The tag’s new label.
- * @param type       The tag’s new type. May be null.
- * @param definition The tag’s new definition. May be null.
  */
-public record TagUpdate(
-    int id,
-    String label,
-    @Nullable TagType type,
-    @Nullable String definition
-) {
-  public TagUpdate {
-    Objects.requireNonNull(label);
+public final class TagUpdate implements TagLike {
+  private final int id;
+  private final String label;
+  @Nullable
+  private final TagType type;
+  @Nullable
+  private final String definition;
+
+  public TagUpdate(int id, String label, @Nullable TagType type, @Nullable String definition) {
+    this.id = id;
+    this.label = Objects.requireNonNull(label);
+    this.type = type;
+    this.definition = definition;
   }
 
   /**
@@ -33,5 +33,25 @@ public record TagUpdate(
     if (id == this.id())
       return this;
     return new TagUpdate(id, this.label, this.type, this.definition);
+  }
+
+  @Override
+  public int id() {
+    return this.id;
+  }
+
+  @Override
+  public String label() {
+    return this.label;
+  }
+
+  @Override
+  public Optional<TagType> type() {
+    return Optional.ofNullable(this.type);
+  }
+
+  @Override
+  public Optional<String> definition() {
+    return Optional.ofNullable(this.definition);
   }
 }

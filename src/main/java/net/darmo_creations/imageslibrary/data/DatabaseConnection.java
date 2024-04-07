@@ -2,7 +2,6 @@ package net.darmo_creations.imageslibrary.data;
 
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.data.sql_functions.*;
-import net.darmo_creations.imageslibrary.io.*;
 import net.darmo_creations.imageslibrary.query_parser.*;
 import net.darmo_creations.imageslibrary.utils.ReflectionUtils;
 import org.intellij.lang.annotations.*;
@@ -48,8 +47,8 @@ public final class DatabaseConnection implements AutoCloseable {
       new PseudoTag("""
           SELECT id, path, hash
           FROM images
-          WHERE "REGEX"(SUBSTR(path, "RINSTR"(path, '/') + 1), '%s', '%s') -- TODO use system separator?
-          """, true),
+          WHERE "REGEX"(SUBSTR(path, "RINSTR"(path, '/') + 1), '%s', '%s')
+          """.replace("/", File.separator), true),
 
       "path",
       new PseudoTag("""
@@ -82,11 +81,11 @@ public final class DatabaseConnection implements AutoCloseable {
 
   private final Logger logger;
   private final Connection connection;
-  private final FilesManager filesManager;
 
-  // TODO cache tag and tag type use counts
   private final Map<Integer, TagType> tagTypesCache = new HashMap<>();
+  private final Map<Integer, Integer> tagTypesCounts = new HashMap<>();
   private final Map<Integer, Tag> tagsCache = new HashMap<>();
+  private final Map<Integer, Integer> tagsCounts = new HashMap<>();
 
   /**
    * Create a new connection to the given SQLite database file.
@@ -98,7 +97,6 @@ public final class DatabaseConnection implements AutoCloseable {
     Objects.requireNonNull(file);
     this.logger = Logger.getLogger("DB (%s)".formatted(file));
     this.logger.info("Connecting to database file at %s".formatted(file));
-    this.filesManager = new FilesManager();
     try {
       this.connection = DriverManager.getConnection("jdbc:sqlite:%s".formatted(file));
       this.injectCustomFunctions();
@@ -212,6 +210,17 @@ public final class DatabaseConnection implements AutoCloseable {
     return this.tagTypesCache.values().stream().collect(Collectors.toUnmodifiableSet());
   }
 
+  /**
+   * A map containing the use counts of all tag types.
+   *
+   * @return A new map.
+   */
+  @Contract(pure = true, value = "-> new")
+  @Unmodifiable
+  public Map<Integer, Integer> getAllTagTypesCounts() {
+    return Collections.unmodifiableMap(this.tagTypesCounts);
+  }
+
   @SQLite
   public static final String INSERT_TAG_TYPES_QUERY = """
       INSERT INTO tag_types (label, symbol, color)
@@ -226,7 +235,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationError If any database error occurs.
    */
   public void insertTagTypes(final List<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationError {
-    final Map<Integer, TagTypeUpdate> toInsert = new HashMap<>();
+    final List<Pair<Integer, TagTypeUpdate>> generatedIds = new LinkedList<>();
 
     try (final var statement = this.connection.prepareStatement(INSERT_TAG_TYPES_QUERY, Statement.RETURN_GENERATED_KEYS)) {
       for (final var tagTypeUpdate : tagTypeUpdates) {
@@ -237,19 +246,24 @@ public final class DatabaseConnection implements AutoCloseable {
         final var id = getFirstGeneratedId(statement);
         if (id.isEmpty())
           throw this.logThrownError(new SQLException("Query did not generate any key"));
-        toInsert.put(id.get(), tagTypeUpdate);
+        generatedIds.add(new Pair<>(id.get(), tagTypeUpdate));
       }
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
     this.commit();
 
-    // The query succeeded, update cache
-    for (final var entry : toInsert.entrySet()) {
+    for (final var entry : generatedIds) {
       final int id = entry.getKey();
       final TagTypeUpdate tagTypeUpdate = entry.getValue();
-      this.tagTypesCache.put(id, new TagType(id, tagTypeUpdate.label(), tagTypeUpdate.symbol(), tagTypeUpdate.color()));
+      this.tagTypesCache.put(id, new TagType(
+          id,
+          tagTypeUpdate.label(),
+          tagTypeUpdate.symbol(),
+          tagTypeUpdate.color()
+      ));
+      this.tagTypesCounts.put(id, 0);
     }
   }
 
@@ -268,6 +282,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationError If any database error occurs.
    */
   public void updateTagTypes(final List<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationError {
+    // FIXME what to do in case of label/symbol swap?
     try (final var statement = this.connection.prepareStatement(UPDATE_TAG_TYPES_QUERY)) {
       for (final var tagTypeUpdate : tagTypeUpdates) {
         final int id = tagTypeUpdate.id();
@@ -280,11 +295,10 @@ public final class DatabaseConnection implements AutoCloseable {
       }
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
     this.commit();
 
-    // The query succeeded, update cache
     for (final var tagTypeUpdate : tagTypeUpdates) {
       final TagType tagType = this.tagTypesCache.get(tagTypeUpdate.id());
       tagType.setLabel(tagTypeUpdate.label());
@@ -302,9 +316,9 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   public void deleteTagTypes(final Set<TagType> tagTypes) throws DatabaseOperationError {
     this.deleteObjects(tagTypes, "tag_types");
-    // The query succeeded, update cache and unparsedTags
     for (final var tagType : tagTypes) {
       this.tagTypesCache.remove(tagType.id());
+      this.tagTypesCounts.remove(tagType.id());
       for (final var tag : this.tagsCache.values()) {
         tag.type().ifPresent(currentType -> {
           if (currentType.id() == tagType.id())
@@ -323,6 +337,17 @@ public final class DatabaseConnection implements AutoCloseable {
   @Unmodifiable
   public Set<Tag> getAllTags() {
     return this.tagsCache.values().stream().collect(Collectors.toUnmodifiableSet());
+  }
+
+  /**
+   * A map containing the use counts of all tags.
+   *
+   * @return A new map.
+   */
+  @Contract(pure = true, value = "-> new")
+  @Unmodifiable
+  public Map<Integer, Integer> getAllTagCounts() {
+    return Collections.unmodifiableMap(this.tagsCounts);
   }
 
   @SQLite
@@ -344,13 +369,22 @@ public final class DatabaseConnection implements AutoCloseable {
       generatedIds = this.insertTagsNoCommit(tagUpdates);
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
     this.commit();
-    final var insertions = IntStream.range(0, tagUpdates.size())
+
+    IntStream.range(0, tagUpdates.size())
         .mapToObj(i -> tagUpdates.get(i).withId(generatedIds.get(i)))
-        .collect(Collectors.toSet());
-    this.updateTagCaches(insertions, Set.of());
+        .forEach(tagUpdate -> {
+          final int id = tagUpdate.id();
+          this.tagsCache.put(id, new Tag(
+              id,
+              tagUpdate.label(),
+              tagUpdate.type().map(tt -> this.tagTypesCache.get(tt.id())).orElse(null),
+              tagUpdate.definition().orElse(null)
+          ));
+          this.tagsCounts.put(id, 0);
+        });
   }
 
   /**
@@ -366,11 +400,11 @@ public final class DatabaseConnection implements AutoCloseable {
     try (final var statement = this.connection.prepareStatement(INSERT_TAGS_QUERY, Statement.RETURN_GENERATED_KEYS)) {
       for (final var tagUpdate : tagUpdates) {
         statement.setString(1, tagUpdate.label());
-        if (tagUpdate.type() == null)
+        if (tagUpdate.type().isEmpty())
           statement.setNull(2, Types.INTEGER);
         else
-          statement.setInt(2, tagUpdate.type().id());
-        statement.setString(3, tagUpdate.definition());
+          statement.setInt(2, tagUpdate.type().get().id());
+        statement.setString(3, tagUpdate.definition().orElse(null));
         statement.executeUpdate();
         final var id = getFirstGeneratedId(statement);
         if (id.isEmpty())
@@ -395,15 +429,24 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param tagUpdates The list of tag updates to perform. Updates are performed in the order of the list.
    * @throws DatabaseOperationError If any database error occurs.
    */
-  public void updateTags(final Set<TagUpdate> tagUpdates) throws DatabaseOperationError {
+  public void updateTags(final List<TagUpdate> tagUpdates) throws DatabaseOperationError {
     try {
       this.updateTagsNoCommit(tagUpdates);
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+    } catch (DatabaseOperationError e) {
+      this.rollback();
+      throw e;
     }
     this.commit();
-    this.updateTagCaches(Set.of(), tagUpdates);
+
+    for (final var tagUpdate : tagUpdates) {
+      final Tag tag = this.tagsCache.get(tagUpdate.id());
+      tag.setLabel(tagUpdate.label());
+      tag.setType(tagUpdate.type().orElse(null));
+      tag.setDefinition(tagUpdate.definition().orElse(null));
+    }
   }
 
   /**
@@ -411,19 +454,24 @@ public final class DatabaseConnection implements AutoCloseable {
    * it is the responsablity of the caller to do so.
    *
    * @param tagUpdates The list of tag updates to perform. Updates are performed in the order of the list.
-   * @throws SQLException If a tag with the same label already exists in the database, or any database error occurs.
+   * @throws SQLException           If any database error occurs.
+   * @throws DatabaseOperationError If any database error occurs.
    */
-  private void updateTagsNoCommit(final Set<TagUpdate> tagUpdates) throws SQLException {
+  private void updateTagsNoCommit(final List<TagUpdate> tagUpdates) throws SQLException, DatabaseOperationError {
+    // FIXME what to do in case of label swap?
     try (final var statement = this.connection.prepareStatement(UPDATE_TAGS_QUERY)) {
       for (final var tagUpdate : tagUpdates) {
+        this.ensureInDatabase(tagUpdate);
         final String label = tagUpdate.label();
         final int id = tagUpdate.id();
         statement.setString(1, label);
-        if (tagUpdate.type() == null)
+        if (tagUpdate.type().isEmpty())
           statement.setNull(2, Types.INTEGER);
         else
-          statement.setInt(2, tagUpdate.type().id());
-        statement.setString(3, tagUpdate.definition());
+          statement.setInt(2, tagUpdate.type().get().id());
+        if (tagUpdate.definition().isPresent() && this.isTagUsed(tagUpdate))
+          throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.BOUND_TAG_HAS_DEFINITION));
+        statement.setString(3, tagUpdate.definition().orElse(null));
         statement.setInt(4, id);
         if (statement.executeUpdate() == 0)
           throw this.logThrownError(new SQLException("No tag with ID %d".formatted(id)));
@@ -431,23 +479,26 @@ public final class DatabaseConnection implements AutoCloseable {
     }
   }
 
+  @SQLite
+  private static final String SELECT_PICTURES_FOR_TAG_QUERY = """
+      SELECT *
+      FROM image_tag
+      WHERE tag_id = ?
+      """;
+
   /**
-   * Update the tags cache by inserting/updating the specified tags.
+   * Check whether the given tag is associated to any picture.
    *
-   * @param toInsert The tags to insert.
-   * @param toUpdate The tags to update.
+   * @param tag The tag to check.
+   * @return True if the tag is associated to at least one picture, false otherwise.
+   * @throws SQLException If any database error occurs.
    */
-  private void updateTagCaches(final Set<TagUpdate> toInsert, final Set<TagUpdate> toUpdate) {
-    for (final var tagUpdate : toInsert) {
-      final int id = tagUpdate.id();
-      final var tagType = tagUpdate.type() != null ? this.tagTypesCache.get(tagUpdate.type().id()) : null;
-      this.tagsCache.put(id, new Tag(id, tagUpdate.label(), tagType, tagUpdate.definition()));
-    }
-    for (final var tagUpdate : toUpdate) {
-      final Tag tag = this.tagsCache.get(tagUpdate.id());
-      tag.setLabel(tagUpdate.label());
-      tag.setType(tagUpdate.type());
-      tag.setDefinition(tagUpdate.definition());
+  private boolean isTagUsed(final TagLike tag) throws SQLException {
+    try (final var statement = this.connection.prepareStatement(SELECT_PICTURES_FOR_TAG_QUERY)) {
+      statement.setInt(1, tag.id());
+      try (final var resultSet = statement.executeQuery()) {
+        return resultSet.next();
+      }
     }
   }
 
@@ -461,8 +512,10 @@ public final class DatabaseConnection implements AutoCloseable {
   public void deleteTags(final Set<Tag> tags) throws DatabaseOperationError {
     this.deleteObjects(tags, "tags");
     // The query succeeded, update cache
-    for (final var tagUpdate : tags)
+    for (final var tagUpdate : tags) {
       this.tagsCache.remove(tagUpdate.id());
+      this.tagsCounts.remove(tagUpdate.id());
+    }
   }
 
   /**
@@ -479,12 +532,16 @@ public final class DatabaseConnection implements AutoCloseable {
   ) throws DatabaseOperationError {
     try (final var statement = this.connection.prepareStatement("DELETE FROM %s WHERE id = ?".formatted(tableName))) {
       for (final T o : objects) {
+        this.ensureInDatabase(o);
         statement.setInt(1, o.id());
         statement.executeUpdate();
       }
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+    } catch (DatabaseOperationError e) {
+      this.rollback();
+      throw e;
     }
     this.commit();
   }
@@ -510,7 +567,7 @@ public final class DatabaseConnection implements AutoCloseable {
             new Hash(resultSet.getLong("hash"))
         ));
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
     return pictures;
   }
@@ -543,7 +600,7 @@ public final class DatabaseConnection implements AutoCloseable {
             new Hash(resultSet.getLong("hash"))
         ));
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
     return pictures;
   }
@@ -573,7 +630,7 @@ public final class DatabaseConnection implements AutoCloseable {
           tags.add(this.tagsCache.get(resultSet.getInt("id")));
       }
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
     return tags;
   }
@@ -602,7 +659,7 @@ public final class DatabaseConnection implements AutoCloseable {
         return resultSet.next(); // Check if there are any rows
       }
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
   }
 
@@ -643,39 +700,9 @@ public final class DatabaseConnection implements AutoCloseable {
           ));
       }
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
     return pictures;
-  }
-
-  @SQLite
-  private static final String SELECT_IMAGE_PATH_QUERY = """
-      SELECT id, hash
-      FROM images
-      WHERE path = ?
-      """;
-
-  /**
-   * Look for the picture with the given path.
-   *
-   * @param path The path to look for.
-   * @return An {@link Optional} containing the picture, or an empty {@link Optional} if no row matched.
-   * @throws DatabaseOperationError If any database error occurs.
-   */
-  @Contract(pure = true, value = "_ -> new")
-  private Optional<Picture> getPictureForPath(Path path) throws DatabaseOperationError {
-    try (final var statement = this.connection.prepareStatement(SELECT_IMAGE_ID_QUERY)) {
-      final Path absolutePath = path.toAbsolutePath();
-      statement.setString(1, absolutePath.toString());
-      try (final var resultSet = statement.executeQuery()) {
-        if (resultSet.next())
-          return Optional.of(
-              new Picture(resultSet.getInt("id"), absolutePath, new Hash(resultSet.getLong("hash"))));
-        return Optional.empty();
-      }
-    } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
-    }
   }
 
   @SQLite
@@ -684,124 +711,32 @@ public final class DatabaseConnection implements AutoCloseable {
       VALUES (?, ?)
       """;
 
-  @SQLite
-  private static final String UPDATE_IMAGE_QUERY = """
-      UPDATE images
-      SET path = ?1, hash = ?2
-      WHERE id = ?3
-      """;
-
-  @SQLite
-  private static final String PURGE_TAGS_FOR_IMAGE_QUERY = """
-      DELETE FROM image_tag
-      WHERE image_id = ?
-      """;
-
   /**
-   * Insert the given picture. Picture and tag updates are done in a single transaction.
-   * If the picture could not be moved or any database error occurs, the transaction is rolled back.
+   * Insert the given picture.
    *
    * @param pictureUpdate The picture to insert.
-   * @param destDir       If not null, the path to the folder into which the picture file should be moved.
-   * @param resolver      If {@code destDir} is not null, a function the returns how the name collision
-   *                      for the two given source and target files should be resolved.
-   * @return True if the file was inserted, false otherwise (likely skipped after a name conflict).
-   * @throws DatabaseOperationError   If any database error occurs or there was an unsolved file name conflict.
-   * @throws NullPointerException     If {@code resolution} is null but {@code destDir} is not.
+   * @throws DatabaseOperationError   If any data base error occurs.
    * @throws IllegalArgumentException If the {@code tagsToRemove} property is not empty.
    */
-  @Contract("_, !null, null -> fail")
-  public boolean insertPicture(
-      PictureUpdate pictureUpdate,
-      @Nullable Path destDir,
-      @Nullable FilesManager.FileNameConflictResolutionProvider resolver
-  ) throws DatabaseOperationError {
-    if (destDir != null && resolver == null)
-      throw this.logThrownError(new NullPointerException("Missing file name conflict resolution provider"));
+  public void insertPicture(PictureUpdate pictureUpdate) throws DatabaseOperationError {
     if (!pictureUpdate.tagsToRemove().isEmpty())
       throw this.logThrownError(new IllegalArgumentException("Cannot remove tags from a picture that is not yet registered"));
-    if (this.isFileRegistered(pictureUpdate.path()))
-      throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.OBJECT_ALREADY_EXISTS));
 
-    Picture overwrittenPicture = null;
-    OverwrittenTagsHandling tagsHandling = null;
-    if (destDir != null) {
-      final FileMovingOutcome result;
-      try {
-        result = this.filesManager.moveFile(pictureUpdate.path(), destDir, resolver);
-      } catch (FileOperationError e) {
-        throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.forFileOperationErrorCode(e.errorCode()), e));
-      }
-
-      final var resolution = result.resolution();
-      if (resolution.isPresent()) {
-        final var res = resolution.get();
-        if (res instanceof Skip) {
-          return false;
-        } else if (res instanceof Overwrite overwrite) {
-          final var picture = this.getPictureForPath(result.newPath());
-          if (picture.isPresent()) {
-            overwrittenPicture = picture.get();
-            tagsHandling = overwrite.overwrittenTagsHandling();
-          }
-        } else if (res instanceof Rename) {
-          pictureUpdate = new PictureUpdate(
-              pictureUpdate.id(),
-              result.newPath(),
-              pictureUpdate.hash(),
-              pictureUpdate.tagsToAdd(),
-              pictureUpdate.tagsToRemove()
-          );
-        } else {
-          throw this.logThrownError(new RuntimeException("Invalid resolution type: " + res.getClass().getName()));
-        }
-      }
+    final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
+    try (final var statement = this.connection.prepareStatement(INSERT_IMAGE_QUERY)) {
+      statement.setString(1, pictureUpdate.path().toString());
+      statement.setLong(2, pictureUpdate.hash().bytes());
+      statement.executeUpdate();
+      result = this.updatePictureTagsNoCommit(pictureUpdate);
+    } catch (SQLException e) {
+      this.rollback();
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+    } catch (DatabaseOperationError e) {
+      this.rollback();
+      throw e;
     }
-
-    boolean ignoreTags = false;
-    if (tagsHandling != null) {
-      switch (tagsHandling) {
-        case KEEP_ORIGINAL_TAGS -> ignoreTags = true;
-        case MERGE_TAGS -> {
-          // Nothing to do here
-        }
-        case REPLACE_ORIGINAL_TAGS -> {
-          // Remove all tags from the overwritten image
-          try (final var statement = this.connection.prepareStatement(PURGE_TAGS_FOR_IMAGE_QUERY)) {
-            statement.setInt(1, overwrittenPicture.id());
-            statement.executeUpdate();
-          } catch (SQLException e) {
-            this.rollback();
-            throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
-          }
-        }
-      }
-      // We overwrote an already registered file, update its entry instead of creating a new one
-      try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_QUERY)) {
-        statement.setString(1, pictureUpdate.path().toString());
-        statement.setLong(2, pictureUpdate.hash().bytes());
-        statement.setInt(3, pictureUpdate.id());
-        statement.executeUpdate();
-        if (!ignoreTags)
-          this.updatePictureTags(pictureUpdate);
-      } catch (SQLException e) {
-        this.rollback();
-        throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
-      }
-    } else {
-      try (final var statement = this.connection.prepareStatement(INSERT_IMAGE_QUERY)) {
-        statement.setString(1, pictureUpdate.path().toString());
-        statement.setLong(2, pictureUpdate.hash().bytes());
-        statement.executeUpdate();
-        this.updatePictureTags(pictureUpdate);
-      } catch (SQLException e) {
-        this.rollback();
-        throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
-      }
-    }
-
     this.commit();
-    return true;
+    this.updateTagsCache(result.getKey(), result.getValue());
   }
 
   @SQLite
@@ -812,110 +747,158 @@ public final class DatabaseConnection implements AutoCloseable {
       """;
 
   /**
-   * Update the given picture. Picture and tag updates are done in a single transaction.
-   * If the picture could not be moved or any database error occurs, the transaction is rolled back.
+   * Update the given picture’s hash and tags.
+   * <p>
+   * To move picture, see {@link #movePicture(Picture, Path)}.
+   * To rename a picture, see {@link #renamePicture(Picture, String)}.
+   * To merge two pictures, see {@link #mergePictures(Picture, Picture, boolean)}.
    *
    * @param pictureUpdate The picture to update.
-   * @param destDir       If not null, the path to the folder into which the picture file should be moved.
-   * @param resolver      If {@code destDir} is not null, a function the returns how the name collision
-   *                      for the two given source and target files should be resolved.
-   * @return True if the file was updated, false otherwise (likely skipped after a name conflict).
-   * @throws DatabaseOperationError If any database error occurs or there was an unsolved file name conflict.
-   * @throws NullPointerException   If {@code resolution} is null but {@code destDir} is not.
+   * @throws DatabaseOperationError If any data base error occurs.
    */
-  @Contract("_, !null, null -> fail")
-  public boolean updatePicture(
-      PictureUpdate pictureUpdate,
-      @Nullable Path destDir,
-      @Nullable FilesManager.FileNameConflictResolutionProvider resolver
-  ) throws DatabaseOperationError {
-    if (destDir != null && resolver == null)
-      throw new NullPointerException("Missing file name conflict resolution provider");
-
-    Picture overwrittenPicture = null;
-    OverwrittenTagsHandling tagsHandling = null;
-    if (destDir != null) {
-      final FileMovingOutcome result;
-      try {
-        result = this.filesManager.moveFile(pictureUpdate.path(), destDir, resolver);
-      } catch (FileOperationError e) {
-        throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.forFileOperationErrorCode(e.errorCode()), e));
-      }
-
-      final var resolution = result.resolution();
-      if (resolution.isPresent()) {
-        final var res = resolution.get();
-        if (res instanceof Skip) {
-          return false;
-        } else if (res instanceof Overwrite overwrite) {
-          final var picture = this.getPictureForPath(result.newPath());
-          if (picture.isPresent()) {
-            overwrittenPicture = picture.get();
-            tagsHandling = overwrite.overwrittenTagsHandling();
-          }
-        } else if (res instanceof Rename) {
-          pictureUpdate = new PictureUpdate(
-              pictureUpdate.id(),
-              result.newPath(),
-              pictureUpdate.hash(),
-              pictureUpdate.tagsToAdd(),
-              pictureUpdate.tagsToRemove()
-          );
-        } else {
-          throw this.logThrownError(new RuntimeException("Invalid resolution type: " + res.getClass().getName()));
-        }
-      }
-    }
-
-    boolean ignoreTags = false;
-    if (tagsHandling != null) {
-      switch (tagsHandling) {
-        case KEEP_ORIGINAL_TAGS -> ignoreTags = true;
-        case MERGE_TAGS -> {
-          // Nothing to do here
-        }
-        case REPLACE_ORIGINAL_TAGS -> {
-          // Remove all tags from the overwritten image
-          try (final var statement = this.connection.prepareStatement(PURGE_TAGS_FOR_IMAGE_QUERY)) {
-            statement.setInt(1, overwrittenPicture.id());
-            statement.executeUpdate();
-          } catch (SQLException e) {
-            this.rollback();
-            throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
-          }
-        }
-      }
-      try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_QUERY)) {
-        statement.setString(1, pictureUpdate.path().toString());
-        statement.setLong(2, pictureUpdate.hash().bytes());
-        statement.setInt(3, pictureUpdate.id());
-        statement.executeUpdate();
-        if (!ignoreTags)
-          this.updatePictureTags(pictureUpdate);
-      } catch (SQLException e) {
-        this.rollback();
-        throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
-      }
-    } else {
-      try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_HASH_QUERY)) {
-        statement.setLong(1, pictureUpdate.hash().bytes());
-        statement.setInt(2, pictureUpdate.id());
-        statement.executeUpdate();
-        this.updatePictureTags(pictureUpdate);
-      } catch (SQLException e) {
-        this.rollback();
-        throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
-      }
+  public void updatePicture(PictureUpdate pictureUpdate) throws DatabaseOperationError {
+    this.ensureInDatabase(pictureUpdate);
+    final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
+    try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_HASH_QUERY)) {
+      statement.setLong(1, pictureUpdate.hash().bytes());
+      statement.setInt(2, pictureUpdate.id());
+      statement.executeUpdate();
+      result = this.updatePictureTagsNoCommit(pictureUpdate);
+    } catch (SQLException e) {
+      this.rollback();
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+    } catch (DatabaseOperationError e) {
+      this.rollback();
+      throw e;
     }
     this.commit();
-
-    return true;
+    this.updateTagsCache(result.getKey(), result.getValue());
   }
 
   @SQLite
-  private static final String ADD_TAG_TO_IMAGE_QUERY = """
-      INSERT INTO image_tag (image_id, tag_id)
-      VALUES (?, ?)
+  private static final String UPDATE_IMAGE_PATH_QUERY = """
+      UPDATE images
+      SET path = ?1
+      WHERE id = ?2
+      """;
+
+  /**
+   * Rename the given picture.
+   *
+   * @param picture The picture to rename.
+   * @param newName The picture’s new name.
+   * @throws DatabaseOperationError If any database or file system error occurs.
+   */
+  public void renamePicture(Picture picture, String newName) throws DatabaseOperationError {
+    this.ensureInDatabase(picture);
+    this.moveOrRenamePicture(picture, picture.path().getParent().resolve(newName));
+  }
+
+  /**
+   * Move the given picture to another directory.
+   *
+   * @param picture The picture to rename.
+   * @param destDir The picture’s new name.
+   * @throws DatabaseOperationError If any database or file system error occurs.
+   */
+  public void movePicture(Picture picture, Path destDir) throws DatabaseOperationError {
+    this.ensureInDatabase(picture);
+    if (picture.path().getParent().equals(destDir.toAbsolutePath()))
+      throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.FILE_ALREADY_IN_DEST_DIR));
+    if (Files.exists(destDir.resolve(picture.path().getFileName())))
+      throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
+
+    this.moveOrRenamePicture(picture, destDir);
+  }
+
+  /**
+   * Move/rename the given picture.
+   *
+   * @param picture The picture to move/rename.
+   * @param newPath The destination/new name.
+   * @throws DatabaseOperationError If any database or file system error occurs.
+   */
+  private void moveOrRenamePicture(Picture picture, Path newPath) throws DatabaseOperationError {
+    try {
+      Files.move(picture.path(), newPath);
+    } catch (IOException e) {
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+    }
+
+    try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_PATH_QUERY)) {
+      statement.setString(1, newPath.toString());
+      statement.setInt(2, picture.id());
+      statement.executeUpdate();
+    } catch (SQLException e) {
+      this.rollback();
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+    }
+    this.commit();
+  }
+
+  /**
+   * Merge the tags of {@code picture1} into those of {@code picture2},
+   * deleting {@code picture1} from the database and optionaly from the disk.
+   *
+   * @param picture1       The picture whose tags ought to be merged into those of {@code picture2}.
+   * @param picture2       The picture which should receive the tags of {@code picture1}.
+   * @param deleteFromDisk Whether {@code picture1} should be deleted from the disk.
+   * @throws DatabaseOperationError   If any database error occurs.
+   * @throws IllegalArgumentException If the two pictures have the same ID and/or path.
+   */
+  public void mergePictures(Picture picture1, Picture picture2, boolean deleteFromDisk)
+      throws DatabaseOperationError {
+    this.ensureInDatabase(picture1);
+    this.ensureInDatabase(picture2);
+    if (picture1.id() == picture2.id())
+      throw this.logThrownError(new IllegalArgumentException("Both pictures have the same ID"));
+    if (picture1.path().equals(picture2.path()))
+      throw this.logThrownError(new IllegalArgumentException("Both pictures have the same path"));
+
+    final var pic1Tags = this.getImageTags(picture1).stream()
+        .map(t -> new Pair<>(t.type().orElse(null), t.label()))
+        .collect(Collectors.toSet());
+    final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
+    try {
+      // Add tags of picture1 to picture2
+      result = this.updatePictureTagsNoCommit(new PictureUpdate(picture2.id(), picture2.path(), picture2.hash(), pic1Tags, Set.of()));
+    } catch (SQLException e) {
+      this.rollback();
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+    }
+    this.commit();
+    this.updateTagsCache(result.getKey(), result.getValue());
+    this.deletePicture(picture1, deleteFromDisk);
+  }
+
+  /**
+   * Update the tags cache and counts.
+   *
+   * @param addedTags   The set of tags that were added to an image.
+   *                    A boolean value of true indicates that the tag was created,
+   *                    false indicates that it already existed.
+   * @param removedTags The set of tags that were removed from an image.
+   */
+  private void updateTagsCache(final Set<Pair<Tag, Boolean>> addedTags, final Set<Tag> removedTags) {
+    for (final var addedTag : addedTags) {
+      final Tag tag = addedTag.getKey();
+      final int tagId = tag.id();
+      final boolean inserted = addedTag.getValue();
+      if (inserted) {
+        this.tagsCache.put(tagId, tag);
+        this.tagsCounts.put(tagId, 1);
+      } else
+        this.tagsCounts.put(tagId, this.tagsCounts.get(tagId) + 1);
+    }
+    for (final var removedTag : removedTags)
+      this.tagsCounts.put(removedTag.id(), this.tagsCounts.get(removedTag.id()) - 1);
+  }
+
+  @SQLite
+  private static final String SELECT_TAG_FROM_LABEL_QUERY = """
+      SELECT id, type_id, definition
+      FROM tags
+      WHERE label = ?
       """;
   @SQLite
   private static final String REMOVE_TAG_FROM_IMAGE_QUERY = """
@@ -924,190 +907,100 @@ public final class DatabaseConnection implements AutoCloseable {
         AND tag_id = ?2
       """;
 
-  private void updatePictureTags(PictureUpdate pictureUpdate) throws SQLException {
-    // TODO insert new tags
-    // TODO add tags to picture
+  /**
+   * Update the tags of the given image. This method does not perform any kind of transaction managment,
+   * it is the responsablity of the caller to do so.
+   *
+   * @param pictureUpdate The image to update.
+   * @return A pair containing the set of tags that were added to the image
+   * and the set of those that were removed from it. In the left set,
+   * a boolean value of true indicates that the tag was created,
+   * false indicates that it already existed.
+   * @throws SQLException           If any database error occurs.
+   * @throws DatabaseOperationError If any database error occurs.
+   */
+  private Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> updatePictureTagsNoCommit(PictureUpdate pictureUpdate)
+      throws SQLException, DatabaseOperationError {
+    // Insert tags
+    final Set<Pair<Tag, Boolean>> addedTags = new HashSet<>();
+    final List<TagUpdate> toInsert = new LinkedList<>();
+    for (final var tagUpdate : pictureUpdate.tagsToAdd()) {
+      final TagType tagType = tagUpdate.getKey();
+      final String tagLabel = tagUpdate.getValue();
+      final var tagOpt = this.getTagForLabel(tagLabel);
+      if (tagOpt.isPresent()) {
+        final Tag tag = tagOpt.get();
+        if (tag.definition().isPresent())
+          throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.BOUND_TAG_HAS_DEFINITION));
+        this.addTagToImageNoCommit(pictureUpdate.id(), tag.id());
+        addedTags.add(new Pair<>(this.tagsCache.get(tag.id()), false));
+      } else
+        toInsert.add(new TagUpdate(0, tagLabel, tagType, null));
+    }
+    final var generatedIds = this.insertTagsNoCommit(toInsert);
+
+    // Remove tags
     try (final var statement = this.connection.prepareStatement(REMOVE_TAG_FROM_IMAGE_QUERY)) {
       statement.setInt(1, pictureUpdate.id());
       for (final var toRemove : pictureUpdate.tagsToRemove()) {
-        statement.setInt(2, toRemove.id());
+        final int tagId = toRemove.id();
+        this.ensureInDatabase(toRemove);
+        statement.setInt(2, tagId);
         statement.executeUpdate();
       }
     }
+
+    final Set<Tag> removedTags = new HashSet<>();
+    for (int i = 0, generatedIdsSize = generatedIds.size(); i < generatedIdsSize; i++) {
+      final var generatedId = generatedIds.get(i);
+      final var tagUpdate = toInsert.get(i);
+      this.addTagToImageNoCommit(pictureUpdate.id(), generatedId);
+      addedTags.add(new Pair<>(new Tag(generatedId, tagUpdate.label(), tagUpdate.type().orElse(null), null), true));
+    }
+    return new Pair<>(addedTags, removedTags);
   }
 
-  @SQLite
-  private static final String MOVE_IMAGE_QUERY = """
-      UPDATE images
-      SET path = ?1
-      WHERE id = ?2
-      """;
-
   /**
-   * Move the given pictures into the given folder.
+   * Return the tag for that has the given label.
    *
-   * @param pictures   The picture to move.
-   * @param destDir    The path to the folder into which the picture files should be moved.
-   * @param resolution A function the returns how the name collision
-   *                   for the two given source and target files should be resolved.
-   * @return A set of the pictures that could not be moved or were skipped.
+   * @param label A tag label.
+   * @return An {@link Optional} containing the tag for the label if found, an empty {@link Optional} otherwise.
    * @throws SQLException If any database error occurs.
    */
-  @Contract("_, _, _ -> new")
-  public Set<Picture> movePictures(
-      final Set<Picture> pictures,
-      Path destDir,
-      FilesManager.FileNameConflictResolutionProvider resolution
-  ) throws SQLException {
-    final Set<Picture> nonMovedPictures = new HashSet<>();
-    for (final var picture : pictures) {
-      try (final var statement = this.connection.prepareStatement(MOVE_IMAGE_QUERY)) {
-        statement.setString(1, picture.path().toString());
-        statement.setInt(2, picture.id());
-      } catch (SQLException e) {
-        this.logger.severe("Could not move picture: " + picture.path());
-        this.connection.rollback();
-        nonMovedPictures.add(picture);
-        continue;
-      }
-      try {
-        this.movePictureFile(picture, destDir, resolution, picture.id());
-      } catch (SQLException | IOException e) {
-        this.logger.severe("Could not move picture: " + picture.path());
-        this.connection.rollback(); // File could not be moved, cancel everything
-        nonMovedPictures.add(picture);
-      } catch (UnknownDatabaseErrorException e) {
-        throw new RuntimeException(e);
-      }
-      this.connection.commit();
-    }
-    return nonMovedPictures;
-  }
-
-  /**
-   * Merges the tags of {@code picture1} into those of {@code picture2},
-   * deleting {@code picture1} from the database and optionaly from the disk.
-   *
-   * @param picture1       The picture whose tags ought to be merged into those of {@code picture2}.
-   * @param picture2       The picture which should receive the tags of {@code picture1}.
-   * @param deleteFromDisk Whether {@code picture1} should be deleted from the disk.
-   * @throws DatabaseOperationError If any database error occurs.
-   */
-  public void mergePictures(Picture picture1, Picture picture2, boolean deleteFromDisk)
-      throws DatabaseOperationError {
-    // TODO
-  }
-
-  @SQLite
-  private static final String SELECT_IMAGE_ID_QUERY = """
-      SELECT id
-      FROM images
-      WHERE path = ?
-      """;
-
-  /**
-   * Move the specified file into the given directory.
-   *
-   * @param picture       The file to move.
-   * @param destDir       The directory where to move the file.
-   * @param resolution    A function the returns how the name collision
-   *                      for the two given source and target files should be resolved.
-   * @param sourceImageId The database ID of the file being moved.
-   * @throws IOException If any file management error occurs.
-   */
-  private void movePictureFile(Picture picture, Path destDir, FilesManager.FileNameConflictResolutionProvider resolution, int sourceImageId)
-      throws SQLException, IOException, UnknownDatabaseErrorException {
-    final Path targetFile = destDir.toAbsolutePath().resolve(picture.path().getFileName());
-    if (Files.exists(targetFile)) {
-      final int targetImageId;
-      try (final var statement = this.connection.prepareStatement(SELECT_IMAGE_ID_QUERY)) {
-        statement.setString(1, picture.path().toString());
-        try (final var resultSet = statement.executeQuery()) {
-          if (resultSet.next())
-            targetImageId = resultSet.getInt("id");
-          else
-            targetImageId = 0;
-        }
-      }
-
-      boolean solved;
-      do {
-        final var res = resolution.forFiles(picture.path(), targetFile);
-        if (res instanceof Skip) {
-          solved = true;
-        } else if (res instanceof Overwrite overwrite) {
-          this.overwriteFile(picture, targetFile, overwrite.overwrittenTagsHandling());
-          solved = true;
-        } else if (res instanceof Rename rename) {
-          solved = this.renameFile(picture, rename.newName());
-        } else {
-          throw new RuntimeException("Invalid resolution type: " + res.getClass().getName());
-        }
-      } while (!solved);
-
-    } else {
-      final Path newPath = Files.move(picture.path(), destDir).toAbsolutePath();
-      this.updateImagePath(new PictureUpdate(picture.id(), newPath, picture.hash(), Set.of(), Set.of()));
-    }
-  }
-
-  private void overwriteFile(Picture picture, Path targetFile, OverwrittenTagsHandling overwrittenTagsHandling)
-      throws SQLException, IOException, UnknownDatabaseErrorException {
-    final Path newPath = Files.move(picture.path(), targetFile, StandardCopyOption.REPLACE_EXISTING);
-    if (this.isFileRegistered(newPath.toAbsolutePath().toString())) {
-      switch (overwrittenTagsHandling) {
-        case KEEP_ORIGINAL_TAGS -> {
-          // Nothing to do
-        }
-        case MERGE_TAGS -> {
-          // TODO
-        }
-        case REPLACE_ORIGINAL_TAGS -> {
-          // TODO
-        }
+  private Optional<Tag> getTagForLabel(String label) throws SQLException {
+    try (final var statement = this.connection.prepareStatement(SELECT_TAG_FROM_LABEL_QUERY)) {
+      statement.setString(1, label);
+      try (final var resultSet = statement.executeQuery()) {
+        if (resultSet.next()) {
+          final int id = resultSet.getInt("id");
+          final int tagTypeId = resultSet.getInt("type_id");
+          final String definition = resultSet.getString("definition");
+          return Optional.of(new Tag(id, label, this.tagTypesCache.get(tagTypeId), definition));
+        } else
+          return Optional.empty();
       }
     }
   }
 
   @SQLite
-  private static final String RENAME_IMAGE_QUERY = """
-      UPDATE images
-      SET path = ?1, hash = ?2
-      WHERE id = ?3
+  private static final String ADD_TAG_TO_IMAGE_QUERY = """
+      INSERT INTO image_tag (image_id, tag_id)
+      VALUES (?, ?)
       """;
 
   /**
-   * Rename the given file to the specified name in the file system and database if it has an entry.
+   * Add a tag to an image. This method does not perform any kind of transaction managment,
+   * it is the responsablity of the caller to do so.
    *
-   * @param picture The picture to rename. Specify an ID < 1 if the file is not in the database.
-   * @param newName The file’s new name.
-   * @return True if the file was renamed, false otherwise.
-   */
-  private boolean renameFile(Picture picture, String newName) throws SQLException {
-    final Path newPath = picture.path().getParent().toAbsolutePath().resolve(newName);
-    try {
-      Files.move(picture.path(), newPath, StandardCopyOption.REPLACE_EXISTING);
-      // Check if the image has an entry in the database, if so, update its path
-      if (picture.id() >= 1)
-        this.updateImagePath(new PictureUpdate(picture.id(), newPath, picture.hash(), Set.of(), Set.of()));
-    } catch (IOException e) {
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Update the path column of the given image.
-   *
-   * @param pictureUpdate The picture to update.
+   * @param imageId The ID of the image to add the tag to.
+   * @param tagId   The ID of the tag to add.
    * @throws SQLException If any database error occurs.
    */
-  private void updateImagePath(PictureUpdate pictureUpdate) throws SQLException, IOException {
-    try (final var statement = this.connection.prepareStatement(RENAME_IMAGE_QUERY)) {
-      statement.setString(1, pictureUpdate.path().toString());
-      statement.setLong(2, pictureUpdate.hash().bytes());
-      statement.setInt(3, pictureUpdate.id());
-      statement.executeUpdate();
+  private void addTagToImageNoCommit(int imageId, int tagId) throws SQLException {
+    try (final var statement1 = this.connection.prepareStatement(ADD_TAG_TO_IMAGE_QUERY)) {
+      statement1.setInt(1, imageId);
+      statement1.setInt(2, tagId);
+      statement1.executeUpdate();
     }
   }
 
@@ -1118,46 +1011,79 @@ public final class DatabaseConnection implements AutoCloseable {
       """;
 
   /**
-   * Delete the given pictures from the database. Each picture deletion is done in separate transactions.
-   * If a file cannot be deleted, the associated database entry will not be deleted.
+   * Delete the given picture from the database.
+   * If the file cannot be deleted, the associated database entry will not be deleted.
    *
-   * @param pictures The pictures to delete.
+   * @param picture  The picture to delete.
    * @param fromDisk If true, the associated files will be deleted from the disk.
-   * @return The set of images that were deleted.
+   * @throws DatabaseOperationError If any database or file system error occurs.
    */
-  public Set<Picture> deletePictures(final Set<Picture> pictures, boolean fromDisk) throws DatabaseOperationError {
-    final Set<Picture> deletedPictures = new HashSet<>();
-    for (final var picture : pictures) {
-      boolean proceed = true;
-      try (final var statement = this.connection.createStatement()) {
-        statement.execute(DELETE_IMAGE_QUERY);
-      } catch (SQLException e) {
-        this.logCaughtError(e);
-        this.rollback();
-        proceed = false;
+  public void deletePicture(final Picture picture, boolean fromDisk) throws DatabaseOperationError {
+    this.ensureInDatabase(picture);
+    if (fromDisk) {
+      try {
+        Files.delete(picture.path());
+      } catch (IOException e) {
+        throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
       }
-      this.commit();
-      if (proceed && fromDisk) {
-        final Path path = picture.path();
-        try {
-          this.filesManager.deleteFile(path);
-        } catch (FileOperationError e) {
-          this.logCaughtError(e);
-          proceed = false;
-        }
-      }
-      if (proceed)
-        deletedPictures.add(picture);
     }
-    return deletedPictures;
+
+    try (final var statement = this.connection.prepareStatement(DELETE_IMAGE_QUERY)) {
+      statement.setInt(1, picture.id());
+      statement.executeUpdate();
+    } catch (SQLException e) {
+      this.rollback();
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+    }
+    this.commit();
+
+    // Update tag counts
+    this.getImageTags(picture)
+        .forEach(imageTag -> this.tagsCounts.put(imageTag.id(), this.tagsCounts.get(imageTag.id()) - 1));
+  }
+
+  @SQLite
+  private static final String SELECT_OBJECT_BY_ID_QUERY = """
+      SELECT *
+      FROM %s
+      WHERE id = ?
+      """;
+
+  /**
+   * Ensure that the given object exists in the database based on its ID.
+   *
+   * @param element The object to check.
+   * @throws DatabaseOperationError If the object is not in the database or any database error occurs.
+   */
+  private void ensureInDatabase(final DatabaseElement element) throws DatabaseOperationError {
+    @Language(value = "sqlite", prefix = "SELECT * FROM ", suffix = " WHERE 1")
+    final String tableName;
+    if (element instanceof TagTypeLike)
+      tableName = "tag_types";
+    else if (element instanceof TagLike)
+      tableName = "tags";
+    else if (element instanceof PictureLike)
+      tableName = "images";
+    else
+      throw this.logThrownError(new IllegalArgumentException("Unsupported type: " + element.getClass().getName()));
+
+    try (final var statement = this.connection.prepareStatement(SELECT_OBJECT_BY_ID_QUERY.formatted(tableName))) {
+      statement.setInt(1, element.id());
+      try (final var resultSet = statement.executeQuery()) {
+        if (!resultSet.next())
+          throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.OBJECT_DOES_NOT_EXIST));
+      }
+    } catch (SQLException e) {
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+    }
   }
 
   @Override
-  public void close() throws SQLException {
+  public void close() throws DatabaseOperationError {
     try {
       this.connection.close();
     } catch (SQLException e) {
-      throw this.logThrownError(e);
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
   }
 
@@ -1250,7 +1176,7 @@ public final class DatabaseConnection implements AutoCloseable {
     try {
       this.connection.rollback();
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
   }
 
@@ -1263,7 +1189,7 @@ public final class DatabaseConnection implements AutoCloseable {
     try {
       this.connection.commit();
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getStatusCode(e), e));
+      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
   }
 
@@ -1293,12 +1219,26 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * Return a {@link DatabaseErrorCode} for the given {@link SQLException}.
    *
-   * @param e An exception.
+   * @param e The exception to get a code for.
    * @return The code for that exception.
    */
-  private static DatabaseErrorCode getStatusCode(SQLException e) {
+  private static DatabaseErrorCode getErrorCode(final SQLException e) {
     if (e instanceof org.sqlite.SQLiteException ex)
       return DatabaseErrorCode.forSQLiteCode(ex.getResultCode());
+    return DatabaseErrorCode.UNKNOWN_ERROR;
+  }
+
+  /**
+   * Get the {@link DatabaseErrorCode} for the given {@link IOException}.
+   *
+   * @param e The exception to get a code for.
+   * @return The code for that exception.
+   */
+  private static DatabaseErrorCode getErrorCode(final IOException e) {
+    if (e instanceof FileAlreadyExistsException)
+      return DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR;
+    if (e instanceof FileNotFoundException)
+      return DatabaseErrorCode.MISSING_FILE_ERROR;
     return DatabaseErrorCode.UNKNOWN_ERROR;
   }
 

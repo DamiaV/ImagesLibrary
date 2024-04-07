@@ -21,7 +21,7 @@ public record PictureUpdate(
     Hash hash,
     Set<Pair<@Nullable TagType, String>> tagsToAdd,
     Set<Tag> tagsToRemove
-) {
+) implements PictureLike {
   public PictureUpdate {
     Objects.requireNonNull(path);
     Objects.requireNonNull(hash);

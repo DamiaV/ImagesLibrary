@@ -1,6 +1,5 @@
 package net.darmo_creations.imageslibrary.data;
 
-import javafx.util.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
@@ -8,7 +7,7 @@ import java.util.*;
 /**
  * This class represents an tag. Tags can be associated to images, unless their {@link #definition()} is not null.
  */
-public final class Tag extends DatabaseObject {
+public final class Tag extends DatabaseObject implements TagLike {
   private String label;
   private TagType type;
   private String definition;
@@ -31,6 +30,7 @@ public final class Tag extends DatabaseObject {
   /**
    * This tag’s label.
    */
+  @Override
   public String label() {
     return this.label;
   }
@@ -47,6 +47,7 @@ public final class Tag extends DatabaseObject {
   /**
    * This tag’s type.
    */
+  @Override
   public Optional<TagType> type() {
     return Optional.ofNullable(this.type);
   }
@@ -63,6 +64,7 @@ public final class Tag extends DatabaseObject {
   /**
    * This tag’s definition.
    */
+  @Override
   public Optional<String> definition() {
     return Optional.ofNullable(this.definition);
   }

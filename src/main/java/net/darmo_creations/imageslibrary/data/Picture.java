@@ -7,7 +7,7 @@ import java.util.*;
  * This class represents a picture file. Pictures hold the path to a file on the disk and a dHash of this file.
  * The hash is used to check which pictures are similar.
  */
-public final class Picture extends DatabaseObject {
+public final class Picture extends DatabaseObject implements PictureLike {
   private final Path path;
   private final Hash hash;
 
@@ -27,6 +27,7 @@ public final class Picture extends DatabaseObject {
   /**
    * The absolute path to this picture’s file.
    */
+  @Override
   public Path path() {
     return this.path;
   }
@@ -34,6 +35,7 @@ public final class Picture extends DatabaseObject {
   /**
    * The hash of this picture’s file.
    */
+  @Override
   public Hash hash() {
     return this.hash;
   }

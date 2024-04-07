@@ -15,7 +15,7 @@ public record TagTypeUpdate(
     String label,
     char symbol,
     int color
-) {
+) implements TagTypeLike {
   public TagTypeUpdate {
     Objects.requireNonNull(label);
   }

@@ -1,7 +1,5 @@
 package net.darmo_creations.imageslibrary.data;
 
-import net.darmo_creations.imageslibrary.data.sql_functions.*;
-
 public class DatabaseOperationError extends Exception {
   private final DatabaseErrorCode errorCode;
 
