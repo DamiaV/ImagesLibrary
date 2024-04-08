@@ -230,10 +230,10 @@ public final class DatabaseConnection implements AutoCloseable {
    * Insert the given tag types. This is done in a single transaction,
    * if any error occurs, the transaction is rolled back.
    *
-   * @param tagTypeUpdates The list of tag types to insert. Updates are performed in the order of the list.
+   * @param tagTypeUpdates The list of tag types to insert.
    * @throws DatabaseOperationError If any database error occurs.
    */
-  public void insertTagTypes(final List<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationError {
+  public void insertTagTypes(final Set<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationError {
     final List<Pair<Integer, TagTypeUpdate>> generatedIds = new LinkedList<>();
 
     try (final var statement = this.connection.prepareStatement(INSERT_TAG_TYPES_QUERY, Statement.RETURN_GENERATED_KEYS)) {
@@ -284,10 +284,10 @@ public final class DatabaseConnection implements AutoCloseable {
    * Update the given tag types. This is done in a single transaction,
    * if any error occurs, the transaction is rolled back.
    *
-   * @param tagTypeUpdates The list of tag type updates to perform. Updates are performed in the order of the list.
+   * @param tagTypeUpdates The list of tag type updates to perform.
    * @throws DatabaseOperationError If any database error occurs.
    */
-  public void updateTagTypes(final List<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationError {
+  public void updateTagTypes(final Set<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationError {
     try (final var statement = this.connection.prepareStatement(UPDATE_TAG_TYPES_QUERY)) {
       int i = 1;
       for (final var tagTypeUpdate : tagTypeUpdates) {
@@ -372,13 +372,14 @@ public final class DatabaseConnection implements AutoCloseable {
    * Insert the given tags. This is done in a single transaction,
    * if any error occurs, the transaction is rolled back.
    *
-   * @param tagUpdates The list of tags to insert. Updates are performed in the order of the list.
+   * @param tagUpdates The list of tags to insert.
    * @throws DatabaseOperationError If any database error occurs.
    */
-  public void insertTags(final List<TagUpdate> tagUpdates) throws DatabaseOperationError {
+  public void insertTags(final Set<TagUpdate> tagUpdates) throws DatabaseOperationError {
     final List<Integer> generatedIds;
+    final List<TagUpdate> updates = new ArrayList<>(tagUpdates);
     try {
-      generatedIds = this.insertTagsNoCommit(tagUpdates);
+      generatedIds = this.insertTagsNoCommit(updates);
     } catch (SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
@@ -386,8 +387,8 @@ public final class DatabaseConnection implements AutoCloseable {
     this.commit();
 
     // Update caches
-    for (int i = 0; i < tagUpdates.size(); i++) {
-      final TagUpdate tagUpdate = tagUpdates.get(i).withId(generatedIds.get(i));
+    for (int i = 0; i < updates.size(); i++) {
+      final TagUpdate tagUpdate = updates.get(i).withId(generatedIds.get(i));
       final int id = tagUpdate.id();
       this.tagsCache.put(id, new Tag(
           id,
@@ -436,9 +437,9 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param tagUpdates The list of tag updates to perform. Updates are performed in the order of the list.
    * @throws DatabaseOperationError If any database error occurs.
    */
-  public void updateTags(final List<TagUpdate> tagUpdates) throws DatabaseOperationError {
+  public void updateTags(final Set<TagUpdate> tagUpdates) throws DatabaseOperationError {
     try {
-      this.updateTagsNoCommit(tagUpdates);
+      this.updateTagsNoCommit(new ArrayList<>(tagUpdates));
     } catch (SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));

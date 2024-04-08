@@ -44,23 +44,29 @@ class DatabaseConnectionTest {
 
   @Test
   void insertTagTypes() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '$', 1),
         new TagTypeUpdate(0, "test2", '/', 2)
     ));
+    //noinspection OptionalGetWithoutIsPresent
+    final TagType tt = this.db.getAllTagTypes().stream()
+        .filter(t -> t.label().equals("test1"))
+        .findFirst()
+        .get();
+    final int id1 = tt.id(), id2 = id1 == 1 ? 2 : 1;
     assertEquals(Set.of(
-        new TagType(1, "test1", '$', 1),
-        new TagType(2, "test2", '/', 2)
+        new TagType(id1, "test1", '$', 1),
+        new TagType(id2, "test2", '/', 2)
     ), this.db.getAllTagTypes());
     assertEquals(Map.of(
-        1, 0,
-        2, 0
+        id1, 0,
+        id2, 0
     ), this.db.getAllTagTypesCounts());
   }
 
   @Test
   void insertTagTypes_duplicateLabelsError() {
-    assertThrows(DatabaseOperationError.class, () -> this.db.insertTagTypes(List.of(
+    assertThrows(DatabaseOperationError.class, () -> this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '$', 1),
         new TagTypeUpdate(0, "test1", '/', 2)
     )));
@@ -70,7 +76,7 @@ class DatabaseConnectionTest {
 
   @Test
   void insertTagTypes_duplicateSymbolsError() {
-    assertThrows(DatabaseOperationError.class, () -> this.db.insertTagTypes(List.of(
+    assertThrows(DatabaseOperationError.class, () -> this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 1),
         new TagTypeUpdate(0, "test2", '/', 2)
     )));
@@ -83,10 +89,10 @@ class DatabaseConnectionTest {
 
   @Test
   void updateTagTypes_label() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0)
     ));
-    this.db.updateTagTypes(List.of(
+    this.db.updateTagTypes(Set.of(
         new TagTypeUpdate(1, "test2", '/', 0)
     ));
     assertEquals(Set.of(
@@ -96,10 +102,10 @@ class DatabaseConnectionTest {
 
   @Test
   void updateTagTypes_symbol() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0)
     ));
-    this.db.updateTagTypes(List.of(
+    this.db.updateTagTypes(Set.of(
         new TagTypeUpdate(1, "test1", '$', 0)
     ));
     assertEquals(Set.of(
@@ -109,10 +115,10 @@ class DatabaseConnectionTest {
 
   @Test
   void updateTagTypes_color() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0)
     ));
-    this.db.updateTagTypes(List.of(
+    this.db.updateTagTypes(Set.of(
         new TagTypeUpdate(1, "test1", '/', 1)
     ));
     assertEquals(Set.of(
@@ -122,62 +128,84 @@ class DatabaseConnectionTest {
 
   @Test
   void updateTagTypes_swappedLabels() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0),
         new TagTypeUpdate(0, "test2", '$', 1)
     ));
-    this.db.updateTagTypes(List.of(
-        new TagTypeUpdate(1, "test2", '/', 0),
-        new TagTypeUpdate(2, "test1", '$', 1)
+    //noinspection OptionalGetWithoutIsPresent
+    final TagType tt = this.db.getAllTagTypes().stream()
+        .filter(tagType -> tagType.label().equals("test1"))
+        .findFirst()
+        .get();
+    final int id1 = tt.id(), id2 = id1 == 1 ? 2 : 1;
+    this.db.updateTagTypes(Set.of(
+        new TagTypeUpdate(id1, "test2", '/', 0),
+        new TagTypeUpdate(id2, "test1", '$', 1)
     ));
     assertEquals(Set.of(
-        new TagType(1, "test2", '/', 0),
-        new TagType(2, "test1", '$', 1)
+        new TagType(id1, "test2", '/', 0),
+        new TagType(id2, "test1", '$', 1)
     ), this.db.getAllTagTypes());
   }
 
   @Test
   void updateTagTypes_swappedSymbols() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0),
         new TagTypeUpdate(0, "test2", '$', 1)
     ));
-    this.db.updateTagTypes(List.of(
-        new TagTypeUpdate(1, "test1", '$', 0),
-        new TagTypeUpdate(2, "test2", '/', 1)
+    //noinspection OptionalGetWithoutIsPresent
+    final TagType tt = this.db.getAllTagTypes().stream()
+        .filter(tagType -> tagType.label().equals("test1"))
+        .findFirst()
+        .get();
+    final int id1 = tt.id(), id2 = id1 == 1 ? 2 : 1;
+    this.db.updateTagTypes(Set.of(
+        new TagTypeUpdate(id1, "test1", '$', 0),
+        new TagTypeUpdate(id2, "test2", '/', 1)
     ));
     assertEquals(Set.of(
-        new TagType(1, "test1", '$', 0),
-        new TagType(2, "test2", '/', 1)
+        new TagType(id1, "test1", '$', 0),
+        new TagType(id2, "test2", '/', 1)
     ), this.db.getAllTagTypes());
   }
 
   @Test
   void updateTagTypes_duplicateLabelsError() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0),
         new TagTypeUpdate(0, "test2", '$', 1)
     ));
-    assertThrows(DatabaseOperationError.class, () -> this.db.updateTagTypes(List.of(
-        new TagTypeUpdate(1, "test2", '/', 0)
+    //noinspection OptionalGetWithoutIsPresent
+    final TagType tt = this.db.getAllTagTypes().stream()
+        .filter(tagType -> tagType.label().equals("test1"))
+        .findFirst()
+        .get();
+    assertThrows(DatabaseOperationError.class, () -> this.db.updateTagTypes(Set.of(
+        new TagTypeUpdate(tt.id(), "test2", '/', 0)
     )));
   }
 
   @Test
   void updateTagTypes_duplicateSymbolsError() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0),
         new TagTypeUpdate(0, "test2", '$', 1)
     ));
-    assertThrows(DatabaseOperationError.class, () -> this.db.updateTagTypes(List.of(
-        new TagTypeUpdate(1, "test1", '$', 0)
+    //noinspection OptionalGetWithoutIsPresent
+    final TagType tt = this.db.getAllTagTypes().stream()
+        .filter(tagType -> tagType.label().equals("test1"))
+        .findFirst()
+        .get();
+    assertThrows(DatabaseOperationError.class, () -> this.db.updateTagTypes(Set.of(
+        new TagTypeUpdate(tt.id(), "test1", '$', 0)
     )));
   }
 
   @Test
   void updateTagTypes_notInDbError() {
     assertThrows(DatabaseOperationError.class,
-        () -> this.db.updateTagTypes(List.of(new TagTypeUpdate(1, "test", '/', 0))));
+        () -> this.db.updateTagTypes(Set.of(new TagTypeUpdate(1, "test", '/', 0))));
   }
 
   // endregion
@@ -185,7 +213,7 @@ class DatabaseConnectionTest {
 
   @Test
   void deleteTagTypes() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(new TagTypeUpdate(0, "test", '/', 0)));
+    this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "test", '/', 0)));
     assertEquals(
         Set.of(new TagType(1, "test", '/', 0)),
         this.db.getAllTagTypes()
@@ -198,12 +226,12 @@ class DatabaseConnectionTest {
 
   @Test
   void deleteTagTypes_setsTagTypeToNull() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test", '/', 0)
     ));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test", tagType, null)
     ));
     this.db.deleteTagTypes(this.db.getAllTagTypes());
@@ -214,7 +242,7 @@ class DatabaseConnectionTest {
 
   @Test
   void deleteTagTypes_notInDbErrorDoesNotUpdateCache() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(new TagTypeUpdate(0, "test", '/', 0)));
+    this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "test", '/', 0)));
     assertFalse(this.db.getAllTagTypes().isEmpty());
     assertFalse(this.db.getAllTagTypesCounts().isEmpty());
     assertThrows(DatabaseOperationError.class,
@@ -234,48 +262,40 @@ class DatabaseConnectionTest {
 
   @Test
   void insertTags() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "type", '/', 0)
     ));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertTags(List.of(
-        new TagUpdate(0, "test1", tagType, null),
-        new TagUpdate(0, "test2", null, "a b"),
-        new TagUpdate(0, "test3", tagType, "c d")
+    this.db.insertTags(Set.of(
+        new TagUpdate(0, "test1", tagType, null)
     ));
     assertEquals(Set.of(
-        new Tag(1, "test1", tagType, null),
-        new Tag(2, "test2", null, "a b"),
-        new Tag(3, "test3", tagType, "c d")
+        new Tag(1, "test1", tagType, null)
     ), this.db.getAllTags());
     assertEquals(Map.of(
-        1, 0,
-        2, 0,
-        3, 0
+        1, 0
     ), this.db.getAllTagsCounts());
   }
 
   @Test
   void insertTags_updatesTagTypesCounts() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "type", '/', 0)
     ));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertTags(List.of(
-        new TagUpdate(0, "test1", tagType, null),
-        new TagUpdate(0, "test2", null, "a b"),
-        new TagUpdate(0, "test3", tagType, "c d")
+    this.db.insertTags(Set.of(
+        new TagUpdate(0, "test1", tagType, null)
     ));
     assertEquals(Map.of(
-        1, 2
+        1, 1
     ), this.db.getAllTagTypesCounts());
   }
 
   @Test
   void insertTags_duplicateLabelsError() {
-    assertThrows(DatabaseOperationError.class, () -> this.db.insertTags(List.of(
+    assertThrows(DatabaseOperationError.class, () -> this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null),
         new TagUpdate(0, "test1", null, null)
     )));
@@ -288,10 +308,10 @@ class DatabaseConnectionTest {
 
   @Test
   void updateTags_labels() throws DatabaseOperationError {
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null)
     ));
-    this.db.updateTags(List.of(
+    this.db.updateTags(Set.of(
         new TagUpdate(1, "test2", null, null)
     ));
     assertEquals(Set.of(
@@ -301,37 +321,43 @@ class DatabaseConnectionTest {
 
   @Test
   void updateTags_types() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0)
     ));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", tagType, null),
         new TagUpdate(0, "test2", null, null)
     ));
-    this.db.updateTags(List.of(
-        new TagUpdate(1, "test1", null, null),
-        new TagUpdate(2, "test2", tagType, null)
+    //noinspection OptionalGetWithoutIsPresent
+    final Tag t = this.db.getAllTags().stream()
+        .filter(t_ -> t_.label().equals("test1"))
+        .findFirst()
+        .get();
+    final int id1 = t.id(), id2 = id1 == 1 ? 2 : 1;
+    this.db.updateTags(Set.of(
+        new TagUpdate(id1, "test1", null, null),
+        new TagUpdate(id2, "test2", tagType, null)
     ));
     assertEquals(Set.of(
-        new Tag(1, "test1", null, null),
-        new Tag(2, "test2", tagType, null)
+        new Tag(id1, "test1", null, null),
+        new Tag(id2, "test2", tagType, null)
     ), this.db.getAllTags());
   }
 
   @Test
   void updateTags_typesUpdatesTagTypesCounts_nullToNonNull() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0)
     ));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null)
     ));
     assertEquals(Map.of(1, 0), this.db.getAllTagTypesCounts());
-    this.db.updateTags(List.of(
+    this.db.updateTags(Set.of(
         new TagUpdate(1, "test1", tagType, null)
     ));
     assertEquals(Map.of(1, 1), this.db.getAllTagTypesCounts());
@@ -339,16 +365,16 @@ class DatabaseConnectionTest {
 
   @Test
   void updateTags_typesUpdatesTagTypesCounts_NonNullToNull() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0)
     ));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", tagType, null)
     ));
     assertEquals(Map.of(1, 1), this.db.getAllTagTypesCounts());
-    this.db.updateTags(List.of(
+    this.db.updateTags(Set.of(
         new TagUpdate(1, "test1", null, null)
     ));
     assertEquals(Map.of(1, 0), this.db.getAllTagTypesCounts());
@@ -356,7 +382,7 @@ class DatabaseConnectionTest {
 
   @Test
   void updateTags_typesUpdatesTagTypesCounts_NonNullToNonNull() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0),
         new TagTypeUpdate(0, "test2", '$', 1)
     ));
@@ -364,34 +390,34 @@ class DatabaseConnectionTest {
     final TagType tagType1 = this.db.getAllTagTypes().stream().filter(t -> t.id() == 1).findFirst().get();
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType2 = this.db.getAllTagTypes().stream().filter(t -> t.id() == 2).findFirst().get();
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", tagType1, null)
     ));
     assertEquals(Map.of(
-        1, 1,
-        2, 0
+        tagType1.id(), 1,
+        tagType2.id(), 0
     ), this.db.getAllTagTypesCounts());
-    this.db.updateTags(List.of(
+    this.db.updateTags(Set.of(
         new TagUpdate(1, "test1", tagType2, null)
     ));
     assertEquals(Map.of(
-        1, 0,
-        2, 1
+        tagType1.id(), 0,
+        tagType2.id(), 1
     ), this.db.getAllTagTypesCounts());
   }
 
   @Test
   void updateTags_typesSameDoesNotUpdateTagTypesCounts() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "test1", '/', 0)
     ));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", tagType, null)
     ));
     assertEquals(Map.of(1, 1), this.db.getAllTagTypesCounts());
-    this.db.updateTags(List.of(
+    this.db.updateTags(Set.of(
         new TagUpdate(1, "test1", tagType, null)
     ));
     assertEquals(Map.of(1, 1), this.db.getAllTagTypesCounts());
@@ -399,56 +425,73 @@ class DatabaseConnectionTest {
 
   @Test
   void updateTags_definitions() throws DatabaseOperationError {
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, "a b"),
         new TagUpdate(0, "test2", null, null)
     ));
-    this.db.updateTags(List.of(
-        new TagUpdate(1, "test1", null, null),
-        new TagUpdate(2, "test2", null, "c d")
+    //noinspection OptionalGetWithoutIsPresent
+    final Tag t = this.db.getAllTags().stream()
+        .filter(t_ -> t_.label().equals("test1"))
+        .findFirst()
+        .get();
+    final int id1 = t.id(), id2 = id1 == 1 ? 2 : 1;
+    this.db.updateTags(Set.of(
+        new TagUpdate(id1, "test1", null, null),
+        new TagUpdate(id2, "test2", null, "c d")
     ));
     assertEquals(Set.of(
-        new Tag(1, "test1", null, null),
-        new Tag(2, "test2", null, "c d")
+        new Tag(id1, "test1", null, null),
+        new Tag(id2, "test2", null, "c d")
     ), this.db.getAllTags());
   }
 
   @Test
   void updateTags_swappedLabels() throws DatabaseOperationError {
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null),
         new TagUpdate(0, "test2", null, null)
     ));
-    this.db.updateTags(List.of(
-        new TagUpdate(1, "test2", null, null),
-        new TagUpdate(2, "test1", null, null)
+    //noinspection OptionalGetWithoutIsPresent
+    final Tag tt = this.db.getAllTags().stream()
+        .filter(t -> t.label().equals("test1"))
+        .findFirst()
+        .get();
+    final int id1 = tt.id(), id2 = id1 == 1 ? 2 : 1;
+    this.db.updateTags(Set.of(
+        new TagUpdate(id1, "test2", null, null),
+        new TagUpdate(id2, "test1", null, null)
     ));
     assertEquals(Set.of(
-        new Tag(1, "test2", null, null),
-        new Tag(2, "test1", null, null)
+        new Tag(id1, "test2", null, null),
+        new Tag(id2, "test1", null, null)
     ), this.db.getAllTags());
   }
 
   @Test
   void updateTags_duplicateLabelsError() throws DatabaseOperationError {
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null),
         new TagUpdate(0, "test2", null, null)
     ));
-    assertThrows(DatabaseOperationError.class, () -> this.db.updateTags(List.of(
-        new TagUpdate(1, "test2", null, null)
+    //noinspection OptionalGetWithoutIsPresent
+    final Tag tt = this.db.getAllTags().stream()
+        .filter(t -> t.label().equals("test1"))
+        .findFirst()
+        .get();
+    assertThrows(DatabaseOperationError.class, () -> this.db.updateTags(Set.of(
+        new TagUpdate(tt.id(), "test2", null, null)
     )));
   }
 
   @Test
   void updateTags_addDefinitionButAlreadyLinkedToImageError() throws DatabaseOperationError {
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null)
     ));
     this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.png"), new Hash(0), Set.of(
         new Pair<>(null, "test1")
     ), Set.of()));
-    assertThrows(DatabaseOperationError.class, () -> this.db.updateTags(List.of(
+    assertThrows(DatabaseOperationError.class, () -> this.db.updateTags(Set.of(
         new TagUpdate(1, "test1", null, "c d")
     )));
   }
@@ -456,7 +499,7 @@ class DatabaseConnectionTest {
   @Test
   void updateTags_notInDbError() {
     assertThrows(DatabaseOperationError.class,
-        () -> this.db.updateTags(List.of(new TagUpdate(1, "test", null, null))));
+        () -> this.db.updateTags(Set.of(new TagUpdate(1, "test", null, null))));
   }
 
   // endregion
@@ -464,7 +507,7 @@ class DatabaseConnectionTest {
 
   @Test
   void deleteTags() throws DatabaseOperationError {
-    this.db.insertTags(List.of(new TagUpdate(0, "test", null, null)));
+    this.db.insertTags(Set.of(new TagUpdate(0, "test", null, null)));
     assertEquals(
         Set.of(new Tag(1, "test", null, null)),
         this.db.getAllTags()
@@ -477,12 +520,12 @@ class DatabaseConnectionTest {
 
   @Test
   void deleteTags_updatesTagTypesCounts() throws DatabaseOperationError {
-    this.db.insertTagTypes(List.of(
+    this.db.insertTagTypes(Set.of(
         new TagTypeUpdate(0, "type", '/', 0)
     ));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test", tagType, null)
     ));
     assertEquals(Map.of(1, 1), this.db.getAllTagTypesCounts());
@@ -492,7 +535,7 @@ class DatabaseConnectionTest {
 
   @Test
   void deleteTags_notInDbErrorDoesNotUpdateCache() throws DatabaseOperationError {
-    this.db.insertTags(List.of(new TagUpdate(0, "test", null, null)));
+    this.db.insertTags(Set.of(new TagUpdate(0, "test", null, null)));
     assertFalse(this.db.getAllTags().isEmpty());
     assertFalse(this.db.getAllTagsCounts().isEmpty());
     assertThrows(DatabaseOperationError.class,
@@ -755,7 +798,7 @@ class DatabaseConnectionTest {
   @Test
   void insertPicture_addsTagsToPicture() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null),
         new TagUpdate(0, "test2", null, null)
     ));
@@ -763,16 +806,22 @@ class DatabaseConnectionTest {
         new Pair<>(null, "test1"),
         new Pair<>(null, "test2")
     ), Set.of()));
+    //noinspection OptionalGetWithoutIsPresent
+    final Tag t = this.db.getAllTags().stream()
+        .filter(t_ -> t_.label().equals("test1"))
+        .findFirst()
+        .get();
+    final int id1 = t.id(), id2 = id1 == 1 ? 2 : 1;
     assertEquals(Set.of(
-        new Tag(1, "test1", null, null),
-        new Tag(2, "test2", null, null)
+        new Tag(id1, "test1", null, null),
+        new Tag(id2, "test2", null, null)
     ), this.db.getImageTags(new Picture(1, path, new Hash(0))));
   }
 
   @Test
   void insertPicture_createsTags() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTagTypes(List.of(new TagTypeUpdate(0, "type", '/', 0)));
+    this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
@@ -799,7 +848,7 @@ class DatabaseConnectionTest {
   @Test
   void insertPicture_updatesTagTypeCounts() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTagTypes(List.of(new TagTypeUpdate(0, "type", '/', 0)));
+    this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
@@ -833,7 +882,7 @@ class DatabaseConnectionTest {
   @Test
   void insertPicture_addTagsWithDefinitionsError() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, "a b")
     ));
     assertThrows(DatabaseOperationError.class,
@@ -855,7 +904,7 @@ class DatabaseConnectionTest {
   @Test
   void insertPicture_duplicateTagNamesError() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTagTypes(List.of(new TagTypeUpdate(0, "type", '/', 0)));
+    this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     assertThrows(DatabaseOperationError.class,
@@ -869,7 +918,7 @@ class DatabaseConnectionTest {
   @Test
   void insertPicture_errorRollbacksEverything() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTagTypes(List.of(new TagTypeUpdate(0, "type", '/', 0)));
+    this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     assertThrows(DatabaseOperationError.class,
@@ -899,7 +948,7 @@ class DatabaseConnectionTest {
   @Test
   void updatePicture_addsTagsToPicture() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null),
         new TagUpdate(0, "test2", null, null)
     ));
@@ -908,16 +957,22 @@ class DatabaseConnectionTest {
         new Pair<>(null, "test1"),
         new Pair<>(null, "test2")
     ), Set.of()));
+    //noinspection OptionalGetWithoutIsPresent
+    final Tag t = this.db.getAllTags().stream()
+        .filter(t_ -> t_.label().equals("test1"))
+        .findFirst()
+        .get();
+    final int id1 = t.id(), id2 = id1 == 1 ? 2 : 1;
     assertEquals(Set.of(
-        new Tag(1, "test1", null, null),
-        new Tag(2, "test2", null, null)
+        new Tag(id1, "test1", null, null),
+        new Tag(id2, "test2", null, null)
     ), this.db.getImageTags(new Picture(1, path, new Hash(0))));
   }
 
   @Test
   void updatePicture_removesTagsFromPicture() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null),
         new TagUpdate(0, "test2", null, null)
     ));
@@ -925,9 +980,15 @@ class DatabaseConnectionTest {
         new Pair<>(null, "test1"),
         new Pair<>(null, "test2")
     ), Set.of()));
+    //noinspection OptionalGetWithoutIsPresent
+    final Tag t = this.db.getAllTags().stream()
+        .filter(t_ -> t_.label().equals("test1"))
+        .findFirst()
+        .get();
+    final int id1 = t.id(), id2 = id1 == 1 ? 2 : 1;
     this.db.updatePicture(new PictureUpdate(1, path, new Hash(1), Set.of(), Set.of(
-        new Tag(1, "test1", null, null),
-        new Tag(2, "test2", null, null)
+        new Tag(id1, "test1", null, null),
+        new Tag(id2, "test2", null, null)
     )));
     assertTrue(this.db.getImageTags(new Picture(1, path, new Hash(0))).isEmpty());
   }
@@ -935,7 +996,7 @@ class DatabaseConnectionTest {
   @Test
   void updatePicture_createsTags() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTagTypes(List.of(new TagTypeUpdate(0, "type", '/', 0)));
+    this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
@@ -964,7 +1025,7 @@ class DatabaseConnectionTest {
   @Test
   void updatePicture_updatesTagTypeCounts() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTagTypes(List.of(new TagTypeUpdate(0, "type", '/', 0)));
+    this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
@@ -990,7 +1051,7 @@ class DatabaseConnectionTest {
   void updatePicture_pathDoesNothing() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
-    Path path2 = Path.of("test_file_2.png");
+    final Path path2 = Path.of("test_file_2.png");
     this.db.updatePicture(new PictureUpdate(1, path2, new Hash(0), Set.of(), Set.of()));
     assertTrue(this.db.isFileRegistered(path));
     assertFalse(this.db.isFileRegistered(path2));
@@ -999,7 +1060,7 @@ class DatabaseConnectionTest {
   @Test
   void updatePicture_duplicateTagNamesError() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTagTypes(List.of(new TagTypeUpdate(0, "type", '/', 0)));
+    this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
@@ -1014,7 +1075,7 @@ class DatabaseConnectionTest {
   @Test
   void updatePicture_addTagsWithDefinitionsError() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTags(List.of(
+    this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, "a b")
     ));
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
@@ -1028,7 +1089,7 @@ class DatabaseConnectionTest {
   @Test
   void updatePicture_errorRollbacksEverything() throws DatabaseOperationError {
     final Path path = Path.of("test_file.png");
-    this.db.insertTagTypes(List.of(new TagTypeUpdate(0, "type", '/', 0)));
+    this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
