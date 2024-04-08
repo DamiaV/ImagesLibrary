@@ -153,6 +153,28 @@ class DatabaseConnectionTest {
   }
 
   @Test
+  void updateTagTypes_duplicateLabelsError() throws DatabaseOperationError {
+    this.db.insertTagTypes(List.of(
+        new TagTypeUpdate(0, "test1", '/', 0),
+        new TagTypeUpdate(0, "test2", '$', 1)
+    ));
+    assertThrows(DatabaseOperationError.class, () -> this.db.updateTagTypes(List.of(
+        new TagTypeUpdate(1, "test2", '/', 0)
+    )));
+  }
+
+  @Test
+  void updateTagTypes_duplicateSymbolsError() throws DatabaseOperationError {
+    this.db.insertTagTypes(List.of(
+        new TagTypeUpdate(0, "test1", '/', 0),
+        new TagTypeUpdate(0, "test2", '$', 1)
+    ));
+    assertThrows(DatabaseOperationError.class, () -> this.db.updateTagTypes(List.of(
+        new TagTypeUpdate(1, "test1", '$', 0)
+    )));
+  }
+
+  @Test
   void updateTagTypes_notInDbError() {
     assertThrows(DatabaseOperationError.class,
         () -> this.db.updateTagTypes(List.of(new TagTypeUpdate(1, "test", '/', 0))));
@@ -405,6 +427,17 @@ class DatabaseConnectionTest {
         new Tag(1, "test2", null, null),
         new Tag(2, "test1", null, null)
     ), this.db.getAllTags());
+  }
+
+  @Test
+  void updateTags_duplicateLabelsError() throws DatabaseOperationError {
+    this.db.insertTags(List.of(
+        new TagUpdate(0, "test1", null, null),
+        new TagUpdate(0, "test2", null, null)
+    ));
+    assertThrows(DatabaseOperationError.class, () -> this.db.updateTags(List.of(
+        new TagUpdate(1, "test2", null, null)
+    )));
   }
 
   @Test
@@ -743,12 +776,10 @@ class DatabaseConnectionTest {
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-        new Pair<>(tagType, "test1"),
-        new Pair<>(null, "test2")
+        new Pair<>(tagType, "test1")
     ), Set.of()));
     assertEquals(Set.of(
-        new Tag(1, "test1", tagType, null),
-        new Tag(2, "test2", null, null)
+        new Tag(1, "test1", tagType, null)
     ), this.db.getAllTags());
   }
 
@@ -909,12 +940,10 @@ class DatabaseConnectionTest {
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     this.db.updatePicture(new PictureUpdate(1, path, new Hash(1), Set.of(
-        new Pair<>(tagType, "test1"),
-        new Pair<>(null, "test2")
+        new Pair<>(tagType, "test1")
     ), Set.of()));
     assertEquals(Set.of(
-        new Tag(1, "test1", tagType, null),
-        new Tag(2, "test2", null, null)
+        new Tag(1, "test1", tagType, null)
     ), this.db.getAllTags());
   }
 

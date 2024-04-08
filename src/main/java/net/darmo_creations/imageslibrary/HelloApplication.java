@@ -4,10 +4,8 @@ import javafx.application.*;
 import javafx.fxml.*;
 import javafx.scene.*;
 import javafx.stage.*;
-import net.darmo_creations.imageslibrary.data.*;
 
 import java.io.*;
-import java.util.logging.*;
 
 public class HelloApplication extends Application {
   @Override

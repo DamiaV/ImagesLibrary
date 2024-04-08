@@ -90,12 +90,13 @@ public final class DatabaseConnection implements AutoCloseable {
     this.logger.setLevel(loggingLevel);
     this.logger.info("Connecting to database file at %s".formatted(fileName));
     try {
+      final boolean needToSetup = file == null || !Files.exists(file);
       this.connection = DriverManager.getConnection("jdbc:sqlite:%s".formatted(fileName));
       this.injectCustomFunctions();
       this.connection.setAutoCommit(false);
       this.executeUpdateQuery("PRAGMA FOREIGN_KEYS = ON");
       this.logger.info("Foreign keys enabled");
-      if (file == null || !Files.exists(file)) // If the DB file does not exist, create it
+      if (needToSetup) // If the DB file does not exist, create it
         this.setupDatabase();
       else
         this.checkSchemaVersion();
@@ -269,8 +270,14 @@ public final class DatabaseConnection implements AutoCloseable {
   @SQLite
   public static final String UPDATE_TAG_TYPES_QUERY = """
       UPDATE tag_types
-      SET label = ?1, symbol = ?2, color = ?3
-      WHERE id = ?4
+      SET label = ?1, symbol = ?2, color = ?3, updating = ?4
+      WHERE id = ?5
+      """;
+  @SuppressWarnings("SqlWithoutWhere")
+  @SQLite
+  public static final String RESET_UPDATING_TAG_TYPES_QUERY = """
+      UPDATE tag_types
+      SET updating = 0
       """;
 
   /**
@@ -281,16 +288,20 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationError If any database error occurs.
    */
   public void updateTagTypes(final List<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationError {
-    // FIXME what to do in case of label/symbol swap?
     try (final var statement = this.connection.prepareStatement(UPDATE_TAG_TYPES_QUERY)) {
+      int i = 1;
       for (final var tagTypeUpdate : tagTypeUpdates) {
         final int id = tagTypeUpdate.id();
         statement.setString(1, tagTypeUpdate.label());
         statement.setString(2, String.valueOf(tagTypeUpdate.symbol()));
         statement.setInt(3, tagTypeUpdate.color());
-        statement.setInt(4, id);
+        statement.setInt(4, i++);
+        statement.setInt(5, id);
         if (statement.executeUpdate() == 0)
           throw this.logThrownError(new SQLException("No tag type with ID %d".formatted(id)));
+      }
+      try (final var statement1 = this.connection.prepareStatement(RESET_UPDATING_TAG_TYPES_QUERY)) {
+        statement1.executeUpdate();
       }
     } catch (SQLException e) {
       this.rollback();
@@ -418,13 +429,6 @@ public final class DatabaseConnection implements AutoCloseable {
     return generatedIds;
   }
 
-  @SQLite
-  public static final String UPDATE_TAGS_QUERY = """
-      UPDATE tags
-      SET label = ?1, type_id = ?2, definition = ?3
-      WHERE id = ?4
-      """;
-
   /**
    * Update the given tags. This is done in a single transaction,
    * if any error occurs, the transaction is rolled back.
@@ -464,6 +468,19 @@ public final class DatabaseConnection implements AutoCloseable {
     }
   }
 
+  @SQLite
+  public static final String UPDATE_TAGS_QUERY = """
+      UPDATE tags
+      SET label = ?1, type_id = ?2, definition = ?3, updating = ?4
+      WHERE id = ?5
+      """;
+  @SuppressWarnings("SqlWithoutWhere")
+  @SQLite
+  public static final String RESET_UPDATING_TAGS_QUERY = """
+      UPDATE tags
+      SET updating = 0
+      """;
+
   /**
    * Update the given tags. This method does not perform any kind of transaction managment,
    * it is the responsablity of the caller to do so.
@@ -473,7 +490,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationError If any database error occurs.
    */
   private void updateTagsNoCommit(final List<TagUpdate> tagUpdates) throws SQLException, DatabaseOperationError {
-    // FIXME what to do in case of label swap?
+    int i = 1;
     try (final var statement = this.connection.prepareStatement(UPDATE_TAGS_QUERY)) {
       for (final var tagUpdate : tagUpdates) {
         this.ensureInDatabase(tagUpdate);
@@ -487,9 +504,13 @@ public final class DatabaseConnection implements AutoCloseable {
         if (tagUpdate.definition().isPresent() && this.isTagUsed(tagUpdate))
           throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.BOUND_TAG_HAS_DEFINITION));
         statement.setString(3, tagUpdate.definition().orElse(null));
-        statement.setInt(4, id);
+        statement.setInt(4, i++);
+        statement.setInt(5, id);
         if (statement.executeUpdate() == 0)
           throw this.logThrownError(new SQLException("No tag with ID %d".formatted(id)));
+      }
+      try (final var statement1 = this.connection.prepareStatement(RESET_UPDATING_TAGS_QUERY)) {
+        statement1.executeUpdate();
       }
     }
   }

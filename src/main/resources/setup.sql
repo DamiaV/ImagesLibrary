@@ -12,18 +12,23 @@ CREATE INDEX idx_images_hash ON images (hash); -- Speed up hash querying
 
 CREATE TABLE tag_types
 (
-    id     INTEGER PRIMARY KEY AUTOINCREMENT,
-    label  TEXT NOT NULL UNIQUE,
-    symbol TEXT NOT NULL UNIQUE,
-    color  INTEGER DEFAULT 0
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    label    TEXT NOT NULL,
+    symbol   TEXT NOT NULL,
+    color    INTEGER DEFAULT 0,
+    updating INTEGER DEFAULT 0,
+    UNIQUE (label, updating),
+    UNIQUE (symbol, updating)
 ) STRICT;
 
 CREATE TABLE tags
 (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    label      TEXT UNIQUE NOT NULL,
+    label      TEXT NOT NULL,
     type_id    INTEGER DEFAULT NULL,
     definition TEXT    DEFAULT NULL,
+    updating   INTEGER DEFAULT 0,
+    UNIQUE (label, updating),
     FOREIGN KEY (type_id) REFERENCES tag_types (id) ON DELETE SET NULL
 ) STRICT;
 
