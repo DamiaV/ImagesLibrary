@@ -61,7 +61,7 @@ class TagQueryVisitor extends TagQueryLanguageBaseVisitor<Formula> {
   public Formula visitPseudoTagString(TagQueryLanguageParser.PseudoTagStringContext ctx) {
     final String label = ctx.IDENT().getText();
     final var flagNode = ctx.FLAG();
-    final String flags = flagNode == null ? "" : flagNode.getText();
+    final String flags = flagNode == null ? "" : flagNode.getText().toLowerCase();
     String pattern = ctx.STRING().getText();
     pattern = pattern.substring(1, pattern.length() - 1)
         .replaceAll("\\\\([\"\\\\])", "$1"); // Unescape \ and "
@@ -72,7 +72,7 @@ class TagQueryVisitor extends TagQueryLanguageBaseVisitor<Formula> {
   public Formula visitPseudoTagRegex(TagQueryLanguageParser.PseudoTagRegexContext ctx) {
     final String label = ctx.IDENT().getText();
     final var flagNode = ctx.FLAG();
-    final String flags = flagNode == null ? "" : flagNode.getText();
+    final String flags = flagNode == null ? "" : flagNode.getText().toLowerCase();
     String pattern = ctx.REGEX().getText();
     pattern = pattern.substring(1, pattern.length() - 1)
         .replace("\\\\/", "/"); // Unescape /

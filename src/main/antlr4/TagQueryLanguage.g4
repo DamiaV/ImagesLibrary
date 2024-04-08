@@ -6,7 +6,7 @@ grammar TagQueryLanguage;
 
 WS: [ \n\r\t];
 IDENT: [a-z_][a-z0-9_]*;
-FLAG: [is];
+FLAG: [IS];
 STRING: '"'('\\'[\\"*?]|~[\\"])*'"';
 REGEX: '/'('\\'[\\/()[\]{}*+?|^$=!.><dDsSwWbBAGzZQEnrtf-]|~[\\/])*'/';
 
