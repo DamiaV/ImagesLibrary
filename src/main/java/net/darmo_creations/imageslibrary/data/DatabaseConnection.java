@@ -577,7 +577,6 @@ public final class DatabaseConnection implements AutoCloseable {
     final var sql = query.asSQL();
     if (sql.isEmpty())
       return pictures;
-    System.out.println(sql.get()); // DEBUG
     //noinspection SqlSourceToSinkFlow
     try (final var statement = this.connection.prepareStatement(sql.get());
          final var resultSet = statement.executeQuery()) {
