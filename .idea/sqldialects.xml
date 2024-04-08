@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="SqlDialectMappings">
-    <file url="file://$PROJECT_DIR$/src/main/java/net/darmo_creations/imageslibrary/data/DatabaseConnection.java" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/src/main/java/net/darmo_creations/imageslibrary/data/DatabaseConnection.java" dialect="SQLite" />
     <file url="file://$PROJECT_DIR$/src/main/resources/setup.sql" dialect="SQLite" />
     <file url="PROJECT" dialect="SQLite" />
   </component>
