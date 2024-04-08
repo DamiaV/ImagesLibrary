@@ -64,11 +64,11 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * The current database schema version.
    */
-  public static final int CURRENT_SCHEMA_VERSION = 0;
+  private static final int CURRENT_SCHEMA_VERSION = 0;
   /**
    * The name of the database setup file.
    */
-  public static final String SETUP_FILE_NAME = "setup.sql";
+  private static final String SETUP_FILE_NAME = "setup.sql";
 
   private final Logger logger;
   private final Connection connection;

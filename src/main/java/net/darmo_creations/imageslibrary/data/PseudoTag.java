@@ -1,7 +1,5 @@
 package net.darmo_creations.imageslibrary.data;
 
-import org.jetbrains.annotations.*;
-
 import java.util.*;
 
 /**
@@ -16,9 +14,6 @@ public record PseudoTag(
     @SQLite String sqlTemplate,
     boolean acceptsRegex
 ) {
-  @Unmodifiable
-  public static final List<String> FLAGS = List.of("i", "s");
-
   public PseudoTag {
     Objects.requireNonNull(sqlTemplate);
   }
