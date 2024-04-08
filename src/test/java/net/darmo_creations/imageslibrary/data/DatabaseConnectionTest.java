@@ -4,6 +4,7 @@ import javafx.util.*;
 import net.darmo_creations.imageslibrary.query_parser.*;
 import net.darmo_creations.imageslibrary.query_parser.ex.*;
 import org.junit.jupiter.api.*;
+import org.logicng.formulas.*;
 
 import java.io.*;
 import java.nio.file.*;
@@ -476,10 +477,172 @@ class DatabaseConnectionTest {
   // endregion
   // region queryPictures
 
+  private FormulaFactory initQueryPicturesTest() throws DatabaseOperationError {
+    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.jpeg"), new Hash(0), Set.of(
+        new Pair<>(null, "test1"),
+        new Pair<>(null, "test2")
+    ), Set.of()));
+    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file_2.jpg"), new Hash(1), Set.of(
+        new Pair<>(null, "test1"),
+        new Pair<>(null, "test3")
+    ), Set.of()));
+    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file_3.png"), new Hash(-1), Set.of(), Set.of()));
+    return new FormulaFactory();
+  }
+
   @Test
-  @Disabled
-  void queryPictures() {
-    // TODO
+  void queryPictures_trueReturnsAll() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(new TagQuery(ff.verum(), Map.of()));
+    assertEquals(3, pictures.size());
+  }
+
+  @Test
+  void queryPictures_falseReturnsNone() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(new TagQuery(ff.falsum(), Map.of()));
+    assertTrue(pictures.isEmpty());
+  }
+
+  @Test
+  void queryPictures_or() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(new TagQuery(ff.or(ff.variable("test2"), ff.variable("test3")), Map.of()));
+    assertEquals(2, pictures.size());
+  }
+
+  @Test
+  void queryPictures_and() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(new TagQuery(ff.and(ff.variable("test1"), ff.variable("test2")), Map.of()));
+    assertEquals(1, pictures.size());
+    //noinspection OptionalGetWithoutIsPresent
+    assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
+  }
+
+  @Test
+  void queryPictures_not() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(new TagQuery(ff.not(ff.variable("test2")), Map.of()));
+    assertEquals(2, pictures.size());
+    assertEquals(Set.of(
+        new Picture(2, Path.of("test_file_2.jpg"), new Hash(1)),
+        new Picture(3, Path.of("test_file_3.png"), new Hash(-1))
+    ), pictures);
+  }
+
+  @Test
+  void queryPictures_pseudoTag_extPlainString() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("ext:string::jpeg"), DatabaseConnection.PSEUDO_TAGS));
+    assertEquals(1, pictures.size());
+    //noinspection OptionalGetWithoutIsPresent
+    assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_extTemplateString() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("ext:string::jp?g"), DatabaseConnection.PSEUDO_TAGS));
+    assertEquals(2, pictures.size());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_extRegex() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("ext:regex::jp[e]?g"), DatabaseConnection.PSEUDO_TAGS));
+    assertEquals(2, pictures.size());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_namePlainString() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("name:string::test_file.jpeg"), DatabaseConnection.PSEUDO_TAGS));
+    assertEquals(1, pictures.size());
+    //noinspection OptionalGetWithoutIsPresent
+    assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_nameTemplateString() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("name:string::test_file*.jp?g"), DatabaseConnection.PSEUDO_TAGS));
+    assertEquals(2, pictures.size());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_nameRegex() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("name:regex::test_file.*\\.jpe?g"), DatabaseConnection.PSEUDO_TAGS));
+    assertEquals(2, pictures.size());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_pathPlainString() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("path:string::%s/test_file.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS));
+    assertEquals(1, pictures.size());
+    //noinspection OptionalGetWithoutIsPresent
+    assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_pathTemplateString() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("path:string::*/test_file*.jp?g"), DatabaseConnection.PSEUDO_TAGS));
+    assertEquals(2, pictures.size());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_pathRegex() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("path:regex::.*/test_file.*\\.jpe?g"), DatabaseConnection.PSEUDO_TAGS));
+    assertEquals(2, pictures.size());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_similar_toPlainString() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("similar_to:string::%s/test_file.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS));
+    assertEquals(2, pictures.size());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_similar_toTemplateStringNoError() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(
+        new TagQuery(ff.variable("similar_to:string::%s/test_file.jp?g".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS));
+    assertTrue(pictures.isEmpty());
+  }
+
+  @Test
+  void queryPictures_pseudoTag_similar_toRegexError() throws DatabaseOperationError {
+    final var ff = this.initQueryPicturesTest();
+    assertThrows(InvalidPseudoTagException.class,
+        () -> this.db.queryPictures(new TagQuery(ff.variable("similar_to:regex::%s/test_file\\.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS)));
+  }
+
+  @Test
+  void queryPictures_nonExistentTagNoError() throws DatabaseOperationError, InvalidPseudoTagException {
+    final var ff = this.initQueryPicturesTest();
+    final var pictures = this.db.queryPictures(new TagQuery(ff.variable("yo"), Map.of()));
+    assertTrue(pictures.isEmpty());
+  }
+
+  @Test
+  void queryPictures_nonExistentPseudoTagError() throws DatabaseOperationError {
+    final var ff = this.initQueryPicturesTest();
+    assertThrows(InvalidPseudoTagException.class, () -> this.db.queryPictures(new TagQuery(ff.variable("invalid:string::a"), Map.of())));
   }
 
   // endregion
@@ -527,9 +690,23 @@ class DatabaseConnectionTest {
   // region getSimilarImages
 
   @Test
-  @Disabled
-  void getSimilarImages() {
-    // TODO
+  void getSimilarImages() throws DatabaseOperationError {
+    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.png"), new Hash(0), Set.of(), Set.of()));
+    final Path path = Path.of("test_file_2.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(-1), Set.of(), Set.of()));
+    final var similarImages = this.db.getSimilarImages(new Hash(-1), null);
+    assertEquals(1, similarImages.size());
+    assertEquals(new Picture(2, path, new Hash(-1)), similarImages.get(0).getKey());
+  }
+
+  @Test
+  void getSimilarImages_returnsSameConfidenceIndexAsHashClass() throws DatabaseOperationError {
+    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.png"), new Hash(0), Set.of(), Set.of()));
+    assertEquals(
+        new Hash(0).computeSimilarity(new Hash(0)).confidence(),
+        this.db.getSimilarImages(new Hash(0), null).get(0).getValue(),
+        1e-6f
+    );
   }
 
   // endregion
@@ -977,9 +1154,152 @@ class DatabaseConnectionTest {
   // region mergePictures
 
   @Test
-  @Disabled
-  void mergePictures() {
-    // TODO
+  void mergePictures_mergesTags() throws DatabaseOperationError {
+    final Path path = Path.of("test_file.png");
+    final Path path1 = Path.of("test_file_2.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
+        new Pair<>(null, "test1")
+    ), Set.of()));
+    this.db.insertPicture(new PictureUpdate(0, path1, new Hash(1), Set.of(
+        new Pair<>(null, "test2")
+    ), Set.of()));
+    this.db.mergePictures(
+        new Picture(1, path, new Hash(0)),
+        new Picture(2, path1, new Hash(0)),
+        false
+    );
+    final var imageTags = this.db.getImageTags(new Picture(2, path1, new Hash(0)));
+    assertEquals(Set.of(
+        new Tag(1, "test1", null, null),
+        new Tag(2, "test2", null, null)
+    ), imageTags);
+  }
+
+  @Test
+  void mergePictures_deletesFirstImageEntry() throws DatabaseOperationError {
+    final Path path = Path.of("test_file.png");
+    final Path path1 = Path.of("test_file_2.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
+    this.db.insertPicture(new PictureUpdate(0, path1, new Hash(1), Set.of(), Set.of()));
+    this.db.mergePictures(
+        new Picture(1, path, new Hash(0)),
+        new Picture(2, path1, new Hash(0)),
+        false
+    );
+    assertFalse(this.db.isFileRegistered(path));
+    assertTrue(this.db.isFileRegistered(path1));
+  }
+
+  @Test
+  void mergePictures_deletesFirstImageFileIfRequested() throws DatabaseOperationError {
+    final Path path = Path.of("test_file.png");
+    final Path path1 = Path.of("test_file_2.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
+    this.db.insertPicture(new PictureUpdate(0, path1, new Hash(1), Set.of(), Set.of()));
+    this.db.mergePictures(
+        new Picture(2, path1, new Hash(0)),
+        new Picture(1, path, new Hash(0)),
+        true
+    );
+    assertTrue(Files.exists(path));
+    assertFalse(Files.exists(path1));
+  }
+
+  @Test
+  void mergePictures_worksIfFirstFileDoesNotExist() throws DatabaseOperationError {
+    final Path path = Path.of("test_file.png");
+    final Path path1 = Path.of("test_file_3.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
+    this.db.insertPicture(new PictureUpdate(0, path1, new Hash(1), Set.of(), Set.of()));
+    this.db.mergePictures(
+        new Picture(2, path1, new Hash(0)),
+        new Picture(1, path, new Hash(0)),
+        true
+    );
+    assertFalse(this.db.isFileRegistered(path1));
+    assertTrue(this.db.isFileRegistered(path));
+  }
+
+  @Test
+  void mergePictures_worksIfSecondFileDoesNotExist() throws DatabaseOperationError {
+    final Path path = Path.of("test_file_0.png");
+    final Path path1 = Path.of("test_file_2.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
+    this.db.insertPicture(new PictureUpdate(0, path1, new Hash(1), Set.of(), Set.of()));
+    this.db.mergePictures(
+        new Picture(2, path1, new Hash(0)),
+        new Picture(1, path, new Hash(0)),
+        true
+    );
+    assertFalse(this.db.isFileRegistered(path1));
+    assertTrue(this.db.isFileRegistered(path));
+  }
+
+  @Test
+  void mergePictures_updateTagsCounts() throws DatabaseOperationError {
+    final Path path = Path.of("test_file.png");
+    final Path path1 = Path.of("test_file_2.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
+        new Pair<>(null, "test")
+    ), Set.of()));
+    this.db.insertPicture(new PictureUpdate(0, path1, new Hash(1), Set.of(
+        new Pair<>(null, "test")
+    ), Set.of()));
+    assertEquals(Map.of(1, 2), this.db.getAllTagsCounts());
+    this.db.mergePictures(
+        new Picture(1, path, new Hash(0)),
+        new Picture(2, path1, new Hash(1)),
+        false
+    );
+    assertEquals(Map.of(1, 1), this.db.getAllTagsCounts());
+  }
+
+  @Test
+  void mergePictures_sameIdsError() throws DatabaseOperationError {
+    final Path path = Path.of("test_file.png");
+    final Path path1 = Path.of("test_file_2.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
+    this.db.insertPicture(new PictureUpdate(0, path1, new Hash(1), Set.of(), Set.of()));
+    assertThrows(IllegalArgumentException.class, () -> this.db.mergePictures(
+        new Picture(1, path, new Hash(0)),
+        new Picture(1, path1, new Hash(0)),
+        false
+    ));
+  }
+
+  @Test
+  void mergePictures_samePathsError() throws DatabaseOperationError {
+    final Path path = Path.of("test_file.png");
+    final Path path1 = Path.of("test_file_2.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
+    this.db.insertPicture(new PictureUpdate(0, path1, new Hash(1), Set.of(), Set.of()));
+    assertThrows(IllegalArgumentException.class, () -> this.db.mergePictures(
+        new Picture(1, path, new Hash(0)),
+        new Picture(2, path, new Hash(0)),
+        false
+    ));
+  }
+
+  @Test
+  void mergePictures_firstNotInDbError() throws DatabaseOperationError {
+    final Path path = Path.of("test_file.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
+    assertThrows(DatabaseOperationError.class, () -> this.db.mergePictures(
+        new Picture(2, Path.of("test_file_2.png"), new Hash(0)),
+        new Picture(1, path, new Hash(0)),
+        false
+    ));
+  }
+
+  @Test
+  void mergePictures_secondNotInDbError() throws DatabaseOperationError {
+    final Path path = Path.of("test_file.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
+    assertThrows(DatabaseOperationError.class, () -> this.db.mergePictures(
+        new Picture(1, path, new Hash(0)),
+        new Picture(2, Path.of("test_file_2.png"), new Hash(0)),
+        false
+    ));
   }
 
   // endregion
@@ -1009,6 +1329,17 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     this.db.deletePicture(new Picture(1, path, new Hash(0)), true);
     assertFalse(this.db.isFileRegistered(path));
+  }
+
+  @Test
+  void deletePicture_updatesTagCount() throws DatabaseOperationError {
+    final Path path = Path.of("test_file_2.png");
+    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
+        new Pair<>(null, "test")
+    ), Set.of()));
+    assertEquals(Map.of(1, 1), this.db.getAllTagsCounts());
+    this.db.deletePicture(new Picture(1, path, new Hash(0)), false);
+    assertEquals(Map.of(1, 0), this.db.getAllTagsCounts());
   }
 
   @Test

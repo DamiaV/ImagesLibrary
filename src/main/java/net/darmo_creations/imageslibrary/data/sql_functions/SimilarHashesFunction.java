@@ -13,6 +13,10 @@ import java.sql.*;
 public class SimilarHashesFunction extends org.sqlite.Function {
   @Override
   protected void xFunc() throws SQLException {
+    if (this.value_text(0) == null || this.value_text(1) == null) {
+      this.result(0);
+      return;
+    }
     final Hash hash1 = new Hash(this.value_long(0));
     final Hash hash2 = new Hash(this.value_long(1));
     final var similarity = hash1.computeSimilarity(hash2);

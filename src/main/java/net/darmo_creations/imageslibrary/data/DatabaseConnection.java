@@ -577,6 +577,7 @@ public final class DatabaseConnection implements AutoCloseable {
     final var sql = query.asSQL();
     if (sql.isEmpty())
       return pictures;
+    System.out.println(sql.get()); // DEBUG
     //noinspection SqlSourceToSinkFlow
     try (final var statement = this.connection.prepareStatement(sql.get());
          final var resultSet = statement.executeQuery()) {
@@ -964,8 +965,10 @@ public final class DatabaseConnection implements AutoCloseable {
         final Tag tag = tagOpt.get();
         if (tag.definition().isPresent())
           throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.BOUND_TAG_HAS_DEFINITION));
-        this.addTagToImageNoCommit(pictureUpdate.id(), tag.id());
-        addedTags.add(new Pair<>(this.tagsCache.get(tag.id()), false));
+        if (!this.imageHasTag(pictureUpdate.id(), tag.id())) {
+          this.addTagToImageNoCommit(pictureUpdate.id(), tag.id());
+          addedTags.add(new Pair<>(this.tagsCache.get(tag.id()), false));
+        }
       } else
         toInsert.add(new TagUpdate(0, tagLabel, tagType, null));
     }
@@ -990,6 +993,32 @@ public final class DatabaseConnection implements AutoCloseable {
       addedTags.add(new Pair<>(new Tag(generatedId, tagUpdate.label(), tagUpdate.type().orElse(null), null), true));
     }
     return new Pair<>(addedTags, removedTags);
+  }
+
+  @SQLite
+  private static final String SELECT_IMAGE_TAG_QUERY = """
+      SELECT COUNT(*)
+      FROM image_tag
+      WHERE image_id = ?1
+        AND tag_id = ?2
+      """;
+
+  /**
+   * Check whether a picture has a specific tag.
+   *
+   * @param pictureId The picture’s ID.
+   * @param tagId     The tag’s ID.
+   * @return True if the picture has the tag, false otherwise.
+   * @throws SQLException If any database error occurs.
+   */
+  private boolean imageHasTag(int pictureId, int tagId) throws SQLException {
+    try (final var statement = this.connection.prepareStatement(SELECT_IMAGE_TAG_QUERY)) {
+      statement.setInt(1, pictureId);
+      statement.setInt(2, tagId);
+      try (final var resultSet = statement.executeQuery()) {
+        return resultSet.next() && resultSet.getInt(1) != 0;
+      }
+    }
   }
 
   /**

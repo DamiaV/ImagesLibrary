@@ -102,6 +102,19 @@ public final class TagQuery {
     if (formula instanceof Or or)
       return joinOperands(or, pseudoTags, "UNION");
 
+    if (formula instanceof Literal literal) {
+      final var variable = literal.variable();
+      if (literal.phase()) // Positive variable
+        return toSql_(variable, pseudoTags);
+      else // Negated variable
+        // language=sqlite
+        return """
+                   SELECT id, path, hash
+                   FROM images
+                   EXCEPT
+                   """ + toSql_(variable, pseudoTags);
+    }
+
     throw new RuntimeException("Unsupported Formula type: " + formula.getClass());
   }
 
@@ -132,7 +145,7 @@ public final class TagQuery {
         if (tag.acceptsRegex()) {
           escaped = escaped
               // Escape regex meta-characters except "*" and "?"
-              .replaceAll("([\\[\\]()+{.^$])", "\\\\$1")
+              .replaceAll("([\\[\\]()+{.^$|])", "\\\\$1")
               // Replace with regexs "*" and "?" that are preceeded by an even number of \ (including 0)
               .replaceAll("((?<!\\\\)(?:\\\\\\\\)*)([*?])", "$1.$2");
           // language=regexp
