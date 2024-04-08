@@ -50,6 +50,7 @@ public final class TagQueryParser {
   ) {
     final var lexer = new TagQueryLanguageLexer(CharStreams.fromString(query));
     final var parser = new TagQueryLanguageParser(new CommonTokenStream(lexer));
+    parser.removeErrorListeners(); // Remove default listener that prints to STDOUT
     parser.addErrorListener(new ErrorListener());
     return new TagQueryVisitor(tagDefinitions, depth, formulaFactory).visit(parser.expr());
   }
