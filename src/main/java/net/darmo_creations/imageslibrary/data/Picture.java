@@ -20,7 +20,7 @@ public final class Picture extends DatabaseObject implements PictureLike {
    */
   Picture(int id, final Path path, Hash hash) {
     super(id);
-    this.path = Objects.requireNonNull(path.toAbsolutePath());
+    this.path = path.toAbsolutePath();
     this.hash = Objects.requireNonNull(hash);
   }
 
@@ -51,5 +51,11 @@ public final class Picture extends DatabaseObject implements PictureLike {
   @Override
   public int hashCode() {
     return Objects.hash(this.path, this.hash);
+  }
+
+  @Override
+  public String toString() {
+    return "Picture{id=%d, path=%s, hash=%s}"
+        .formatted(this.id(), this.path, this.hash);
   }
 }

@@ -91,4 +91,10 @@ public final class Tag extends DatabaseObject implements TagLike {
   public int hashCode() {
     return Objects.hash(this.label, this.type, this.definition);
   }
+
+  @Override
+  public String toString() {
+    return "Tag{id=%d, label='%s', type=%s, definition='%s'}"
+        .formatted(this.id(), this.label, this.type, this.definition);
+  }
 }

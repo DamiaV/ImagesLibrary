@@ -22,10 +22,36 @@ public record PictureUpdate(
     Set<Pair<@Nullable TagType, String>> tagsToAdd,
     Set<Tag> tagsToRemove
 ) implements PictureLike {
-  public PictureUpdate {
-    Objects.requireNonNull(path);
-    Objects.requireNonNull(hash);
-    Objects.requireNonNull(tagsToAdd);
-    Objects.requireNonNull(tagsToRemove);
+  public PictureUpdate(
+      int id,
+      Path path,
+      Hash hash,
+      Set<Pair<@Nullable TagType, String>> tagsToAdd,
+      Set<Tag> tagsToRemove
+  ) {
+    this.id = id;
+    this.path = path.toAbsolutePath();
+    this.hash = Objects.requireNonNull(hash);
+    this.tagsToAdd = Objects.requireNonNull(tagsToAdd);
+    this.tagsToRemove = Objects.requireNonNull(tagsToRemove);
+  }
+
+  /**
+   * Return a new {@link PictureUpdate} with the same field values as this one, but with the given ID.
+   *
+   * @param id The ID to replace this one’s with.
+   * @return A new {@link PictureUpdate} object if the IDs are different, this object if they are identical.
+   */
+  @Contract(pure = true)
+  public PictureUpdate withId(int id) {
+    if (id == this.id())
+      return this;
+    return new PictureUpdate(
+        id,
+        this.path,
+        this.hash,
+        this.tagsToAdd,
+        this.tagsToRemove
+    );
   }
 }

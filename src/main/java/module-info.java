@@ -9,8 +9,6 @@ module net.darmo_creations.imageslibrary {
   requires org.xerial.sqlitejdbc;
   requires org.antlr.antlr4.runtime;
   requires logicng;
-  requires org.reflections;
-  requires java.compiler;
 
   opens net.darmo_creations.imageslibrary to javafx.fxml;
   exports net.darmo_creations.imageslibrary;

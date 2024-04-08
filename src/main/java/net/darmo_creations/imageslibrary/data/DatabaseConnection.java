@@ -3,12 +3,9 @@ package net.darmo_creations.imageslibrary.data;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.data.sql_functions.*;
 import net.darmo_creations.imageslibrary.query_parser.*;
-import net.darmo_creations.imageslibrary.utils.ReflectionUtils;
+import net.darmo_creations.imageslibrary.utils.*;
 import org.intellij.lang.annotations.*;
 import org.jetbrains.annotations.*;
-import org.reflections.*;
-import org.reflections.scanners.*;
-import org.reflections.util.*;
 
 import java.io.*;
 import java.lang.reflect.*;
@@ -126,33 +123,31 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   private void injectCustomFunctions() throws SQLException {
     this.logger.info("Injecting custom SQL functions…");
-    final var reflections = new Reflections(new ConfigurationBuilder()
-        .forPackage(this.getClass().getPackageName() + ".sql_functions")
-        .setScanners(Scanners.TypesAnnotated));
-    final var annotatedClasses = reflections.getTypesAnnotatedWith(SqlFunction.class);
+    // Cannot use reflection to get classes as it does not work in tests
+    @SuppressWarnings("unchecked")
+    final Class<? extends org.sqlite.Function>[] functions = new Class[] {
+        HashesSimilarityFunction.class,
+        RegexFunction.class,
+        RightIndexFunction.class,
+        SimilarHashesFunction.class,
+    };
     int total = 0;
-    for (final var annotatedClass : annotatedClasses) {
-      if (org.sqlite.Function.class.isAssignableFrom(annotatedClass)) {
-        @SuppressWarnings("unchecked")
-        final var functionClass = (Class<? extends org.sqlite.Function>) annotatedClass;
-        final var annotation = functionClass.getAnnotation(SqlFunction.class);
-        this.logger.info("Found SQL function '%s'.".formatted(annotation.name()));
-        try {
-          org.sqlite.Function.create(
-              this.connection,
-              annotation.name(),
-              functionClass.getConstructor().newInstance(),
-              annotation.nArgs(),
-              annotation.flags()
-          );
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-                 NoSuchMethodException e) {
-          this.logCaughtError(e);
-        }
-        total++;
-      } else {
-        this.logger.warning("Class %s does not extend org.sqlite.Function, skipping.".formatted(annotatedClass.getName()));
+    for (final var functionClass : functions) {
+      final var annotation = functionClass.getAnnotation(SqlFunction.class);
+      this.logger.info("Found SQL function '%s'.".formatted(annotation.name()));
+      try {
+        org.sqlite.Function.create(
+            this.connection,
+            annotation.name(),
+            functionClass.getConstructor().newInstance(),
+            annotation.nArgs(),
+            annotation.flags()
+        );
+      } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+               NoSuchMethodException e) {
+        this.logCaughtError(e);
       }
+      total++;
     }
     this.logger.info("Loaded %d functions.".formatted(total));
   }
@@ -173,10 +168,11 @@ public final class DatabaseConnection implements AutoCloseable {
   private void checkSchemaVersion() throws SQLException {
     final var pythonErrorMsg = "Python-generated database detected, please convert it before using it with this app";
     // Check if the "images.hash" column is missing
-    try (final var resultSet1 = this.executeSelectQuery("PRAGMA TABLE_INFO (images)")) {
-      boolean hashFound = false;
-      while (resultSet1.next()) {
-        if (resultSet1.getString("name").equals("hash")) {
+    boolean hashFound = false;
+    try (final var statement = this.connection.prepareStatement("PRAGMA TABLE_INFO (images)");
+         final var resultSet = statement.executeQuery()) {
+      while (resultSet.next()) {
+        if (resultSet.getString("name").equals("hash")) {
           hashFound = true;
           break;
         }
@@ -185,14 +181,17 @@ public final class DatabaseConnection implements AutoCloseable {
         throw this.logThrownError(new SQLException(pythonErrorMsg));
     }
     // Check if the "version" table is present
-    try (final var resultSet = this.executeSelectQuery(CHECK_FOR_PYTHON_DB_0001_QUERY)) {
+    try (final var statement = this.connection.prepareStatement(CHECK_FOR_PYTHON_DB_0001_QUERY);
+         final var resultSet = statement.executeQuery()) {
       if (resultSet.next())
         throw this.logThrownError(new SQLException(pythonErrorMsg));
     }
 
-    try (final var resultSet = this.executeSelectQuery("PRAGMA USER_VERSION")) {
+    final int schemaVersion;
+    try (final var statement = this.connection.prepareStatement("PRAGMA USER_VERSION");
+         final var resultSet = statement.executeQuery()) {
       resultSet.next();
-      final int schemaVersion = resultSet.getInt(1);
+      schemaVersion = resultSet.getInt(1);
       if (schemaVersion > CURRENT_SCHEMA_VERSION)
         throw this.logThrownError(new SQLException("Invalid database schema version: %d".formatted(schemaVersion)));
     }
@@ -546,7 +545,8 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   private <T extends DatabaseObject> void deleteObjects(
       final Set<T> objects,
-      @Language(value = "sqlite", prefix = "DELETE FROM ", suffix = " WHERE 1") String tableName
+      @Language(value = "sqlite", prefix = "DELETE FROM ", suffix = " WHERE 1")
+      String tableName
   ) throws DatabaseOperationError {
     try (final var statement = this.connection.prepareStatement("DELETE FROM %s WHERE id = ?".formatted(tableName))) {
       for (final T o : objects) {
@@ -577,7 +577,9 @@ public final class DatabaseConnection implements AutoCloseable {
     final var sql = query.asSQL();
     if (sql.isEmpty())
       return pictures;
-    try (final var resultSet = this.executeSelectQuery(sql.get())) {
+    //noinspection SqlSourceToSinkFlow
+    try (final var statement = this.connection.prepareStatement(sql.get());
+         final var resultSet = statement.executeQuery()) {
       while (resultSet.next())
         pictures.add(new Picture(
             resultSet.getInt("id"),
@@ -591,7 +593,7 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
-  private static final String IMAGES_WITHOUT_TAGS_QUERY = """
+  private static final String SELECT_IMAGES_WITHOUT_TAGS_QUERY = """
       SELECT i.id, i.path, i.hash
       FROM images AS i
       WHERE (
@@ -610,13 +612,15 @@ public final class DatabaseConnection implements AutoCloseable {
   @Contract(pure = true, value = "-> new")
   public Set<Picture> getImagesWithNoTags() throws DatabaseOperationError {
     final Set<Picture> pictures = new HashSet<>();
-    try (final var resultSet = this.executeSelectQuery(IMAGES_WITHOUT_TAGS_QUERY)) {
-      while (resultSet.next())
+    try (final var statement = this.connection.prepareStatement(SELECT_IMAGES_WITHOUT_TAGS_QUERY);
+         final var resultSet = statement.executeQuery()) {
+      while (resultSet.next()) {
         pictures.add(new Picture(
             resultSet.getInt("id"),
             Path.of(resultSet.getString("path")),
             new Hash(resultSet.getLong("hash"))
         ));
+      }
     } catch (SQLException e) {
       throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
@@ -624,7 +628,7 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
-  private static final String IMAGE_TAGS_QUERY = """
+  private static final String SELECT_IMAGE_TAGS_QUERY = """
       SELECT t.id
       FROM tags AS t, image_tag AS it
       WHERE it.image_id = ?
@@ -641,7 +645,7 @@ public final class DatabaseConnection implements AutoCloseable {
   @Contract(pure = true, value = "_ -> new")
   public Set<Tag> getImageTags(Picture picture) throws DatabaseOperationError {
     final Set<Tag> tags = new HashSet<>();
-    try (final var statement = this.connection.prepareStatement(IMAGE_TAGS_QUERY)) {
+    try (final var statement = this.connection.prepareStatement(SELECT_IMAGE_TAGS_QUERY)) {
       statement.setInt(1, picture.id());
       try (final var resultSet = statement.executeQuery()) {
         while (resultSet.next())
@@ -682,7 +686,7 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
-  private static final String SIMILAR_IMAGES_QUERY = """
+  private static final String SELECT_SIMILAR_IMAGES_QUERY = """
       SELECT id, path, hash, "SIMILARITY_CONFIDENCE"(hash, ?1) AS confidence
       FROM images
       WHERE id != ?2
@@ -703,7 +707,7 @@ public final class DatabaseConnection implements AutoCloseable {
   @Contract(pure = true, value = "_, _ -> new")
   public List<Pair<Picture, Float>> getSimilarImages(Hash hash, @Nullable Picture exclude) throws DatabaseOperationError {
     final List<Pair<Picture, Float>> pictures = new LinkedList<>();
-    try (final var statement = this.connection.prepareStatement(SIMILAR_IMAGES_QUERY)) {
+    try (final var statement = this.connection.prepareStatement(SELECT_SIMILAR_IMAGES_QUERY)) {
       statement.setLong(1, hash.bytes());
       statement.setInt(2, exclude != null ? exclude.id() : -1);
       try (final var resultSet = statement.executeQuery()) {
@@ -741,11 +745,14 @@ public final class DatabaseConnection implements AutoCloseable {
       throw this.logThrownError(new IllegalArgumentException("Cannot remove tags from a picture that is not yet registered"));
 
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
-    try (final var statement = this.connection.prepareStatement(INSERT_IMAGE_QUERY)) {
+    try (final var statement = this.connection.prepareStatement(INSERT_IMAGE_QUERY, Statement.RETURN_GENERATED_KEYS)) {
       statement.setString(1, pictureUpdate.path().toString());
       statement.setLong(2, pictureUpdate.hash().bytes());
       statement.executeUpdate();
-      result = this.updatePictureTagsNoCommit(pictureUpdate);
+      final var id = getFirstGeneratedId(statement);
+      if (id.isEmpty())
+        throw this.logThrownError(new SQLException("Query did not generate any key"));
+      result = this.updatePictureTagsNoCommit(pictureUpdate.withId(id.get()));
     } catch (SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
@@ -826,11 +833,12 @@ public final class DatabaseConnection implements AutoCloseable {
     if (Files.exists(destDir.resolve(picture.path().getFileName())))
       throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
 
-    this.moveOrRenamePicture(picture, destDir);
+    this.moveOrRenamePicture(picture, destDir.resolve(picture.path().getFileName()));
   }
 
   /**
-   * Move/rename the given picture.
+   * Move/rename the given picture. If the underlying file does not exist,
+   * the picture’s path still gets updated.
    *
    * @param picture The picture to move/rename.
    * @param newPath The destination/new name.
@@ -839,6 +847,7 @@ public final class DatabaseConnection implements AutoCloseable {
   private void moveOrRenamePicture(Picture picture, Path newPath) throws DatabaseOperationError {
     try {
       Files.move(picture.path(), newPath);
+    } catch (NoSuchFileException ignored) {
     } catch (IOException e) {
       throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
     }
@@ -905,6 +914,8 @@ public final class DatabaseConnection implements AutoCloseable {
       if (inserted) {
         this.tagsCache.put(tagId, tag);
         this.tagsCounts.put(tagId, 1);
+        tag.type().ifPresent(
+            tagType -> this.tagTypesCounts.put(tagType.id(), this.tagTypesCounts.get(tagType.id()) + 1));
       } else
         this.tagsCounts.put(tagId, this.tagsCounts.get(tagId) + 1);
     }
@@ -943,7 +954,10 @@ public final class DatabaseConnection implements AutoCloseable {
     final Set<Pair<Tag, Boolean>> addedTags = new HashSet<>();
     final List<TagUpdate> toInsert = new LinkedList<>();
     for (final var tagUpdate : pictureUpdate.tagsToAdd()) {
+      @Nullable
       final TagType tagType = tagUpdate.getKey();
+      if (tagType != null)
+        this.ensureInDatabase(tagType);
       final String tagLabel = tagUpdate.getValue();
       final var tagOpt = this.getTagForLabel(tagLabel);
       if (tagOpt.isPresent()) {
@@ -1031,6 +1045,7 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * Delete the given picture from the database.
    * If the file cannot be deleted, the associated database entry will not be deleted.
+   * If the file does not exist, the database entry still gets deleted.
    *
    * @param picture  The picture to delete.
    * @param fromDisk If true, the associated files will be deleted from the disk.
@@ -1041,6 +1056,7 @@ public final class DatabaseConnection implements AutoCloseable {
     if (fromDisk) {
       try {
         Files.delete(picture.path());
+      } catch (NoSuchFileException ignored) {
       } catch (IOException e) {
         throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
       }
@@ -1126,7 +1142,8 @@ public final class DatabaseConnection implements AutoCloseable {
    * Initalize the internal tag and tag type caches.
    */
   private void initCaches() throws IOException {
-    try (final var resultSet = this.executeSelectQuery("SELECT id, label, symbol, color FROM tag_types")) {
+    try (final var statement = this.connection.prepareStatement("SELECT id, label, symbol, color FROM tag_types");
+         final var resultSet = statement.executeQuery()) {
       while (resultSet.next()) {
         final int id = resultSet.getInt("id");
         this.tagTypesCache.put(id, new TagType(
@@ -1140,7 +1157,8 @@ public final class DatabaseConnection implements AutoCloseable {
       throw this.logThrownError(new IOException(e));
     }
 
-    try (final var resultSet = this.executeSelectQuery("SELECT id, label, type_id, definition FROM tags")) {
+    try (final var statement = this.connection.prepareStatement("SELECT id, label, type_id, definition FROM tags");
+         final var resultSet = statement.executeQuery()) {
       while (resultSet.next()) {
         final int id = resultSet.getInt("id");
         this.tagsCache.put(id, new Tag(
@@ -1170,19 +1188,6 @@ public final class DatabaseConnection implements AutoCloseable {
       throw this.logThrownError(e);
     }
     this.connection.commit();
-  }
-
-  /**
-   * Execute a SQL {@code SELECT} query.
-   *
-   * @param query The SQL query to execute.
-   * @return The rows returned by the given query in a {@link ResultSet} object.
-   */
-  @Contract(pure = true, value = "_ -> new")
-  private ResultSet executeSelectQuery(@SQLite String query) throws SQLException {
-    try (final var statement = this.connection.createStatement()) {
-      return statement.executeQuery(query);
-    }
   }
 
   /**
