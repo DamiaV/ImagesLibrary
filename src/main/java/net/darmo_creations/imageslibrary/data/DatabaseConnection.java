@@ -12,6 +12,7 @@ import java.lang.reflect.*;
 import java.nio.file.*;
 import java.sql.*;
 import java.util.*;
+import java.util.function.*;
 import java.util.logging.*;
 import java.util.stream.*;
 
@@ -1334,11 +1335,85 @@ public final class DatabaseConnection implements AutoCloseable {
    * Convert a database file created by the Python app to this app’s format.
    * The original file remains unchanged and the converted database is written to a new file.
    *
-   * @param path The path to the file to convert.
+   * @param file The path to the file to convert.
    * @return The converted file.
    */
-  public static Path convertPythonDatabase(final Path path) throws SQLException, IOException {
-    // TODO
-    return null;
+  public static Path convertPythonDatabase(final Path file) throws DatabaseOperationError {
+    final Path outputPath = file.toAbsolutePath().getParent().resolve("converted-" + file.getFileName());
+
+    if (Files.exists(outputPath)) {
+      try {
+        Files.delete(outputPath);
+      } catch (IOException e) {
+        throw new DatabaseOperationError(getErrorCode(e), e);
+      }
+    }
+
+    try (final var db = new DatabaseConnection(outputPath, Level.ALL);
+         final var conn = DriverManager.getConnection("jdbc:sqlite:%s".formatted(file))) {
+      // Copy tag_types
+      final Map<Integer, String> oldTagTypeIds = new HashMap<>();
+      try (final var statement = conn.prepareStatement("SELECT id, label, symbol, color FROM tag_types");
+           final var resultSet = statement.executeQuery()) {
+        final Set<TagTypeUpdate> updates = new HashSet<>();
+        while (resultSet.next()) {
+          final int id = resultSet.getInt("id");
+          final String label = resultSet.getString("label");
+          final char symbol = resultSet.getString("symbol").charAt(0);
+          final int color = resultSet.getInt("color");
+          updates.add(new TagTypeUpdate(0, label, symbol, color));
+          oldTagTypeIds.put(id, label);
+        }
+        db.insertTagTypes(updates);
+      }
+      final var tagTypes = db.getAllTagTypes().stream()
+          .collect(Collectors.toMap(TagType::label, Function.identity()));
+
+      // Copy tags
+      final Map<Integer, String> oldTagIds = new HashMap<>();
+      try (final var statement = conn.prepareStatement("SELECT id, label, type_id, definition FROM tags");
+           final var resultSet = statement.executeQuery()) {
+        final Set<TagUpdate> updates = new HashSet<>();
+        while (resultSet.next()) {
+          final int id = resultSet.getInt("id");
+          final String label = resultSet.getString("label");
+          final int typeId = resultSet.getInt("type_id");
+          final String definition = resultSet.getString("definition");
+          updates.add(new TagUpdate(0, label, typeId != 0 ? tagTypes.get(oldTagTypeIds.get(typeId)) : null, definition));
+          oldTagIds.put(id, label);
+        }
+        db.insertTags(updates);
+      }
+      final var tags = db.getAllTags().stream()
+          .collect(Collectors.toMap(Tag::label, Function.identity()));
+
+      // Copy images
+      try (final var statement = conn.prepareStatement("SELECT * FROM images"); // Using * as the hash column may not be present
+           final var tagsStatement = conn.prepareStatement("SELECT tag_id FROM image_tag WHERE image_id = ?");
+           final var resultSet = statement.executeQuery()) {
+        while (resultSet.next()) {
+          final int id = resultSet.getInt("id");
+          final String path = resultSet.getString("path");
+          final Hash hash;
+          if (resultSet.getMetaData().getColumnCount() == 3)
+            hash = new Hash(resultSet.getLong("hash"));
+          else
+            hash = new Hash(0);
+          // Fetch associated tags
+          final Set<Pair<TagType, String>> imageTags = new HashSet<>();
+          tagsStatement.setInt(1, id);
+          try (final var tagsResultSet = tagsStatement.executeQuery()) {
+            while (tagsResultSet.next()) {
+              final Tag tag = tags.get(oldTagIds.get(tagsResultSet.getInt("tag_id")));
+              imageTags.add(new Pair<>(tag.type().orElse(null), tag.label()));
+            }
+          }
+          db.insertPicture(new PictureUpdate(0, Path.of(path).toAbsolutePath(), hash, imageTags, Set.of()));
+        }
+      }
+    } catch (SQLException e) {
+      throw new DatabaseOperationError(getErrorCode(e), e);
+    }
+    return outputPath;
   }
 }
