@@ -1127,6 +1127,7 @@ public final class DatabaseConnection implements AutoCloseable {
         .forEach(imageTag -> this.tagsCounts.put(imageTag.id(), this.tagsCounts.get(imageTag.id()) - 1));
   }
 
+  @SuppressWarnings("SqlResolve")
   @SQLite
   private static final String SELECT_OBJECT_BY_ID_QUERY = """
       SELECT *
