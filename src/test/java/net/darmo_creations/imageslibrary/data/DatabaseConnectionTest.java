@@ -9,7 +9,6 @@ import org.logicng.formulas.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
-import java.util.logging.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,7 +19,7 @@ class DatabaseConnectionTest {
 
   @BeforeEach
   void setUp() throws DatabaseOperationError, IOException {
-    this.db = new DatabaseConnection(null, Level.SEVERE);
+    this.db = new DatabaseConnection(null);
     // Reset test files
     final Path path = Path.of("test_file_3.png");
     final Path path1 = Path.of("test_file.png");

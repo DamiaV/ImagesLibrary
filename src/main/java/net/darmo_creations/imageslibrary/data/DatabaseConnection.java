@@ -6,6 +6,7 @@ import net.darmo_creations.imageslibrary.query_parser.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.intellij.lang.annotations.*;
 import org.jetbrains.annotations.*;
+import org.slf4j.*;
 
 import java.io.*;
 import java.lang.reflect.*;
@@ -13,7 +14,6 @@ import java.nio.file.*;
 import java.sql.*;
 import java.util.*;
 import java.util.function.*;
-import java.util.logging.*;
 import java.util.stream.*;
 
 /**
@@ -85,11 +85,10 @@ public final class DatabaseConnection implements AutoCloseable {
    *             If null, the database will be loaded in-memory only.
    * @throws DatabaseOperationError If the file exists but is not a database file or is incompatible.
    */
-  public DatabaseConnection(@Nullable Path file, Level loggingLevel) throws DatabaseOperationError {
+  public DatabaseConnection(@Nullable Path file) throws DatabaseOperationError {
     final String fileName = file == null ? ":memory:" : file.toString();
-    this.logger = Logger.getLogger("DB (%s)".formatted(fileName));
-    this.logger.setLevel(loggingLevel);
-    this.logger.info("Connecting to database file at %s".formatted(fileName));
+    this.logger = LoggerFactory.getLogger("DB (%s)".formatted(fileName));
+    this.logger.info("Connecting to database file at {}", fileName);
     try {
       final boolean needToSetup = file == null || !Files.exists(file);
       this.connection = DriverManager.getConnection("jdbc:sqlite:%s".formatted(fileName));
@@ -136,7 +135,7 @@ public final class DatabaseConnection implements AutoCloseable {
     int total = 0;
     for (final var functionClass : functions) {
       final var annotation = functionClass.getAnnotation(SqlFunction.class);
-      this.logger.info("Found SQL function '%s'.".formatted(annotation.name()));
+      this.logger.info("Found SQL function '{}'.", annotation.name());
       try {
         org.sqlite.Function.create(
             this.connection,
@@ -151,7 +150,7 @@ public final class DatabaseConnection implements AutoCloseable {
       }
       total++;
     }
-    this.logger.info("Loaded %d functions.".formatted(total));
+    this.logger.info("Loaded {} functions.", total);
   }
 
   @SQLite
@@ -1276,7 +1275,11 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   @Contract("_ -> param1")
   private <E extends Exception> E logThrownError(final E e) {
-    this.logger.throwing(this.getClass().getName(), ReflectionUtils.getCallingMethodName(), e);
+    final var out = new StringWriter();
+    try (final var writer = new PrintWriter(out)) {
+      e.printStackTrace(writer);
+    }
+    this.logger.error("Exception thrown in method {}:\n{}", ReflectionUtils.getCallingMethodName(), out);
     return e;
   }
 
@@ -1287,8 +1290,10 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   private void logCaughtError(final Exception e) {
     final var stackTrack = new StringWriter();
-    e.printStackTrace(new PrintWriter(stackTrack));
-    this.logger.severe("Caught exception in method %s:\n%s".formatted(ReflectionUtils.getCallingMethodName(), stackTrack));
+    try (final var writer = new PrintWriter(stackTrack)) {
+      e.printStackTrace(writer);
+    }
+    this.logger.warn("Caught exception in method {}:\n{}", ReflectionUtils.getCallingMethodName(), stackTrack);
   }
 
   /**
@@ -1350,7 +1355,7 @@ public final class DatabaseConnection implements AutoCloseable {
       }
     }
 
-    try (final var db = new DatabaseConnection(outputPath, Level.ALL);
+    try (final var db = new DatabaseConnection(outputPath);
          final var conn = DriverManager.getConnection("jdbc:sqlite:%s".formatted(file))) {
       // Copy tag_types
       final Map<Integer, String> oldTagTypeIds = new HashMap<>();
