@@ -22,7 +22,6 @@ public class ResultsView extends VBox {
   private final List<SearchListener> searchListeners = new ArrayList<>();
   private final DatabaseConnection db;
 
-  // TODO edit image when double-clicked
   private final ListView<PictureEntry> imagesList = new ListView<>();
   private final TextField searchField = new TextField();
   private final Button searchButton = new Button();
@@ -48,14 +47,13 @@ public class ResultsView extends VBox {
     this.getChildren().addAll(searchBox, this.errorLabel, this.imagesList);
 
     this.imagesList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-    this.imagesList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
-        this.imageListSelectionListeners.forEach(listener -> {
-          final var selection = this.imagesList.getSelectionModel().getSelectedItems().stream()
-              .map(PictureEntry::picture)
-              .toList();
-          listener.onSelectionChanged(selection);
-        })
-    );
+    this.imagesList.getSelectionModel().selectedItemProperty().addListener(
+        (observable, oldValue, newValue) -> this.onSelectionChange());
+    this.imagesList.focusedProperty().addListener((observable, oldValue, newValue) -> {
+      if (newValue)
+        this.onSelectionChange();
+    });
+    // TODO double-click listener
 
     this.searchField.setPromptText(language.translate("image_search_field.search"));
     this.searchField.setOnAction(e -> this.search());
@@ -174,6 +172,15 @@ public class ResultsView extends VBox {
     this.searchField.requestFocus();
     this.searchButton.setDisable(false);
     this.clearSearchButton.setDisable(false);
+  }
+
+  private void onSelectionChange() {
+    this.imageListSelectionListeners.forEach(listener -> {
+      final var selection = this.imagesList.getSelectionModel().getSelectedItems().stream()
+          .map(PictureEntry::picture)
+          .toList();
+      listener.onSelectionChanged(selection);
+    });
   }
 
   private record PictureEntry(Picture picture) implements Comparable<PictureEntry> {

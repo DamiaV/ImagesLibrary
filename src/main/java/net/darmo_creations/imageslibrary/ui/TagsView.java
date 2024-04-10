@@ -12,7 +12,7 @@ import net.darmo_creations.imageslibrary.utils.*;
 import java.util.*;
 import java.util.function.*;
 
-public class TagsView extends VBox { // TODO option to create/edit/delete tags and tag types from here
+public class TagsView extends VBox {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final Set<TagSelectionListener> tagSelectionListeners = new HashSet<>();
 

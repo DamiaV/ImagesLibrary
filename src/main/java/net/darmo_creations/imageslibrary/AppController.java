@@ -27,24 +27,18 @@ public class AppController implements ResultsView.SearchListener {
   private final SettingsDialog settingsDialog = new SettingsDialog();
   private final AboutDialog aboutDialog = new AboutDialog();
 
-  private MenuItem editImagesMenuItem;
-  private Button editImagesButton;
-  private boolean previousEditImagesState;
   private MenuItem renameImagesMenuItem;
   private Button renameImagesButton;
   private boolean previousRenameImagesState;
   private MenuItem moveImagesMenuItem;
   private Button moveImagesButton;
   private boolean previousMoveImagesState;
-  private MenuItem deleteImagesMenuItem;
-  private Button deleteImagesButton;
-  private boolean previousDeleteImagesState;
-  private MenuItem editTagMenuItem;
-  private Button editTagButton;
-  private boolean previousEditTagState;
-  private MenuItem deleteTagsMenuItem;
-  private Button deleteTagsButton;
-  private boolean previousDeleteTagsState;
+  private MenuItem editMenuItem;
+  private Button editButton;
+  private boolean previousEditState;
+  private MenuItem deleteMenuItem;
+  private Button deleteButton;
+  private boolean previousDeleteState;
   private MenuItem slideshowMenuItem;
   private Button slideshowButton;
   private boolean previousSlideshowState;
@@ -141,13 +135,20 @@ public class AppController implements ResultsView.SearchListener {
     );
 
     final Menu editMenu = new Menu(language.translate("menu.edit"));
-    this.editImagesMenuItem = new MenuItem(
+    this.editMenuItem = new MenuItem(
         language.translate("menu.edit.edit_images"),
         theme.getIcon(Icon.EDIT_IMAGES, Icon.Size.SMALL)
     );
-    this.editImagesMenuItem.setOnAction(e -> this.onEditSelectedImages());
-    this.editImagesMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN));
-    this.editImagesMenuItem.setDisable(true);
+    this.editMenuItem.setOnAction(e -> this.onEdit());
+    this.editMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN));
+    this.editMenuItem.setDisable(true);
+    this.deleteMenuItem = new MenuItem(
+        language.translate("menu.edit.delete_images"),
+        theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.SMALL)
+    );
+    this.deleteMenuItem.setOnAction(e -> this.onDelete());
+    this.deleteMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.DELETE));
+    this.deleteMenuItem.setDisable(true);
     this.renameImagesMenuItem = new MenuItem(
         language.translate("menu.edit.rename_images"),
         theme.getIcon(Icon.RENAME_IMAGES, Icon.Size.SMALL)
@@ -162,35 +163,11 @@ public class AppController implements ResultsView.SearchListener {
     this.moveImagesMenuItem.setOnAction(e -> this.onMoveSelectedImages());
     this.moveImagesMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.M, KeyCombination.CONTROL_DOWN));
     this.moveImagesMenuItem.setDisable(true);
-    this.deleteImagesMenuItem = new MenuItem(
-        language.translate("menu.edit.delete_images"),
-        theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.SMALL)
-    );
-    this.deleteImagesMenuItem.setOnAction(e -> this.onDeleteSelectedImages());
-    this.deleteImagesMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.DELETE));
-    this.deleteImagesMenuItem.setDisable(true);
-    this.editTagMenuItem = new MenuItem(
-        language.translate("menu.edit.edit_tag"),
-        theme.getIcon(Icon.EDIT_TAG, Icon.Size.SMALL)
-    );
-    this.editTagMenuItem.setOnAction(e -> this.onEditSelectedTag());
-    this.editTagMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN));
-    this.editTagMenuItem.setDisable(true);
-    this.deleteTagsMenuItem = new MenuItem(
-        language.translate("menu.edit.delete_tags"),
-        theme.getIcon(Icon.DELETE_TAGS, Icon.Size.SMALL)
-    );
-    this.deleteTagsMenuItem.setOnAction(e -> this.onEditSelectedTag());
-    this.deleteTagsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.DELETE));
-    this.deleteTagsMenuItem.setDisable(true);
     editMenu.getItems().addAll(
-        this.editImagesMenuItem,
+        this.editMenuItem,
+        this.deleteMenuItem,
         this.renameImagesMenuItem,
-        this.moveImagesMenuItem,
-        this.deleteImagesMenuItem,
-        new SeparatorMenuItem(),
-        this.editTagMenuItem,
-        this.deleteTagsMenuItem
+        this.moveImagesMenuItem
     );
 
     final Menu viewMenu = new Menu(language.translate("menu.view"));
@@ -253,10 +230,14 @@ public class AppController implements ResultsView.SearchListener {
     importDirectoriesButton.setOnAction(e -> this.onImportDirectories());
     importDirectoriesButton.setTooltip(new Tooltip(language.translate("toolbar.file.import_directories")));
 
-    this.editImagesButton = new Button(null, theme.getIcon(Icon.EDIT_IMAGES, Icon.Size.BIG));
-    this.editImagesButton.setOnAction(e -> this.onEditSelectedImages());
-    this.editImagesButton.setTooltip(new Tooltip(language.translate("toolbar.edit.edit_images")));
-    this.editImagesButton.setDisable(true);
+    this.editButton = new Button(null, theme.getIcon(Icon.EDIT_IMAGES, Icon.Size.BIG));
+    this.editButton.setOnAction(e -> this.onEdit());
+    this.editButton.setTooltip(new Tooltip(language.translate("toolbar.edit.edit_images")));
+    this.editButton.setDisable(true);
+    this.deleteButton = new Button(null, theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.BIG));
+    this.deleteButton.setOnAction(e -> this.onDelete());
+    this.deleteButton.setTooltip(new Tooltip(language.translate("toolbar.edit.delete_images")));
+    this.deleteButton.setDisable(true);
     this.renameImagesButton = new Button(null, theme.getIcon(Icon.RENAME_IMAGES, Icon.Size.BIG));
     this.renameImagesButton.setOnAction(e -> this.onRenameSelectedImages());
     this.renameImagesButton.setTooltip(new Tooltip(language.translate("toolbar.edit.rename_images")));
@@ -265,18 +246,6 @@ public class AppController implements ResultsView.SearchListener {
     this.moveImagesButton.setOnAction(e -> this.onMoveSelectedImages());
     this.moveImagesButton.setTooltip(new Tooltip(language.translate("toolbar.edit.move_images")));
     this.moveImagesButton.setDisable(true);
-    this.deleteImagesButton = new Button(null, theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.BIG));
-    this.deleteImagesButton.setOnAction(e -> this.onDeleteSelectedImages());
-    this.deleteImagesButton.setTooltip(new Tooltip(language.translate("toolbar.edit.delete_images")));
-    this.deleteImagesButton.setDisable(true);
-    this.editTagButton = new Button(null, theme.getIcon(Icon.EDIT_TAG, Icon.Size.BIG));
-    this.editTagButton.setOnAction(e -> this.onEditSelectedTag());
-    this.editTagButton.setTooltip(new Tooltip(language.translate("toolbar.edit.edit_tag")));
-    this.editTagButton.setDisable(true);
-    this.deleteTagsButton = new Button(null, theme.getIcon(Icon.DELETE_TAGS, Icon.Size.BIG));
-    this.deleteTagsButton.setOnAction(e -> this.onDeleteSelectedTags());
-    this.deleteTagsButton.setTooltip(new Tooltip(language.translate("toolbar.edit.delete_tags")));
-    this.deleteTagsButton.setDisable(true);
 
     this.slideshowButton = new Button(null, theme.getIcon(Icon.SLIDESHOW, Icon.Size.BIG));
     this.slideshowButton.setOnAction(e -> this.onSlideshow(false));
@@ -299,13 +268,10 @@ public class AppController implements ResultsView.SearchListener {
         importImagesButton,
         importDirectoriesButton,
         new Separator(),
-        this.editTagButton,
-        this.deleteTagsButton,
-        new Separator(),
-        this.editImagesButton,
+        this.editButton,
+        this.deleteButton,
         this.renameImagesButton,
         this.moveImagesButton,
-        this.deleteImagesButton,
         new Separator(),
         this.slideshowButton,
         this.slideshowSelectedButton,
@@ -359,54 +325,83 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void onTagSelectionChange(final List<Tag> tags) {
+    this.selectedPictures.clear();
     this.selectedTags.clear();
     this.selectedTags.addAll(tags);
 
+    this.renameImagesMenuItem.setDisable(true);
+    this.renameImagesButton.setDisable(true);
+    this.moveImagesMenuItem.setDisable(true);
+    this.moveImagesButton.setDisable(true);
+    this.deleteMenuItem.setDisable(true);
+    this.deleteButton.setDisable(true);
+    this.slideshowSelectedMenuItem.setDisable(true);
+    this.slideshowSelectedButton.setDisable(true);
+
+    final Config config = App.config();
+    final Language language = config.language();
+    final Theme theme = config.theme();
+
     final boolean empty = tags.isEmpty();
     final boolean nonSingleSelection = tags.size() != 1;
-    this.editTagMenuItem.setDisable(nonSingleSelection);
-    this.editTagButton.setDisable(nonSingleSelection);
-    this.deleteTagsMenuItem.setDisable(empty);
-    this.deleteTagsButton.setDisable(empty);
+    this.editMenuItem.setDisable(nonSingleSelection);
+    this.editMenuItem.setGraphic(theme.getIcon(Icon.EDIT_TAG, Icon.Size.SMALL));
+    this.editMenuItem.setText(language.translate("menu.edit.edit_tag"));
+    this.editButton.setDisable(nonSingleSelection);
+    this.editButton.setGraphic(theme.getIcon(Icon.EDIT_TAG, Icon.Size.BIG));
+    this.editButton.setTooltip(new Tooltip(language.translate("toolbar.edit.edit_tag")));
+    this.deleteMenuItem.setDisable(empty);
+    this.deleteMenuItem.setGraphic(theme.getIcon(Icon.DELETE_TAGS, Icon.Size.SMALL));
+    this.deleteMenuItem.setText(language.translate("menu.edit.delete_tags"));
+    this.deleteButton.setDisable(empty);
+    this.deleteButton.setGraphic(theme.getIcon(Icon.DELETE_TAGS, Icon.Size.BIG));
+    this.deleteButton.setTooltip(new Tooltip(language.translate("menu.edit.delete_tags")));
   }
 
   private void onImageSelectionChange(final List<Picture> pictures) {
+    this.selectedTags.clear();
     this.selectedPictures.clear();
     this.selectedPictures.addAll(pictures);
 
+    final Config config = App.config();
+    final Language language = config.language();
+    final Theme theme = config.theme();
+
     final boolean empty = pictures.isEmpty();
-    this.editImagesMenuItem.setDisable(empty);
-    this.editImagesButton.setDisable(empty);
+    this.editMenuItem.setDisable(empty);
+    this.editMenuItem.setGraphic(theme.getIcon(Icon.EDIT_IMAGES, Icon.Size.SMALL));
+    this.editMenuItem.setText(language.translate("menu.edit.edit_images"));
+    this.editButton.setDisable(empty);
+    this.editButton.setGraphic(theme.getIcon(Icon.EDIT_IMAGES, Icon.Size.BIG));
+    this.editButton.setTooltip(new Tooltip(language.translate("toolbar.edit.edit_images")));
+    this.deleteMenuItem.setDisable(empty);
+    this.deleteMenuItem.setGraphic(theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.SMALL));
+    this.deleteMenuItem.setText(language.translate("menu.edit.delete_images"));
+    this.deleteButton.setDisable(empty);
+    this.deleteButton.setGraphic(theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.BIG));
+    this.deleteButton.setTooltip(new Tooltip(language.translate("menu.edit.delete_images")));
     this.renameImagesMenuItem.setDisable(empty);
     this.renameImagesButton.setDisable(empty);
     this.moveImagesMenuItem.setDisable(empty);
     this.moveImagesButton.setDisable(empty);
-    this.deleteImagesMenuItem.setDisable(empty);
-    this.deleteImagesButton.setDisable(empty);
     this.slideshowSelectedMenuItem.setDisable(empty);
     this.slideshowSelectedButton.setDisable(empty);
   }
 
   @Override
   public void onSearchStart() {
-    this.previousEditImagesState = this.editImagesMenuItem.isDisable();
-    this.editImagesMenuItem.setDisable(true);
-    this.editImagesButton.setDisable(true);
+    this.previousEditState = this.editMenuItem.isDisable();
+    this.editMenuItem.setDisable(true);
+    this.editButton.setDisable(true);
     this.previousRenameImagesState = this.renameImagesMenuItem.isDisable();
     this.renameImagesMenuItem.setDisable(true);
     this.renameImagesButton.setDisable(true);
     this.previousMoveImagesState = this.moveImagesMenuItem.isDisable();
     this.moveImagesMenuItem.setDisable(true);
     this.moveImagesButton.setDisable(true);
-    this.previousDeleteImagesState = this.deleteImagesMenuItem.isDisable();
-    this.deleteImagesMenuItem.setDisable(true);
-    this.deleteImagesButton.setDisable(true);
-    this.previousEditTagState = this.editTagMenuItem.isDisable();
-    this.editTagMenuItem.setDisable(true);
-    this.editTagButton.setDisable(true);
-    this.previousDeleteTagsState = this.deleteTagsMenuItem.isDisable();
-    this.deleteTagsMenuItem.setDisable(true);
-    this.deleteTagsButton.setDisable(true);
+    this.previousDeleteState = this.deleteMenuItem.isDisable();
+    this.deleteMenuItem.setDisable(true);
+    this.deleteButton.setDisable(true);
     this.previousSlideshowState = this.slideshowMenuItem.isDisable();
     this.slideshowMenuItem.setDisable(true);
     this.slideshowButton.setDisable(true);
@@ -420,24 +415,24 @@ public class AppController implements ResultsView.SearchListener {
     final boolean noResults = resultsCount == 0;
     this.slideshowMenuItem.setDisable(noResults);
     this.slideshowButton.setDisable(noResults);
-    this.editTagMenuItem.setDisable(this.previousEditTagState);
-    this.editTagButton.setDisable(this.previousEditTagState);
-    this.deleteTagsMenuItem.setDisable(this.previousDeleteTagsState);
-    this.deleteTagsButton.setDisable(this.previousDeleteTagsState);
+    if (!this.selectedTags.isEmpty()) {
+      this.editMenuItem.setDisable(this.previousEditState);
+      this.editButton.setDisable(this.previousEditState);
+      this.deleteMenuItem.setDisable(this.previousDeleteState);
+      this.deleteButton.setDisable(this.previousDeleteState);
+    }
   }
 
   @Override
   public void onSearchError() {
-    this.editImagesMenuItem.setDisable(this.previousEditImagesState);
-    this.editImagesButton.setDisable(this.previousEditImagesState);
+    this.editMenuItem.setDisable(this.previousEditState);
+    this.editButton.setDisable(this.previousEditState);
     this.renameImagesMenuItem.setDisable(this.previousRenameImagesState);
     this.renameImagesButton.setDisable(this.previousRenameImagesState);
     this.moveImagesMenuItem.setDisable(this.previousMoveImagesState);
     this.moveImagesButton.setDisable(this.previousMoveImagesState);
-    this.deleteImagesMenuItem.setDisable(this.previousDeleteImagesState);
-    this.deleteImagesButton.setDisable(this.previousDeleteImagesState);
-    this.editTagMenuItem.setDisable(this.previousEditTagState);
-    this.deleteTagsMenuItem.setDisable(this.previousDeleteTagsState);
+    this.deleteMenuItem.setDisable(this.previousDeleteState);
+    this.deleteButton.setDisable(this.previousDeleteState);
     this.slideshowMenuItem.setDisable(this.previousSlideshowState);
     this.slideshowButton.setDisable(this.previousSlideshowState);
     this.slideshowSelectedMenuItem.setDisable(this.previousSlideshowSelectedState);
@@ -446,10 +441,12 @@ public class AppController implements ResultsView.SearchListener {
 
   private void onImportImages() {
     // TODO
+    System.out.println("import images");
   }
 
   private void onImportDirectories() {
     // TODO
+    System.out.println("import directories");
   }
 
   /**
@@ -473,10 +470,20 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   /**
-   * Open the dialog to edit selected images.
+   * Open the dialog to edit selected tags/images.
    */
-  private void onEditSelectedImages() {
+  private void onEdit() {
     // TODO
+    System.out.println("edit");
+  }
+
+  /**
+   * Open the dialog to confirm the deletion of selected tags/images
+   * then delete them if the user confirms.
+   */
+  private void onDelete() {
+    // TODO
+    System.out.println("delete");
   }
 
   /**
@@ -484,6 +491,7 @@ public class AppController implements ResultsView.SearchListener {
    */
   private void onRenameSelectedImages() {
     // TODO
+    System.out.println("rename images");
   }
 
   /**
@@ -491,28 +499,7 @@ public class AppController implements ResultsView.SearchListener {
    */
   private void onMoveSelectedImages() {
     // TODO
-  }
-
-  /**
-   * Open the dialog to confirm the deletion of selected images
-   * then delete them if the user confirms.
-   */
-  private void onDeleteSelectedImages() {
-    // TODO
-  }
-
-  /**
-   * Open the dialog to edit tags and tag types.
-   */
-  private void onEditSelectedTag() {
-    // TODO
-  }
-
-  /**
-   * Open the dialog to edit tags and tag types.
-   */
-  private void onDeleteSelectedTags() {
-    // TODO
+    System.out.println("move images");
   }
 
   /**
@@ -520,6 +507,7 @@ public class AppController implements ResultsView.SearchListener {
    */
   private void onSlideshow(boolean onlySelected) {
     // TODO
+    System.out.println("slideshow " + onlySelected);
   }
 
   /**
@@ -527,6 +515,7 @@ public class AppController implements ResultsView.SearchListener {
    */
   private void onShowImagesWithNoTags() {
     // TODO
+    System.out.println("show images with no tags");
   }
 
   /**
@@ -534,6 +523,7 @@ public class AppController implements ResultsView.SearchListener {
    */
   private void onConvertPythonDbMenuItem() {
     // TODO
+    System.out.println("convert python db");
   }
 
   /**
@@ -541,6 +531,7 @@ public class AppController implements ResultsView.SearchListener {
    */
   private void onHelp() {
     // TODO
+    System.out.println("help");
   }
 
   /**

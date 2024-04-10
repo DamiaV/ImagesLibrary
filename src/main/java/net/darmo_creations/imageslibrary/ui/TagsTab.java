@@ -67,6 +67,10 @@ public final class TagsTab extends Tab {
     this.tagsList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
     this.tagsList.getSelectionModel().selectedItemProperty().addListener(
         (observable, oldValue, newValue) -> this.onSelectionChange());
+    this.tagsList.focusedProperty().addListener((observable, oldValue, newValue) -> {
+      if (newValue)
+        this.onSelectionChange();
+    });
     // TODO double-click listener
 
     this.setContent(new VBox(top, this.tagsList));
