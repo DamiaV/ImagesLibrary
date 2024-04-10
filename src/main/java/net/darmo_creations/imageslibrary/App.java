@@ -72,7 +72,7 @@ public class App extends Application {
    *
    * @param localConfig Configuration object to copy from.
    */
-  public static void updateConfig(Config localConfig) {
+  public static void updateConfig(final Config localConfig) {
     config.setCaseSensitiveQueriesByDefault(localConfig.caseSensitiveQueriesByDefault());
     config.setMaxImagesShown(localConfig.maxImagesShown());
     controller.onConfigUpdate();
