@@ -15,6 +15,7 @@ import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
+import java.util.stream.*;
 
 public class ResultsView extends VBox {
   private final List<ImageListSelectionListener> imageListSelectionListeners = new ArrayList<>();
@@ -110,9 +111,12 @@ public class ResultsView extends VBox {
     final Language language = App.config().language();
 
     new Thread(() -> {
+      final var tagDefinitions = this.db.getAllTags().stream()
+          .filter(tag -> tag.definition().isPresent())
+          .collect(Collectors.toMap(Tag::label, tag -> tag.definition().get()));
       final TagQuery query;
       try {
-        query = TagQueryParser.parse(queryString.get(), Map.of(), DatabaseConnection.PSEUDO_TAGS);
+        query = TagQueryParser.parse(queryString.get(), tagDefinitions, DatabaseConnection.PSEUDO_TAGS);
       } catch (TagQueryTooLargeException e) {
         Platform.runLater(() -> {
           this.errorLabel.setText(
