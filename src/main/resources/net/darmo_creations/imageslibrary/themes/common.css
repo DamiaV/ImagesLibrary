@@ -1,0 +1,7 @@
+/*
+ * This stylesheet is always loaded before any theme-specific stylesheet.
+ */
+
+.table-row-cell > .table-cell:disabled {
+    -fx-opacity: 0.4;
+}

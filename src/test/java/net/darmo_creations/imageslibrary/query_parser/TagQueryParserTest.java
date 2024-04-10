@@ -117,4 +117,16 @@ class TagQueryParserTest {
     assertThrows(InvalidPseudoTagException.class,
         () -> TagQueryParser.parse("a=\"pattern\"", Map.of(), DatabaseConnection.PSEUDO_TAGS));
   }
+
+  @Test
+  void parse_lexerErrorThrows() {
+    assertThrows(TagQuerySyntaxErrorException.class,
+        () -> TagQueryParser.parse("aê", Map.of(), Map.of()));
+  }
+
+  @Test
+  void parse_parserErrorThrows() {
+    assertThrows(TagQuerySyntaxErrorException.class,
+        () -> TagQueryParser.parse("a-", Map.of(), Map.of()));
+  }
 }

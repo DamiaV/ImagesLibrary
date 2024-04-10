@@ -33,6 +33,11 @@ class TagQueryVisitor extends TagQueryLanguageBaseVisitor<Formula> {
   }
 
   @Override
+  public Formula visitQuery(TagQueryLanguageParser.QueryContext ctx) {
+    return this.visit(ctx.expr());
+  }
+
+  @Override
   public Formula visitOr(TagQueryLanguageParser.OrContext ctx) {
     return this.formulaFactory.or(this.visit(ctx.expr(0)), this.visit(ctx.expr(1)));
   }

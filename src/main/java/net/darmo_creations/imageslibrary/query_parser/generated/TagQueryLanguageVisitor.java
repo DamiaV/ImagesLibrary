@@ -13,6 +13,14 @@ import org.antlr.v4.runtime.tree.*;
  */
 public interface TagQueryLanguageVisitor<T> extends ParseTreeVisitor<T> {
   /**
+   * Visit a parse tree produced by {@link TagQueryLanguageParser#query}.
+   *
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  T visitQuery(TagQueryLanguageParser.QueryContext ctx);
+
+  /**
    * Visit a parse tree produced by the {@code Or}
    * labeled alternative in {@link TagQueryLanguageParser#expr()}.
    *

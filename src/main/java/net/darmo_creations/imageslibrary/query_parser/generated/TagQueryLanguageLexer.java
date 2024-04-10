@@ -6,7 +6,7 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.*;
 
-@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
+@SuppressWarnings({ "all", "warnings", "unchecked", "unused", "cast" })
 public class TagQueryLanguageLexer extends Lexer {
   static {
     RuntimeMetaData.checkVersion("4.9.3", RuntimeMetaData.VERSION);

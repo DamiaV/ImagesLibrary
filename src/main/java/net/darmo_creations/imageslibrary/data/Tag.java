@@ -97,7 +97,7 @@ public final class Tag extends DatabaseObject implements TagLike {
 
   @Override
   public String toString() {
-    return "Tag{id=%d, label='%s', type=%s, definition='%s'}"
+    return "Tag{id=%d, label='%s', type=%s, definition=%s}"
         .formatted(this.id(), this.label, this.type, this.definition);
   }
 }

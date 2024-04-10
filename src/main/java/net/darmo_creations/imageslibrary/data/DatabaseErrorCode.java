@@ -6,6 +6,10 @@ package net.darmo_creations.imageslibrary.data;
 public enum DatabaseErrorCode {
   UNKNOWN_ERROR,
 
+  // Database structure/version errors
+  INVALID_SCHEMA_VERSION,
+  PYTHON_DATABASE,
+
   // Assertion-related errors
   OBJECT_DOES_NOT_EXIST,
   BOUND_TAG_HAS_DEFINITION,

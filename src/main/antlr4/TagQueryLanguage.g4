@@ -10,6 +10,8 @@ FLAG: [IS];
 STRING: '"'('\\'[\\"*?]|~[\\"])*'"';
 REGEX: '/'('\\'[\\/()[\]{}*+?|^$=!.><dDsSwWbBAGzZQEnrtf-]|~[\\/])*'/';
 
+query: expr EOF;
+
 expr:
       expr WS* expr         # And
     | expr WS* '+' WS* expr # Or

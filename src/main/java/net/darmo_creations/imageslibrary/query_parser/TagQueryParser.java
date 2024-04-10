@@ -48,10 +48,13 @@ public final class TagQueryParser {
       int depth,
       FormulaFactory formulaFactory
   ) {
+    final var errorListener = new ErrorListener();
     final var lexer = new TagQueryLanguageLexer(CharStreams.fromString(query));
+    lexer.removeErrorListeners(); // Remove default listener that prints to STDOUT
+    lexer.addErrorListener(errorListener);
     final var parser = new TagQueryLanguageParser(new CommonTokenStream(lexer));
     parser.removeErrorListeners(); // Remove default listener that prints to STDOUT
-    parser.addErrorListener(new ErrorListener());
+    parser.addErrorListener(errorListener);
     return new TagQueryVisitor(tagDefinitions, depth, formulaFactory).visit(parser.expr());
   }
 

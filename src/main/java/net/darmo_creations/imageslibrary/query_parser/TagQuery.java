@@ -143,9 +143,9 @@ public final class TagQuery {
 
     final PseudoTag tag = pseudoTags.get(tagName);
     if (tag == null)
-      throw new InvalidPseudoTagException(tagName);
+      throw new InvalidPseudoTagException(tagName, tagName);
     if (!"".equals(tagFlags) && !tag.acceptsRegex())
-      throw new InvalidPseudoTagException("Pseudo-tag %s does not accept flags".formatted(tagName));
+      throw new InvalidPseudoTagException("Pseudo-tag %s does not accept flags".formatted(tagName), tagName);
 
     String escaped = tagPattern;
     switch (tagType) {
@@ -162,7 +162,7 @@ public final class TagQuery {
       }
       case "regex" -> {
         if (!tag.acceptsRegex())
-          throw new InvalidPseudoTagException("Pseudo-tag '%s' does not accept RegExs".formatted(tagName));
+          throw new InvalidPseudoTagException("Pseudo-tag '%s' does not accept RegExs".formatted(tagName), tagName);
       }
       default -> throw new RuntimeException("Invalid metatag type: " + tagType);
     }

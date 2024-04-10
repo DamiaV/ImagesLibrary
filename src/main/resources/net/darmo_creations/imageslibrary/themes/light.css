@@ -1,0 +1,16 @@
+.root {
+    -fx-control-inner-background-alt: derive(-fx-control-inner-background, -10%);
+}
+
+Text {
+    -fx-fill: -fx-mid-text-color;
+}
+
+Text.hyperlink {
+    -fx-fill: #265F7F;
+}
+
+/* Make background of title panes opaque for better integration in list views */
+.titled-pane {
+    -fx-background: -fx-base;
+}

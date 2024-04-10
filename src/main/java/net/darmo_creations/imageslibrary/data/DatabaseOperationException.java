@@ -1,13 +1,13 @@
 package net.darmo_creations.imageslibrary.data;
 
-public class DatabaseOperationError extends Exception {
+public class DatabaseOperationException extends Exception {
   private final DatabaseErrorCode errorCode;
 
-  public DatabaseOperationError(DatabaseErrorCode errorCode) {
+  public DatabaseOperationException(DatabaseErrorCode errorCode) {
     this.errorCode = errorCode;
   }
 
-  public DatabaseOperationError(DatabaseErrorCode errorCode, Throwable cause) {
+  public DatabaseOperationException(DatabaseErrorCode errorCode, Throwable cause) {
     super(cause);
     this.errorCode = errorCode;
   }

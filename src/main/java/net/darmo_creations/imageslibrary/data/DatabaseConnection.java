@@ -22,6 +22,8 @@ import java.util.stream.*;
  * Instances maintain an internal cache of all tags and tag types.
  */
 public final class DatabaseConnection implements AutoCloseable {
+  public static final String DATABASE_FILE_EXT = "sqlite3";
+
   /**
    * A map of all pseudo-tags that can be used in tag queries.
    */
@@ -83,9 +85,9 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param file The file containing the database. If it does not exist, it will be created.
    *             If null, the database will be loaded in-memory only.
-   * @throws DatabaseOperationError If the file exists but is not a database file or is incompatible.
+   * @throws DatabaseOperationException If the file exists but is not a database file or is incompatible.
    */
-  public DatabaseConnection(@Nullable Path file) throws DatabaseOperationError {
+  public DatabaseConnection(@Nullable Path file) throws DatabaseOperationException {
     final String fileName = file == null ? ":memory:" : file.toString();
     this.logger = LoggerFactory.getLogger("DB (%s)".formatted(fileName));
     this.logger.info("Connecting to database file at {}", fileName);
@@ -102,15 +104,15 @@ public final class DatabaseConnection implements AutoCloseable {
         this.checkSchemaVersion();
     } catch (SQLException | IOException e) {
       if (e instanceof IOException ex)
-        throw this.logThrownError(new DatabaseOperationError(getErrorCode(ex), ex));
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode((SQLException) e), e));
+        throw this.logThrownError(new DatabaseOperationException(getErrorCode(ex), ex));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode((SQLException) e), e));
     }
     this.logger.info("Connection established.");
 
     try {
       this.initCaches();
     } catch (IOException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
 
@@ -164,10 +166,10 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * Check whether the connected database has the correct format.
    *
-   * @throws SQLException If the database has an incorrect structure, or any database error occurs.
+   * @throws SQLException               If any database error occurs.
+   * @throws DatabaseOperationException If the database has an incorrect structure.
    */
-  private void checkSchemaVersion() throws SQLException {
-    final var pythonErrorMsg = "Python-generated database detected, please convert it before using it with this app";
+  private void checkSchemaVersion() throws SQLException, DatabaseOperationException {
     // Check if the "images.hash" column is missing
     boolean hashFound = false;
     try (final var statement = this.connection.prepareStatement("PRAGMA TABLE_INFO (images)");
@@ -179,13 +181,13 @@ public final class DatabaseConnection implements AutoCloseable {
         }
       }
       if (!hashFound)
-        throw this.logThrownError(new SQLException(pythonErrorMsg));
+        throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.PYTHON_DATABASE));
     }
     // Check if the "version" table is present
     try (final var statement = this.connection.prepareStatement(CHECK_FOR_PYTHON_DB_0001_QUERY);
          final var resultSet = statement.executeQuery()) {
       if (resultSet.next())
-        throw this.logThrownError(new SQLException(pythonErrorMsg));
+        throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.PYTHON_DATABASE));
     }
 
     final int schemaVersion;
@@ -194,28 +196,28 @@ public final class DatabaseConnection implements AutoCloseable {
       resultSet.next();
       schemaVersion = resultSet.getInt(1);
       if (schemaVersion > CURRENT_SCHEMA_VERSION)
-        throw this.logThrownError(new SQLException("Invalid database schema version: %d".formatted(schemaVersion)));
+        throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.INVALID_SCHEMA_VERSION));
     }
   }
 
   /**
-   * The set of all tag types defined in the database.
+   * A view to the set of all tag types defined in the database.
    *
-   * @return A new set.
+   * @return A new view of the set.
    */
   @Contract(pure = true, value = "-> new")
-  @Unmodifiable
+  @UnmodifiableView
   public Set<TagType> getAllTagTypes() {
-    return this.tagTypesCache.values().stream().collect(Collectors.toUnmodifiableSet());
+    return new MapValuesSetView<>(this.tagTypesCache);
   }
 
   /**
-   * A map containing the use counts of all tag types.
+   * A view to the map containing the use counts of all tag types.
    *
-   * @return A new map.
+   * @return A new view of the map.
    */
   @Contract(pure = true, value = "-> new")
-  @Unmodifiable
+  @UnmodifiableView
   public Map<Integer, Integer> getAllTagTypesCounts() {
     return Collections.unmodifiableMap(this.tagTypesCounts);
   }
@@ -231,9 +233,9 @@ public final class DatabaseConnection implements AutoCloseable {
    * if any error occurs, the transaction is rolled back.
    *
    * @param tagTypeUpdates The list of tag types to insert.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
-  public void insertTagTypes(final Set<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationError {
+  public void insertTagTypes(final Set<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationException {
     final List<Pair<Integer, TagTypeUpdate>> generatedIds = new LinkedList<>();
 
     try (final var statement = this.connection.prepareStatement(INSERT_TAG_TYPES_QUERY, Statement.RETURN_GENERATED_KEYS)) {
@@ -249,7 +251,7 @@ public final class DatabaseConnection implements AutoCloseable {
       }
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     this.commit();
 
@@ -285,9 +287,9 @@ public final class DatabaseConnection implements AutoCloseable {
    * if any error occurs, the transaction is rolled back.
    *
    * @param tagTypeUpdates The list of tag type updates to perform.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
-  public void updateTagTypes(final Set<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationError {
+  public void updateTagTypes(final Set<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationException {
     try (final var statement = this.connection.prepareStatement(UPDATE_TAG_TYPES_QUERY)) {
       int i = 1;
       for (final var tagTypeUpdate : tagTypeUpdates) {
@@ -305,7 +307,7 @@ public final class DatabaseConnection implements AutoCloseable {
       }
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     this.commit();
 
@@ -323,9 +325,9 @@ public final class DatabaseConnection implements AutoCloseable {
    * if any error occurs, the transaction is rolled back.
    *
    * @param tagTypes The set of tag types to delete.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
-  public void deleteTagTypes(final Set<TagType> tagTypes) throws DatabaseOperationError {
+  public void deleteTagTypes(final Set<TagType> tagTypes) throws DatabaseOperationException {
     this.deleteObjects(tagTypes, "tag_types");
     // Update caches
     for (final var tagType : tagTypes) {
@@ -341,23 +343,23 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   /**
-   * The set of all tag defined in the database.
+   * A view to the set of all tag defined in the database.
    *
-   * @return A new set.
+   * @return A new view of the set.
    */
   @Contract(pure = true, value = "-> new")
-  @Unmodifiable
+  @UnmodifiableView
   public Set<Tag> getAllTags() {
-    return this.tagsCache.values().stream().collect(Collectors.toUnmodifiableSet());
+    return new MapValuesSetView<>(this.tagsCache);
   }
 
   /**
-   * A map containing the use counts of all tags.
+   * A view to the map containing the use counts of all tags.
    *
-   * @return A new map.
+   * @return A new view of the map.
    */
   @Contract(pure = true, value = "-> new")
-  @Unmodifiable
+  @UnmodifiableView
   public Map<Integer, Integer> getAllTagsCounts() {
     return Collections.unmodifiableMap(this.tagsCounts);
   }
@@ -373,16 +375,16 @@ public final class DatabaseConnection implements AutoCloseable {
    * if any error occurs, the transaction is rolled back.
    *
    * @param tagUpdates The list of tags to insert.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
-  public void insertTags(final Set<TagUpdate> tagUpdates) throws DatabaseOperationError {
+  public void insertTags(final Set<TagUpdate> tagUpdates) throws DatabaseOperationException {
     final List<Integer> generatedIds;
     final List<TagUpdate> updates = new ArrayList<>(tagUpdates);
     try {
       generatedIds = this.insertTagsNoCommit(updates);
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     this.commit();
 
@@ -435,15 +437,15 @@ public final class DatabaseConnection implements AutoCloseable {
    * if any error occurs, the transaction is rolled back.
    *
    * @param tagUpdates The list of tag updates to perform. Updates are performed in the order of the list.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
-  public void updateTags(final Set<TagUpdate> tagUpdates) throws DatabaseOperationError {
+  public void updateTags(final Set<TagUpdate> tagUpdates) throws DatabaseOperationException {
     try {
       this.updateTagsNoCommit(new ArrayList<>(tagUpdates));
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
-    } catch (DatabaseOperationError e) {
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
+    } catch (DatabaseOperationException e) {
       this.rollback();
       throw e;
     }
@@ -487,10 +489,10 @@ public final class DatabaseConnection implements AutoCloseable {
    * it is the responsablity of the caller to do so.
    *
    * @param tagUpdates The list of tag updates to perform. Updates are performed in the order of the list.
-   * @throws SQLException           If any database error occurs.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws SQLException               If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
-  private void updateTagsNoCommit(final List<TagUpdate> tagUpdates) throws SQLException, DatabaseOperationError {
+  private void updateTagsNoCommit(final List<TagUpdate> tagUpdates) throws SQLException, DatabaseOperationException {
     int i = 1;
     try (final var statement = this.connection.prepareStatement(UPDATE_TAGS_QUERY)) {
       for (final var tagUpdate : tagUpdates) {
@@ -503,7 +505,7 @@ public final class DatabaseConnection implements AutoCloseable {
         else
           statement.setInt(2, tagUpdate.type().get().id());
         if (tagUpdate.definition().isPresent() && this.isTagUsed(tagUpdate))
-          throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.BOUND_TAG_HAS_DEFINITION));
+          throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.BOUND_TAG_HAS_DEFINITION));
         statement.setString(3, tagUpdate.definition().orElse(null));
         statement.setInt(4, i++);
         statement.setInt(5, id);
@@ -544,9 +546,9 @@ public final class DatabaseConnection implements AutoCloseable {
    * if any error occurs, the transaction is rolled back.
    *
    * @param tags The set of tags to delete.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
-  public void deleteTags(final Set<Tag> tags) throws DatabaseOperationError {
+  public void deleteTags(final Set<Tag> tags) throws DatabaseOperationException {
     this.deleteObjects(tags, "tags");
     // Update caches
     for (final var tagUpdate : tags) {
@@ -563,13 +565,13 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param objects   The set of objects to delete.
    * @param tableName The name of the table to delete the objects from.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
   private <T extends DatabaseObject> void deleteObjects(
       final Set<T> objects,
       @Language(value = "sqlite", prefix = "DELETE FROM ", suffix = " WHERE 1")
       String tableName
-  ) throws DatabaseOperationError {
+  ) throws DatabaseOperationException {
     try (final var statement = this.connection.prepareStatement("DELETE FROM %s WHERE id = ?".formatted(tableName))) {
       for (final T o : objects) {
         this.ensureInDatabase(o);
@@ -578,8 +580,8 @@ public final class DatabaseConnection implements AutoCloseable {
       }
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
-    } catch (DatabaseOperationError e) {
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
+    } catch (DatabaseOperationException e) {
       this.rollback();
       throw e;
     }
@@ -591,10 +593,10 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param query A tag query.
    * @return The set of images that match the query.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Set<Picture> queryPictures(final TagQuery query) throws DatabaseOperationError {
+  public Set<Picture> queryPictures(final TagQuery query) throws DatabaseOperationException {
     final Set<Picture> pictures = new HashSet<>();
     final var sql = query.asSQL();
     if (sql.isEmpty())
@@ -609,7 +611,7 @@ public final class DatabaseConnection implements AutoCloseable {
             new Hash(resultSet.getLong("hash"))
         ));
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     return pictures;
   }
@@ -629,10 +631,10 @@ public final class DatabaseConnection implements AutoCloseable {
    * Fetch all images that do not have any tags.
    *
    * @return The set of all images that do not have any tags.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "-> new")
-  public Set<Picture> getImagesWithNoTags() throws DatabaseOperationError {
+  public Set<Picture> getImagesWithNoTags() throws DatabaseOperationException {
     final Set<Picture> pictures = new HashSet<>();
     try (final var statement = this.connection.prepareStatement(SELECT_IMAGES_WITHOUT_TAGS_QUERY);
          final var resultSet = statement.executeQuery()) {
@@ -644,7 +646,7 @@ public final class DatabaseConnection implements AutoCloseable {
         ));
       }
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     return pictures;
   }
@@ -662,10 +664,10 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param picture The picture to fetch the tags of.
    * @return The set of all tags attached to the image.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Set<Tag> getImageTags(Picture picture) throws DatabaseOperationError {
+  public Set<Tag> getImageTags(Picture picture) throws DatabaseOperationException {
     final Set<Tag> tags = new HashSet<>();
     try (final var statement = this.connection.prepareStatement(SELECT_IMAGE_TAGS_QUERY)) {
       statement.setInt(1, picture.id());
@@ -674,7 +676,7 @@ public final class DatabaseConnection implements AutoCloseable {
           tags.add(this.tagsCache.get(resultSet.getInt("id")));
       }
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     return tags;
   }
@@ -693,17 +695,17 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param path The path to check.
    * @return True if the path is already registered, false otherwise.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true)
-  public boolean isFileRegistered(Path path) throws DatabaseOperationError {
+  public boolean isFileRegistered(Path path) throws DatabaseOperationException {
     try (final var statement = this.connection.prepareStatement(IMAGES_WITH_PATH_QUERY)) {
       statement.setString(1, path.toAbsolutePath().toString());
       try (final var resultSet = statement.executeQuery()) {
         return resultSet.next(); // Check if there are any rows
       }
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
 
@@ -724,10 +726,10 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param exclude A picture that should be excluded from the result. May be null.
    * @return A list of pairs each containing a picture whose hash is similar the argument
    * and the similarity confidence index. Pairs are sorted in descending confidence index order.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "_, _ -> new")
-  public List<Pair<Picture, Float>> getSimilarImages(Hash hash, @Nullable Picture exclude) throws DatabaseOperationError {
+  public List<Pair<Picture, Float>> getSimilarImages(Hash hash, @Nullable Picture exclude) throws DatabaseOperationException {
     final List<Pair<Picture, Float>> pictures = new LinkedList<>();
     try (final var statement = this.connection.prepareStatement(SELECT_SIMILAR_IMAGES_QUERY)) {
       statement.setLong(1, hash.bytes());
@@ -744,7 +746,7 @@ public final class DatabaseConnection implements AutoCloseable {
           ));
       }
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     return pictures;
   }
@@ -759,10 +761,10 @@ public final class DatabaseConnection implements AutoCloseable {
    * Insert the given picture.
    *
    * @param pictureUpdate The picture to insert.
-   * @throws DatabaseOperationError   If any data base error occurs.
-   * @throws IllegalArgumentException If the {@code tagsToRemove} property is not empty.
+   * @throws DatabaseOperationException If any data base error occurs.
+   * @throws IllegalArgumentException   If the {@code tagsToRemove} property is not empty.
    */
-  public void insertPicture(PictureUpdate pictureUpdate) throws DatabaseOperationError {
+  public void insertPicture(PictureUpdate pictureUpdate) throws DatabaseOperationException {
     if (!pictureUpdate.tagsToRemove().isEmpty())
       throw this.logThrownError(new IllegalArgumentException("Cannot remove tags from a picture that is not yet registered"));
 
@@ -777,8 +779,8 @@ public final class DatabaseConnection implements AutoCloseable {
       result = this.updatePictureTagsNoCommit(pictureUpdate.withId(id.get()));
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
-    } catch (DatabaseOperationError e) {
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
+    } catch (DatabaseOperationException e) {
       this.rollback();
       throw e;
     }
@@ -801,9 +803,9 @@ public final class DatabaseConnection implements AutoCloseable {
    * To merge two pictures, see {@link #mergePictures(Picture, Picture, boolean)}.
    *
    * @param pictureUpdate The picture to update.
-   * @throws DatabaseOperationError If any data base error occurs.
+   * @throws DatabaseOperationException If any data base error occurs.
    */
-  public void updatePicture(PictureUpdate pictureUpdate) throws DatabaseOperationError {
+  public void updatePicture(PictureUpdate pictureUpdate) throws DatabaseOperationException {
     this.ensureInDatabase(pictureUpdate);
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
     try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_HASH_QUERY)) {
@@ -813,8 +815,8 @@ public final class DatabaseConnection implements AutoCloseable {
       result = this.updatePictureTagsNoCommit(pictureUpdate);
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
-    } catch (DatabaseOperationError e) {
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
+    } catch (DatabaseOperationException e) {
       this.rollback();
       throw e;
     }
@@ -834,9 +836,9 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param picture The picture to rename.
    * @param newName The picture’s new name.
-   * @throws DatabaseOperationError If any database or file system error occurs.
+   * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  public void renamePicture(Picture picture, String newName) throws DatabaseOperationError {
+  public void renamePicture(Picture picture, String newName) throws DatabaseOperationException {
     this.ensureInDatabase(picture);
     this.moveOrRenamePicture(picture, picture.path().getParent().resolve(newName));
   }
@@ -846,14 +848,14 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param picture The picture to rename.
    * @param destDir The picture’s new name.
-   * @throws DatabaseOperationError If any database or file system error occurs.
+   * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  public void movePicture(Picture picture, Path destDir) throws DatabaseOperationError {
+  public void movePicture(Picture picture, Path destDir) throws DatabaseOperationException {
     this.ensureInDatabase(picture);
     if (picture.path().getParent().equals(destDir.toAbsolutePath()))
-      throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.FILE_ALREADY_IN_DEST_DIR));
+      throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_IN_DEST_DIR));
     if (Files.exists(destDir.resolve(picture.path().getFileName())))
-      throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
+      throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
 
     this.moveOrRenamePicture(picture, destDir.resolve(picture.path().getFileName()));
   }
@@ -864,14 +866,14 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param picture The picture to move/rename.
    * @param newPath The destination/new name.
-   * @throws DatabaseOperationError If any database or file system error occurs.
+   * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  private void moveOrRenamePicture(Picture picture, Path newPath) throws DatabaseOperationError {
+  private void moveOrRenamePicture(Picture picture, Path newPath) throws DatabaseOperationException {
     try {
       Files.move(picture.path(), newPath);
     } catch (NoSuchFileException ignored) {
     } catch (IOException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
 
     try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_PATH_QUERY)) {
@@ -880,7 +882,7 @@ public final class DatabaseConnection implements AutoCloseable {
       statement.executeUpdate();
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     this.commit();
   }
@@ -892,11 +894,11 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param picture1       The picture whose tags ought to be merged into those of {@code picture2}.
    * @param picture2       The picture which should receive the tags of {@code picture1}.
    * @param deleteFromDisk Whether {@code picture1} should be deleted from the disk.
-   * @throws DatabaseOperationError   If any database error occurs.
-   * @throws IllegalArgumentException If the two pictures have the same ID and/or path.
+   * @throws DatabaseOperationException If any database error occurs.
+   * @throws IllegalArgumentException   If the two pictures have the same ID and/or path.
    */
   public void mergePictures(Picture picture1, Picture picture2, boolean deleteFromDisk)
-      throws DatabaseOperationError {
+      throws DatabaseOperationException {
     this.ensureInDatabase(picture1);
     this.ensureInDatabase(picture2);
     if (picture1.id() == picture2.id())
@@ -913,7 +915,7 @@ public final class DatabaseConnection implements AutoCloseable {
       result = this.updatePictureTagsNoCommit(new PictureUpdate(picture2.id(), picture2.path(), picture2.hash(), pic1Tags, Set.of()));
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     this.commit();
     this.updateTagsCache(result.getKey(), result.getValue());
@@ -967,11 +969,11 @@ public final class DatabaseConnection implements AutoCloseable {
    * and the set of those that were removed from it. In the left set,
    * a boolean value of true indicates that the tag was created,
    * false indicates that it already existed.
-   * @throws SQLException           If any database error occurs.
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws SQLException               If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
   private Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> updatePictureTagsNoCommit(PictureUpdate pictureUpdate)
-      throws SQLException, DatabaseOperationError {
+      throws SQLException, DatabaseOperationException {
     // Insert tags
     final Set<Pair<Tag, Boolean>> addedTags = new HashSet<>();
     final List<TagUpdate> toInsert = new LinkedList<>();
@@ -985,7 +987,7 @@ public final class DatabaseConnection implements AutoCloseable {
       if (tagOpt.isPresent()) {
         final Tag tag = tagOpt.get();
         if (tag.definition().isPresent())
-          throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.BOUND_TAG_HAS_DEFINITION));
+          throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.BOUND_TAG_HAS_DEFINITION));
         if (!this.imageHasTag(pictureUpdate.id(), tag.id())) {
           this.addTagToImageNoCommit(pictureUpdate.id(), tag.id());
           addedTags.add(new Pair<>(this.tagsCache.get(tag.id()), false));
@@ -1099,16 +1101,16 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param picture  The picture to delete.
    * @param fromDisk If true, the associated files will be deleted from the disk.
-   * @throws DatabaseOperationError If any database or file system error occurs.
+   * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  public void deletePicture(final Picture picture, boolean fromDisk) throws DatabaseOperationError {
+  public void deletePicture(final Picture picture, boolean fromDisk) throws DatabaseOperationException {
     this.ensureInDatabase(picture);
     if (fromDisk) {
       try {
         Files.delete(picture.path());
       } catch (NoSuchFileException ignored) {
       } catch (IOException e) {
-        throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+        throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
       }
     }
 
@@ -1117,7 +1119,7 @@ public final class DatabaseConnection implements AutoCloseable {
       statement.executeUpdate();
     } catch (SQLException e) {
       this.rollback();
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     this.commit();
 
@@ -1138,9 +1140,9 @@ public final class DatabaseConnection implements AutoCloseable {
    * Ensure that the given object exists in the database based on its ID.
    *
    * @param element The object to check.
-   * @throws DatabaseOperationError If the object is not in the database or any database error occurs.
+   * @throws DatabaseOperationException If the object is not in the database or any database error occurs.
    */
-  private void ensureInDatabase(final DatabaseElement element) throws DatabaseOperationError {
+  private void ensureInDatabase(final DatabaseElement element) throws DatabaseOperationException {
     @Language(value = "sqlite", prefix = "SELECT * FROM ", suffix = " WHERE 1")
     final String tableName;
     if (element instanceof TagTypeLike)
@@ -1156,19 +1158,19 @@ public final class DatabaseConnection implements AutoCloseable {
       statement.setInt(1, element.id());
       try (final var resultSet = statement.executeQuery()) {
         if (!resultSet.next())
-          throw this.logThrownError(new DatabaseOperationError(DatabaseErrorCode.OBJECT_DOES_NOT_EXIST));
+          throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.OBJECT_DOES_NOT_EXIST));
       }
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
 
   @Override
-  public void close() throws DatabaseOperationError {
+  public void close() throws DatabaseOperationException {
     try {
       this.connection.close();
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
 
@@ -1244,26 +1246,26 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * Rollback the current transaction.
    *
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
-  private void rollback() throws DatabaseOperationError {
+  private void rollback() throws DatabaseOperationException {
     try {
       this.connection.rollback();
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
 
   /**
    * Commit the current transaction.
    *
-   * @throws DatabaseOperationError If any database error occurs.
+   * @throws DatabaseOperationException If any database error occurs.
    */
-  private void commit() throws DatabaseOperationError {
+  private void commit() throws DatabaseOperationException {
     try {
       this.connection.commit();
     } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationError(getErrorCode(e), e));
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
 
@@ -1344,14 +1346,14 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param file The path to the file to convert.
    * @return The converted file.
    */
-  public static Path convertPythonDatabase(final Path file) throws DatabaseOperationError {
+  public static Path convertPythonDatabase(final Path file) throws DatabaseOperationException {
     final Path outputPath = file.toAbsolutePath().getParent().resolve("converted-" + file.getFileName());
 
     if (Files.exists(outputPath)) {
       try {
         Files.delete(outputPath);
       } catch (IOException e) {
-        throw new DatabaseOperationError(getErrorCode(e), e);
+        throw new DatabaseOperationException(getErrorCode(e), e);
       }
     }
 
@@ -1418,7 +1420,7 @@ public final class DatabaseConnection implements AutoCloseable {
         }
       }
     } catch (SQLException e) {
-      throw new DatabaseOperationError(getErrorCode(e), e);
+      throw new DatabaseOperationException(getErrorCode(e), e);
     }
     return outputPath;
   }
