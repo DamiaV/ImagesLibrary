@@ -94,14 +94,23 @@ public class ResultsView extends VBox {
     this.searchField.appendText(tag.label());
   }
 
+  /**
+   * Add a listener that will be notified whenever an image item is double-clicked.
+   */
   public void addImageClickListener(ImageClickListener listener) {
     this.imageClickListeners.add(Objects.requireNonNull(listener));
   }
 
+  /**
+   * Add a listener that will be notified whenever the list’s selection changes.
+   */
   public void addImageSelectionListener(ImageSelectionListener listener) {
     this.imageSelectionListeners.add(Objects.requireNonNull(listener));
   }
 
+  /**
+   * Add a listener that will be notified whenever a tag search starts, ends or fails.
+   */
   public void addSearchListener(SearchListener listener) {
     this.searchListeners.add(Objects.requireNonNull(listener));
   }
@@ -175,7 +184,7 @@ public class ResultsView extends VBox {
 
   private void onSearchError() {
     this.resetFieldsStates();
-    this.searchListeners.forEach(SearchListener::onSearchError);
+    this.searchListeners.forEach(SearchListener::onSearchFail);
   }
 
   private void resetFieldsStates() {
@@ -211,19 +220,42 @@ public class ResultsView extends VBox {
     }
   }
 
+  @FunctionalInterface
   public interface ImageClickListener {
+    /**
+     * Called when an item of the list is double-clicked.
+     *
+     * @param picture The clicked image.
+     */
     void onImageClick(Picture picture);
   }
 
+  @FunctionalInterface
   public interface ImageSelectionListener {
+    /**
+     * Called when the image list’s selection changes or the list regains focus.
+     *
+     * @param pictures The selected pictures.
+     */
     void onSelectionChange(List<Picture> pictures);
   }
 
   public interface SearchListener {
+    /**
+     * Called right before the search starts.
+     */
     void onSearchStart();
 
+    /**
+     * Called right after the search ended with no errors.
+     *
+     * @param resultsCount The number of images that matched the search query.
+     */
     void onSearchEnd(int resultsCount);
 
-    void onSearchError();
+    /**
+     * Called when the search failed with an error.
+     */
+    void onSearchFail();
   }
 }

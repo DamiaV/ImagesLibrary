@@ -118,7 +118,7 @@ public final class TagsTab extends Tab {
   }
 
   private void onItemClick(TagEntry tagEntry) {
-    this.tagClickListeners.forEach(listener -> listener.onTagClicked(tagEntry.tag()));
+    this.tagClickListeners.forEach(listener -> listener.onTagClick(tagEntry.tag()));
   }
 
   private void onSelectionChange() {

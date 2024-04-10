@@ -430,7 +430,7 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   @Override
-  public void onSearchError() {
+  public void onSearchFail() {
     this.editMenuItem.setDisable(this.previousEditState);
     this.editButton.setDisable(this.previousEditState);
     this.renameImagesMenuItem.setDisable(this.previousRenameImagesState);

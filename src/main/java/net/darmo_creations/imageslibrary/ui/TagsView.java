@@ -130,7 +130,7 @@ public class TagsView extends VBox {
   }
 
   private void onTagClick(Tag tag) {
-    this.tagClickListeners.forEach(listener -> listener.onTagClicked(tag));
+    this.tagClickListeners.forEach(listener -> listener.onTagClick(tag));
   }
 
   private void onTagSelectionChange(final List<Tag> tags) {

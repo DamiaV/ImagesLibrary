@@ -3,8 +3,16 @@ package net.darmo_creations.imageslibrary.ui;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
+import org.jetbrains.annotations.*;
 
 public final class DoubleClickableListCellFactory {
+  /**
+   * Create a {@link ListCell} that fires an event when it is double-clicked.
+   *
+   * @param listener A listener that will listen to these events.
+   * @return A new {@link ListCell} subclass.
+   */
+  @Contract(pure = true, value = "_ -> new")
   public static <T> ListCell<T> forListener(DoubleClickListener<T> listener) {
     return new ListCell<>() {
       // Adapted from javafx.scene.control.skin.ListViewSkin.createDefaultCellImpl()
@@ -40,7 +48,13 @@ public final class DoubleClickableListCellFactory {
   private DoubleClickableListCellFactory() {
   }
 
+  @FunctionalInterface
   public interface DoubleClickListener<T> {
+    /**
+     * Called when an item is double-clicked.
+     *
+     * @param item The double-clicked item.
+     */
     void onItemDoubleClick(T item);
   }
 }
