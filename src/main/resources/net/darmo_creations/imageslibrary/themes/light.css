@@ -1,22 +1,22 @@
 .root {
-    -fx-control-inner-background-alt: derive(-fx-control-inner-background, -10%);
+  -fx-control-inner-background-alt: derive(-fx-control-inner-background, -10%);
 }
 
 Text {
-    -fx-fill: -fx-mid-text-color;
+  -fx-fill: -fx-mid-text-color;
 }
 
 Text.hyperlink {
-    -fx-fill: #265F7F;
+  -fx-fill: #265F7F;
 }
 
 /* Make background of title panes opaque for better integration in list views */
 .titled-pane {
-    -fx-background: -fx-base;
+  -fx-background: -fx-base;
 }
 
 /* Custom */
 
 .tree-cell.search-match {
-    -fx-background: #ffcc80;
+  -fx-background: #ffcc80;
 }

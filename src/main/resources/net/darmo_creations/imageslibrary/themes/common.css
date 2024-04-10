@@ -3,9 +3,16 @@
  */
 
 .table-row-cell > .table-cell:disabled {
-    -fx-opacity: 0.4;
+  -fx-opacity: 0.4;
 }
 
-.tree-cell.tag-type {
-    -fx-font-weight: bold;
+/* Custom */
+
+.tags-tab:selected,
+.tags-tab-title {
+  -fx-font-weight: bold;
+}
+
+.tags-tab-title {
+  -fx-font-size: 1.3em;
 }

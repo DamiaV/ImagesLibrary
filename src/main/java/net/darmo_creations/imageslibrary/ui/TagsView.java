@@ -1,7 +1,5 @@
 package net.darmo_creations.imageslibrary.ui;
 
-import javafx.beans.binding.*;
-import javafx.collections.*;
 import javafx.geometry.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -12,17 +10,17 @@ import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.utils.*;
 
 import java.util.*;
+import java.util.function.*;
 
 public class TagsView extends VBox { // TODO option to create/edit/delete tags and tag types from here
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
-  private final ObservableSet<TreeItem<TagsTreeEntry>> searchMatches = FXCollections.observableSet(new HashSet<>());
+  private final Set<TagSelectionListener> tagSelectionListeners = new HashSet<>();
 
   private final Set<Tag> tags;
   private final Map<Integer, Integer> tagsCounts;
   private final Set<TagType> tagTypes;
-  private final Map<Integer, Integer> tagTypesCounts;
 
-  private final TreeView<TagsTreeEntry> tagsTree = new TreeView<>();
+  private final TabPane tabPane = new TabPane();
   private final TextField searchField = new TextField();
   private final Button clearSearchButton = new Button();
 
@@ -36,19 +34,17 @@ public class TagsView extends VBox { // TODO option to create/edit/delete tags a
   public TagsView(
       final Set<Tag> tags,
       final Map<Integer, Integer> tagsCounts,
-      final Set<TagType> tagTypes,
-      final Map<Integer, Integer> tagTypesCounts
+      final Set<TagType> tagTypes
   ) {
     this.tags = Objects.requireNonNull(tags);
     this.tagsCounts = Objects.requireNonNull(tagsCounts);
     this.tagTypes = Objects.requireNonNull(tagTypes);
-    this.tagTypesCounts = Objects.requireNonNull(tagTypesCounts);
 
     final Config config = App.config();
     final Language language = config.language();
     final Theme theme = config.theme();
 
-    VBox.setVgrow(this.tagsTree, Priority.ALWAYS);
+    VBox.setVgrow(this.tabPane, Priority.ALWAYS);
     HBox.setHgrow(this.searchField, Priority.ALWAYS);
     final HBox searchBox = new HBox(
         5,
@@ -56,7 +52,13 @@ public class TagsView extends VBox { // TODO option to create/edit/delete tags a
         this.clearSearchButton
     );
     searchBox.setPadding(new Insets(2));
-    this.getChildren().addAll(searchBox, this.tagsTree);
+    this.getChildren().addAll(searchBox, this.tabPane);
+
+    this.tabPane.setTabDragPolicy(TabPane.TabDragPolicy.FIXED);
+    this.tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+    this.tabPane.setSide(Side.LEFT);
+    this.tabPane.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
+        this.onTabSelectionChange());
 
     this.searchField.setPromptText(language.translate("tag_search_field.search"));
     this.searchField.textProperty().addListener((observable, oldValue, newValue) -> this.onSearchFilterChange(newValue));
@@ -73,164 +75,65 @@ public class TagsView extends VBox { // TODO option to create/edit/delete tags a
   }
 
   /**
-   * Called whenever the search filter changes.
-   *
-   * @param text The filter text.
+   * Refresh this view from the internal tags and tag types views.
    */
-  private void onSearchFilterChange(String text) {
-    this.searchMatches.clear();
-    final var filter = StringUtils.stripNullable(text);
-    this.clearSearchButton.setDisable(filter.isEmpty());
-    if (filter.isEmpty())
-      return;
-    final Set<TreeItem<TagsTreeEntry>> matches = new HashSet<>();
-    for (final var item : this.tagsTree.getRoot().getChildren())
-      this.searchMatchingItems(item, matches, filter.get());
-    this.searchMatches.addAll(matches);
-  }
-
-  /**
-   * Search for tree items matching the given search query.
-   *
-   * @param searchNode   Tree item to search children of.
-   * @param matches      Set to populate with matches.
-   * @param searchFilter Search filter.
-   */
-  private void searchMatchingItems(
-      final TreeItem<TagsTreeEntry> searchNode,
-      final Set<TreeItem<TagsTreeEntry>> matches,
-      String searchFilter
-  ) {
-    for (final var item : searchNode.getChildren())
-      if (item.getValue().toString().toLowerCase().contains(searchFilter.toLowerCase()))
-        matches.add(item);
-  }
-
   public void refresh() {
-    final Language language = App.config().language();
+    // TODO allow drag and drop of tag items between tabs to change their type
+    this.tabPane.getTabs().clear();
 
-    this.tagsTree.setRoot(new TreeItem<>());
-    this.tagsTree.setShowRoot(false);
-    this.tagsTree.setCellFactory(tree -> new SearchHighlightingTreeCell());
-    final Map<TagType, TreeItem<TagsTreeEntry>> tagTypeItems = new HashMap<>();
-    final TreeItem<TagsTreeEntry> defaultItem = new TreeItem<>(new DummyEntry(language.translate("tags_tree.no_type")));
-    tagTypeItems.put(null, defaultItem);
-    this.tagsTree.getRoot().getChildren().add(defaultItem);
-    this.tagTypes.stream().sorted(Comparator.comparing(TagType::label)).forEach(tagType -> {
-      final TreeItem<TagsTreeEntry> item = new TreeItem<>(new TagTypeEntry(tagType));
-      tagTypeItems.put(tagType, item);
-      this.tagsTree.getRoot().getChildren().add(item);
-    });
+    final Map<TagType, TagsTab> tagTypeTabs = new HashMap<>();
+    final Map<TagsTab, Set<TagsTab.TagEntry>> tabTags = new HashMap<>();
+
+    // Create a new tab for the given tag type
+    final Consumer<TagType> createTab = tagType -> {
+      final TagsTab tab = new TagsTab(tagType);
+      this.tabPane.getTabs().add(tab);
+      tagTypeTabs.put(tagType, tab);
+      tabTags.put(tab, new HashSet<>());
+      tab.addTagClickListener(this::onTagClick);
+      tab.addTagSelectionListener(this::onTagSelectionChange);
+    };
+
+    createTab.accept(null);
+    this.tagTypes.stream()
+        .sorted(Comparator.comparing(TagType::label))
+        .forEach(createTab);
     this.tags.forEach(tag -> {
-      final var entry = tagTypeItems.get(tag.type().orElse(null));
-      entry.getChildren().add(new TreeItem<>(new TagEntry(tag)));
+      final var tab = tagTypeTabs.get(tag.type().orElse(null));
+      tabTags.get(tab).add(new TagsTab.TagEntry(tag, this.tagsCounts.get(tag.id())));
     });
-    this.tagsTree.getRoot().getChildren()
-        .forEach(entry -> entry.getChildren().sort(Comparator.comparing(TreeItem::toString)));
+    tabTags.forEach(TagsTab::setTags);
   }
 
   public void addTagClickListener(TagClickListener listener) {
     this.tagClickListeners.add(Objects.requireNonNull(listener));
   }
 
-  public interface TagClickListener {
-    void onTagClicked(Tag tag);
-  }
-
-  private sealed interface TagsTreeEntry permits DummyEntry, TagTypeEntry, TagEntry {
-  }
-
-  private record DummyEntry(String text) implements TagsTreeEntry {
-    @Override
-    public String toString() {
-      return this.text;
-    }
-  }
-
-  private final class TagTypeEntry implements TagsTreeEntry {
-    private final TagType tagType;
-
-    private TagTypeEntry(TagType tagType) {
-      this.tagType = tagType;
-    }
-
-    public TagType tagType() {
-      return this.tagType;
-    }
-
-    @Override
-    public String toString() {
-      return "%s %s (%d)".formatted(
-          this.tagType.symbol(),
-          this.tagType.label(),
-          TagsView.this.tagTypesCounts.get(this.tagType.id())
-      );
-    }
-  }
-
-  private final class TagEntry implements TagsTreeEntry {
-    private final Tag tag;
-
-    private TagEntry(Tag tag) {
-      this.tag = tag;
-    }
-
-    public Tag tag() {
-      return this.tag;
-    }
-
-    @Override
-    public String toString() {
-      if (this.tag.definition().isEmpty())
-        return "%s (%d)".formatted(
-            this.tag.label(),
-            TagsView.this.tagsCounts.get(this.tag.id())
-        );
-      return this.tag.label();
-    }
+  public void addTagSelectionListener(TagSelectionListener listener) {
+    this.tagSelectionListeners.add(Objects.requireNonNull(listener));
   }
 
   /**
-   * Tree cell class that allows highlighting of tree items matching a query filter.
-   * <p>
-   * From https://stackoverflow.com/a/34914538/3779986
+   * Called whenever the search filter changes.
+   *
+   * @param text The filter text.
    */
-  private final class SearchHighlightingTreeCell extends TreeCell<TagsTreeEntry> {
-    // Cannot be local or else it would be garbage-collected
-    @SuppressWarnings("FieldCanBeLocal")
-    private final BooleanBinding matchesSearch;
+  private void onSearchFilterChange(String text) {
+    final var filter = StringUtils.stripNullable(text);
+    this.clearSearchButton.setDisable(filter.isEmpty());
+    this.tabPane.getTabs()
+        .forEach(tab -> ((TagsTab) tab).setFilter(filter.orElse(null)));
+  }
 
-    public SearchHighlightingTreeCell() {
-      this.matchesSearch = Bindings.createBooleanBinding(
-          () -> TagsView.this.searchMatches.contains(this.getTreeItem()),
-          this.treeItemProperty(),
-          TagsView.this.searchMatches
-      );
-      this.matchesSearch.addListener((obs, didMatchSearch, nowMatchesSearch) -> {
-        if (nowMatchesSearch)
-          this.getStyleClass().add("search-match");
-        else if (didMatchSearch)
-          this.getStyleClass().remove("search-match");
-      });
-    }
+  private void onTabSelectionChange() {
+    this.tabPane.getTabs().forEach(tab -> ((TagsTab) tab).deselectAll());
+  }
 
-    @Override
-    protected void updateItem(TagsTreeEntry item, boolean empty) {
-      // Update the text when the displayed item changes
-      super.updateItem(item, empty);
-      this.setText(empty ? null : item.toString());
-      this.getStyleClass().removeAll("tag-type");
-      this.setGraphic(null);
-      this.setStyle(null);
-      this.setTooltip(null);
-      if (item instanceof TagEntry tagEntry && tagEntry.tag().definition().isPresent()) {
-        this.setGraphic(App.config().theme().getIcon(Icon.COMPOUND_TAG, Icon.Size.SMALL));
-        this.setTooltip(new Tooltip(tagEntry.tag().definition().get()));
-      } else if (item instanceof TagTypeEntry tagTypeEntry) {
-        this.getStyleClass().add("tag-type");
-        this.setStyle("-fx-text-fill: %s;".formatted(StringUtils.colorToCss(tagTypeEntry.tagType().color())));
-      } else if (item instanceof DummyEntry)
-        this.getStyleClass().add("tag-type");
-    }
+  private void onTagClick(Tag tag) {
+    this.tagClickListeners.forEach(listener -> listener.onTagClicked(tag));
+  }
+
+  private void onTagSelectionChange(final List<Tag> tags) {
+    this.tagSelectionListeners.forEach(listener -> listener.onSelectionChanged(tags));
   }
 }
