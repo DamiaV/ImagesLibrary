@@ -284,10 +284,11 @@ public class AppController implements ResultsView.SearchListener {
 
   private SplitPane createContent() {
     final SplitPane splitPane = new SplitPane();
-    this.tagsView.addTagClickListener(this::onTagClicked);
+    this.tagsView.addTagClickListener(this::onTagClick);
     this.tagsView.addTagSelectionListener(this::onTagSelectionChange);
     splitPane.getItems().add(this.tagsView);
-    this.resultsView.addImageListSelectionListener(this::onImageSelectionChange);
+    this.resultsView.addImageClickListener(this::onImageClick);
+    this.resultsView.addImageSelectionListener(this::onImageSelectionChange);
     this.resultsView.addSearchListener(this);
     splitPane.getItems().add(this.resultsView);
     splitPane.setDividerPositions(0.1);
@@ -320,7 +321,7 @@ public class AppController implements ResultsView.SearchListener {
     // TODO
   }
 
-  private void onTagClicked(Tag tag) {
+  private void onTagClick(Tag tag) {
     this.resultsView.insertTagInSearchBar(tag);
   }
 
@@ -356,6 +357,11 @@ public class AppController implements ResultsView.SearchListener {
     this.deleteButton.setDisable(empty);
     this.deleteButton.setGraphic(theme.getIcon(Icon.DELETE_TAGS, Icon.Size.BIG));
     this.deleteButton.setTooltip(new Tooltip(language.translate("menu.edit.delete_tags")));
+  }
+
+  private void onImageClick(Picture picture) {
+    // TODO
+    System.out.println("image clicked: " + picture.path());
   }
 
   private void onImageSelectionChange(final List<Picture> pictures) {

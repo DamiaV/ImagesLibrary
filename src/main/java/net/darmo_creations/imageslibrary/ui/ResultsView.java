@@ -18,7 +18,8 @@ import java.util.*;
 import java.util.stream.*;
 
 public class ResultsView extends VBox {
-  private final List<ImageListSelectionListener> imageListSelectionListeners = new ArrayList<>();
+  private final List<ImageClickListener> imageClickListeners = new ArrayList<>();
+  private final List<ImageSelectionListener> imageSelectionListeners = new ArrayList<>();
   private final List<SearchListener> searchListeners = new ArrayList<>();
   private final DatabaseConnection db;
 
@@ -53,7 +54,7 @@ public class ResultsView extends VBox {
       if (newValue)
         this.onSelectionChange();
     });
-    // TODO double-click listener
+    this.imagesList.setCellFactory(item -> DoubleClickableListCellFactory.forListener(this::onItemClick));
 
     this.searchField.setPromptText(language.translate("image_search_field.search"));
     this.searchField.setOnAction(e -> this.search());
@@ -82,16 +83,27 @@ public class ResultsView extends VBox {
     this.search();
   }
 
+  /**
+   * Insert the given tag’s label into the searh field.
+   *
+   * @param tag The tag to insert.
+   */
   public void insertTagInSearchBar(Tag tag) {
-    this.searchField.appendText(" " + tag.label());
+    if (StringUtils.stripNullable(this.searchField.getText()).isPresent())
+      this.searchField.appendText(" ");
+    this.searchField.appendText(tag.label());
   }
 
-  public void addImageListSelectionListener(ImageListSelectionListener listener) {
-    this.imageListSelectionListeners.add(listener);
+  public void addImageClickListener(ImageClickListener listener) {
+    this.imageClickListeners.add(Objects.requireNonNull(listener));
+  }
+
+  public void addImageSelectionListener(ImageSelectionListener listener) {
+    this.imageSelectionListeners.add(Objects.requireNonNull(listener));
   }
 
   public void addSearchListener(SearchListener listener) {
-    this.searchListeners.add(listener);
+    this.searchListeners.add(Objects.requireNonNull(listener));
   }
 
   private void search() {
@@ -174,12 +186,16 @@ public class ResultsView extends VBox {
     this.clearSearchButton.setDisable(false);
   }
 
+  private void onItemClick(PictureEntry pictureEntry) {
+    this.imageClickListeners.forEach(listener -> listener.onImageClick(pictureEntry.picture()));
+  }
+
   private void onSelectionChange() {
-    this.imageListSelectionListeners.forEach(listener -> {
+    this.imageSelectionListeners.forEach(listener -> {
       final var selection = this.imagesList.getSelectionModel().getSelectedItems().stream()
           .map(PictureEntry::picture)
           .toList();
-      listener.onSelectionChanged(selection);
+      listener.onSelectionChange(selection);
     });
   }
 
@@ -195,8 +211,12 @@ public class ResultsView extends VBox {
     }
   }
 
-  public interface ImageListSelectionListener {
-    void onSelectionChanged(List<Picture> pictures);
+  public interface ImageClickListener {
+    void onImageClick(Picture picture);
+  }
+
+  public interface ImageSelectionListener {
+    void onSelectionChange(List<Picture> pictures);
   }
 
   public interface SearchListener {

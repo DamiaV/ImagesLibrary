@@ -71,7 +71,7 @@ public final class TagsTab extends Tab {
       if (newValue)
         this.onSelectionChange();
     });
-    // TODO double-click listener
+    this.tagsList.setCellFactory(param -> DoubleClickableListCellFactory.forListener(this::onItemClick));
 
     this.setContent(new VBox(top, this.tagsList));
   }
@@ -115,6 +115,10 @@ public final class TagsTab extends Tab {
 
   public void addTagSelectionListener(TagSelectionListener listener) {
     this.tagSelectionListeners.add(Objects.requireNonNull(listener));
+  }
+
+  private void onItemClick(TagEntry tagEntry) {
+    this.tagClickListeners.forEach(listener -> listener.onTagClicked(tagEntry.tag()));
   }
 
   private void onSelectionChange() {
