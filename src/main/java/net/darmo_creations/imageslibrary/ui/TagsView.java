@@ -15,6 +15,8 @@ import java.util.function.*;
 public class TagsView extends VBox {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final Set<TagSelectionListener> tagSelectionListeners = new HashSet<>();
+  private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
+  private final Set<DeleteTagTypeListener> deleteTagTypeListeners = new HashSet<>();
 
   private final Set<Tag> tags;
   private final Map<Integer, Integer> tagsCounts;
@@ -92,6 +94,8 @@ public class TagsView extends VBox {
       tabTags.put(tab, new HashSet<>());
       tab.addTagClickListener(this::onTagClick);
       tab.addTagSelectionListener(this::onTagSelectionChange);
+      tab.addEditTagTypeListener(this::onEditTagType);
+      tab.addDeleteTagTypeListener(this::onDeleteTagType);
     };
 
     createTab.accept(null);
@@ -111,6 +115,14 @@ public class TagsView extends VBox {
 
   public void addTagSelectionListener(TagSelectionListener listener) {
     this.tagSelectionListeners.add(Objects.requireNonNull(listener));
+  }
+
+  public void addEditTagTypeListener(EditTagTypeListener listener) {
+    this.editTagTypeListeners.add(Objects.requireNonNull(listener));
+  }
+
+  public void addDeleteTagTypeListener(DeleteTagTypeListener listener) {
+    this.deleteTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
   /**
@@ -135,5 +147,13 @@ public class TagsView extends VBox {
 
   private void onTagSelectionChange(final List<Tag> tags) {
     this.tagSelectionListeners.forEach(listener -> listener.onSelectionChanged(tags));
+  }
+
+  private void onEditTagType(TagType tagType) {
+    this.editTagTypeListeners.forEach(listener -> listener.onEditTagType(tagType));
+  }
+
+  private void onDeleteTagType(TagType tagType) {
+    this.deleteTagTypeListeners.forEach(listener -> listener.onDeleteTagType(tagType));
   }
 }

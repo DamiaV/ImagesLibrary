@@ -20,6 +20,8 @@ import java.util.*;
 public final class TagsTab extends Tab {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final Set<TagSelectionListener> tagSelectionListeners = new HashSet<>();
+  private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
+  private final Set<DeleteTagTypeListener> deleteTagTypeListeners = new HashSet<>();
 
   @Nullable
   private final TagType tagType;
@@ -55,8 +57,10 @@ public final class TagsTab extends Tab {
       final Language language = config.language();
       final Theme theme = config.theme();
       final Button editTagTypeButton = new Button(null, theme.getIcon(Icon.EDIT_TAG_TYPE, Icon.Size.SMALL));
+      editTagTypeButton.setOnAction(e -> this.editTagTypeListeners.forEach(l -> l.onEditTagType(tagType)));
       editTagTypeButton.setTooltip(new Tooltip(language.translate("tags_tab.edit")));
       final Button deleteTagTypeButton = new Button(null, theme.getIcon(Icon.DELETE_TAG_TYPE, Icon.Size.SMALL));
+      deleteTagTypeButton.setOnAction(e -> this.deleteTagTypeListeners.forEach(l -> l.onDeleteTagType(tagType)));
       deleteTagTypeButton.setTooltip(new Tooltip(language.translate("tags_tab.delete")));
       final Pane spacer = new Pane();
       HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -115,6 +119,14 @@ public final class TagsTab extends Tab {
 
   public void addTagSelectionListener(TagSelectionListener listener) {
     this.tagSelectionListeners.add(Objects.requireNonNull(listener));
+  }
+
+  public void addEditTagTypeListener(EditTagTypeListener listener) {
+    this.editTagTypeListeners.add(Objects.requireNonNull(listener));
+  }
+
+  public void addDeleteTagTypeListener(DeleteTagTypeListener listener) {
+    this.deleteTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
   private void onItemClick(TagEntry tagEntry) {
