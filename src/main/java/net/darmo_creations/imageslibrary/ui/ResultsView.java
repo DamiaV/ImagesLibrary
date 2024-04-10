@@ -47,14 +47,14 @@ public class ResultsView extends VBox {
     this.getChildren().addAll(searchBox, this.errorLabel, this.imagesList);
 
     this.imagesList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-    this.imagesList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-      this.imageListSelectionListeners.forEach(listener -> {
-        final var selection = this.imagesList.getSelectionModel().getSelectedItems().stream()
-            .map(PictureEntry::picture)
-            .toList();
-        listener.onSelectionChanged(selection);
-      });
-    });
+    this.imagesList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
+        this.imageListSelectionListeners.forEach(listener -> {
+          final var selection = this.imagesList.getSelectionModel().getSelectedItems().stream()
+              .map(PictureEntry::picture)
+              .toList();
+          listener.onSelectionChanged(selection);
+        })
+    );
 
     this.searchField.setPromptText(language.translate("image_search_field.search"));
     this.searchField.setOnAction(e -> this.search());

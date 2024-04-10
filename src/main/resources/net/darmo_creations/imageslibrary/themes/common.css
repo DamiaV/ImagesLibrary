@@ -5,3 +5,7 @@
 .table-row-cell > .table-cell:disabled {
     -fx-opacity: 0.4;
 }
+
+.tree-cell.tag-type {
+    -fx-font-weight: bold;
+}

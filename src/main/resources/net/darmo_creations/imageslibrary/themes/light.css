@@ -14,3 +14,9 @@ Text.hyperlink {
 .titled-pane {
     -fx-background: -fx-base;
 }
+
+/* Custom */
+
+.tree-cell.search-match {
+    -fx-background: #ffcc80;
+}

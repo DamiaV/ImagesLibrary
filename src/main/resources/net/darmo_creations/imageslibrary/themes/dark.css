@@ -73,3 +73,9 @@ Text.hyperlink {
 .scroll-bar > .decrement-button:pressed > .decrement-arrow {
     -fx-background-color: -fx-mark-highlight-color, rgb(255, 255, 255);
 }
+
+/* Custom */
+
+.tree-cell.search-match {
+    -fx-background: #cc7a00;
+}

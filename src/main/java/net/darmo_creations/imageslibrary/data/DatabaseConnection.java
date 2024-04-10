@@ -1205,21 +1205,32 @@ public final class DatabaseConnection implements AutoCloseable {
             resultSet.getString("symbol").charAt(0),
             resultSet.getInt("color")
         ));
+        this.tagTypesCounts.put(id, 0);
       }
     } catch (SQLException e) {
       throw this.logThrownError(new IOException(e));
     }
 
     try (final var statement = this.connection.prepareStatement("SELECT id, label, type_id, definition FROM tags");
-         final var resultSet = statement.executeQuery()) {
+         final var resultSet = statement.executeQuery();
+         final var countStatement = this.connection.prepareStatement("SELECT COUNT(*) FROM image_tag WHERE tag_id = ?")) {
       while (resultSet.next()) {
         final int id = resultSet.getInt("id");
+        @Nullable
+        final TagType tagType = this.tagTypesCache.get(resultSet.getInt("type_id"));
         this.tagsCache.put(id, new Tag(
             id,
             resultSet.getString("label"),
-            this.tagTypesCache.get(resultSet.getInt("type_id")),
+            tagType,
             resultSet.getString("definition")
         ));
+        countStatement.setInt(1, id);
+        try (final var countResultSet = countStatement.executeQuery()) {
+          countResultSet.next();
+          this.tagsCounts.put(id, countResultSet.getInt(1));
+          if (tagType != null)
+            this.tagTypesCounts.put(tagType.id(), this.tagTypesCounts.get(tagType.id()) + 1);
+        }
       }
     } catch (SQLException e) {
       throw this.logThrownError(new IOException(e));

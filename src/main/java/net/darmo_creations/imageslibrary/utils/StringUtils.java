@@ -43,6 +43,20 @@ public final class StringUtils {
     return pattern;
   }
 
+  /**
+   * Convert an RGB color to an hex CSS color value.
+   *
+   * @param color An RBG color.
+   * @return A CSS color value in the {@code #RRGGBB} format.
+   */
+  public static String colorToCss(int color) {
+    return "#%02X%02X%02X".formatted(
+        color >> 16 & 0xff,
+        color >> 8 & 0xff,
+        color & 0xff
+    );
+  }
+
   private StringUtils() {
   }
 }

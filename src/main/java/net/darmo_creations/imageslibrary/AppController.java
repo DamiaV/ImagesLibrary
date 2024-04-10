@@ -60,7 +60,12 @@ public class AppController implements ResultsView.SearchListener {
     stage.setMinHeight(200);
     stage.setTitle(App.NAME);
     stage.setMaximized(true);
-    this.tagsView = new TagsView(this.db.getAllTags(), this.db.getAllTagTypes());
+    this.tagsView = new TagsView(
+        this.db.getAllTags(),
+        this.db.getAllTagsCounts(),
+        this.db.getAllTagTypes(),
+        this.db.getAllTagTypesCounts()
+    );
     this.resultsView = new ResultsView(this.db);
     final Scene scene = new Scene(new VBox(this.createMenuBar(), this.createToolBar(), this.createContent()));
     stage.setScene(scene);

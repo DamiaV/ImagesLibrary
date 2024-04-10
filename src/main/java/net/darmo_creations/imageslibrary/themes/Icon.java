@@ -25,6 +25,8 @@ public enum Icon {
   CLEAR_TEXT("draw_eraser"),
   SEARCH("magnifier"),
 
+  COMPOUND_TAG("three_tags"),
+
   OPEN_DB_FILE("folder_database"),
   GO_TO_DB_FILE("folder_go"),
   ;
