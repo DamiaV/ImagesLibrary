@@ -15,8 +15,8 @@ import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.ui.dialogs.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.controlsfx.control.*;
-import org.jetbrains.annotations.*;
 
+import java.nio.file.*;
 import java.util.*;
 import java.util.stream.*;
 
@@ -206,7 +206,16 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.resetFieldsStates();
     this.imagesList.getItems().clear();
     // TODO add icons to images without tags and/or missing file
-    pictures.forEach(picture -> this.imagesList.getItems().add(new PictureEntry(picture)));
+    for (final Picture picture : pictures) {
+      Set<Tag> imageTags;
+      try {
+        imageTags = this.db.getImageTags(picture);
+      } catch (DatabaseOperationException e) {
+        App.LOGGER.error("Error getting tags for image {}", picture, e);
+        imageTags = Set.of();
+      }
+      this.imagesList.getItems().add(new PictureEntry(picture, imageTags));
+    }
     this.imagesList.getItems().sort(null);
     this.searchListeners.forEach(listener -> listener.onSearchEnd(count));
   }
@@ -246,15 +255,46 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.imageSelectionListeners.forEach(listener -> listener.onSelectionChange(selection));
   }
 
-  public record PictureEntry(Picture picture) implements Comparable<PictureEntry> {
-    @Override
-    public String toString() {
-      return this.picture.path().toString();
+  public static final class PictureEntry extends HBox implements Comparable<PictureEntry> {
+    private final Picture picture;
+    private final Set<Tag> tags;
+
+    public PictureEntry(Picture picture, final Set<Tag> tags) {
+      super(5);
+      this.picture = picture;
+      this.tags = tags;
+      final Config config = App.config();
+      final Language language = config.language();
+      final Theme theme = config.theme();
+      if (!Files.exists(picture.path())) {
+        final Label label = new Label(null, theme.getIcon(Icon.NO_FILE, Icon.Size.SMALL));
+        label.setTooltip(new Tooltip(language.translate("images_view.result.missing_file")));
+        this.getChildren().add(label);
+      }
+      if (tags.isEmpty()) {
+        final Label label = new Label(null, theme.getIcon(Icon.NO_TAGS, Icon.Size.SMALL));
+        label.setTooltip(new Tooltip(language.translate("images_view.result.no_tags")));
+        this.getChildren().add(label);
+      }
+      this.getChildren().add(new Label(picture.path().toString()));
+    }
+
+    public Picture picture() {
+      return this.picture;
+    }
+
+    public Set<Tag> tags() {
+      return this.tags;
     }
 
     @Override
-    public int compareTo(@NotNull ResultsView.PictureEntry o) {
+    public int compareTo(ResultsView.PictureEntry o) {
       return this.picture.path().compareTo(o.picture().path());
+    }
+
+    @Override
+    public String toString() {
+      return this.picture.path().toString();
     }
   }
 

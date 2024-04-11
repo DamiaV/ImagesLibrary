@@ -199,15 +199,27 @@ public class AppController implements ResultsView.SearchListener {
         theme.getIcon(Icon.SEARCH_NO_TAGS, Icon.Size.SMALL)
     );
     showNoTagsMenuItem.setOnAction(e -> this.onShowImagesWithNoTags());
-    showNoTagsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN));
+    showNoTagsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN));
     this.menuItemStates.put(showNoTagsMenuItem, showNoTagsMenuItem.isDisable());
+    final MenuItem showNoFileMenuItem = new MenuItem(
+        language.translate("menu.tools.show_images_with_no_file"),
+        theme.getIcon(Icon.SEARCH_NO_FILE, Icon.Size.SMALL)
+    );
+    showNoFileMenuItem.setOnAction(e -> this.onShowImagesWithNoFile());
+    showNoFileMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN));
+    this.menuItemStates.put(showNoFileMenuItem, showNoFileMenuItem.isDisable());
     final MenuItem convertPythonDbMenuItem = new MenuItem(
         language.translate("menu.tools.convert_python_db"),
         theme.getIcon(Icon.CONVERT_PYTHON_DB, Icon.Size.SMALL)
     );
     convertPythonDbMenuItem.setOnAction(e -> this.onConvertPythonDbMenuItem());
     this.menuItemStates.put(convertPythonDbMenuItem, convertPythonDbMenuItem.isDisable());
-    toolsMenu.getItems().addAll(showNoTagsMenuItem, convertPythonDbMenuItem);
+    toolsMenu.getItems().addAll(
+        showNoTagsMenuItem,
+        showNoFileMenuItem,
+        new SeparatorMenuItem(),
+        convertPythonDbMenuItem
+    );
 
     final Menu helpMenu = new Menu(language.translate("menu.help"));
     final MenuItem aboutMenuItem = new MenuItem(
@@ -269,6 +281,9 @@ public class AppController implements ResultsView.SearchListener {
     final Button showNoTagsButton = new Button(null, theme.getIcon(Icon.SEARCH_NO_TAGS, Icon.Size.BIG));
     showNoTagsButton.setOnAction(e -> this.onShowImagesWithNoTags());
     showNoTagsButton.setTooltip(new Tooltip(language.translate("toolbar.tools.show_images_with_no_tags")));
+    final Button showNoFileButton = new Button(null, theme.getIcon(Icon.SEARCH_NO_FILE, Icon.Size.BIG));
+    showNoFileButton.setOnAction(e -> this.onShowImagesWithNoFile());
+    showNoFileButton.setTooltip(new Tooltip(language.translate("toolbar.tools.show_images_with_no_file")));
 
     final Button helpButton = new Button(null, theme.getIcon(Icon.HELP, Icon.Size.BIG));
     helpButton.setOnAction(e -> this.onHelp());
@@ -287,6 +302,7 @@ public class AppController implements ResultsView.SearchListener {
         this.slideshowSelectedButton,
         new Separator(),
         showNoTagsButton,
+        showNoFileButton,
         new Separator(),
         helpButton
     );
@@ -530,6 +546,14 @@ public class AppController implements ResultsView.SearchListener {
   private void onShowImagesWithNoTags() {
     // TODO
     System.out.println("show images with no tags");
+  }
+
+  /**
+   * Launch a search for images with no file.
+   */
+  private void onShowImagesWithNoFile() {
+    // TODO
+    System.out.println("show images with no file");
   }
 
   /**

@@ -20,13 +20,16 @@ public enum Icon {
   DELETE_TAG_TYPE("delete"),
   SLIDESHOW("slideshow"),
   SLIDESHOW_SELECTED("slideshow"),
-  SEARCH_NO_TAGS("picture_error"),
+  SEARCH_NO_TAGS("tag_blue_error"),
+  SEARCH_NO_FILE("picture_error"),
   CONVERT_PYTHON_DB("database_gear"),
   ABOUT("information"),
   HELP("help"),
 
   CLEAR_TEXT("draw_eraser"),
   SEARCH("magnifier"),
+  NO_TAGS("tag_blue_error"),
+  NO_FILE("picture_error"),
 
   COMPOUND_TAG("three_tags"),
 
