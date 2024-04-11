@@ -120,43 +120,32 @@ public class ResultsView extends VBox {
     if (queryString.isEmpty())
       return;
 
+    final Language language = App.config().language();
+    final var tagDefinitions = this.db.getAllTags().stream()
+        .filter(tag -> tag.definition().isPresent())
+        .collect(Collectors.toMap(Tag::label, tag -> tag.definition().get()));
+    final TagQuery query;
+    try {
+      query = TagQueryParser.parse(queryString.get(), tagDefinitions, DatabaseConnection.PSEUDO_TAGS);
+    } catch (TagQueryTooLargeException e) {
+      this.errorLabel.setText(language.translate("image_search_field.recursive_loop_error"));
+      return;
+    } catch (TagQuerySyntaxErrorException e) {
+      this.errorLabel.setText(language.translate("image_search_field.query_syntax_error"));
+      return;
+    } catch (InvalidPseudoTagException e) {
+      this.errorLabel.setText(
+          language.translate("image_search_field.invalid_pseudo_tag", new FormatArg("tag", e.pseudoTag())));
+      return;
+    }
+
     this.imagesList.setDisable(true);
     this.searchField.setDisable(true);
     this.searchButton.setDisable(true);
     this.clearSearchButton.setDisable(true);
+
     this.searchListeners.forEach(SearchListener::onSearchStart);
-
-    final Language language = App.config().language();
-
     new Thread(() -> {
-      final var tagDefinitions = this.db.getAllTags().stream()
-          .filter(tag -> tag.definition().isPresent())
-          .collect(Collectors.toMap(Tag::label, tag -> tag.definition().get()));
-      final TagQuery query;
-      try {
-        query = TagQueryParser.parse(queryString.get(), tagDefinitions, DatabaseConnection.PSEUDO_TAGS);
-      } catch (TagQueryTooLargeException e) {
-        Platform.runLater(() -> {
-          this.errorLabel.setText(
-              language.translate("image_search_field.recursive_loop_error"));
-          this.onSearchError();
-        });
-        return;
-      } catch (TagQuerySyntaxErrorException e) {
-        Platform.runLater(() -> {
-          this.errorLabel.setText(
-              language.translate("image_search_field.query_syntax_error"));
-          this.onSearchError();
-        });
-        return;
-      } catch (InvalidPseudoTagException e) {
-        Platform.runLater(() -> {
-          this.errorLabel.setText(
-              language.translate("image_search_field.invalid_pseudo_tag", new FormatArg("tag", e.pseudoTag())));
-          this.onSearchError();
-        });
-        return;
-      }
       final Set<Picture> pictures;
       try {
         pictures = this.db.queryPictures(query);
