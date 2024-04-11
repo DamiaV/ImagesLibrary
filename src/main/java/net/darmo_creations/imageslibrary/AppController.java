@@ -48,6 +48,7 @@ public class AppController implements ResultsView.SearchListener {
   private final List<Tag> selectedTags = new ArrayList<>();
 
   public AppController(Stage stage) throws DatabaseOperationException {
+    // TODO show splash while DB loads
     this.stage = Objects.requireNonNull(stage);
     this.db = new DatabaseConnection(App.config().databaseFile());
     final Theme theme = App.config().theme();

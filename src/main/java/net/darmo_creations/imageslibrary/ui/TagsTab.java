@@ -153,11 +153,12 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
 
   private static String getTitle(@Nullable TagType tagType, int tagsCount) {
     final String title;
+    final Language language = App.config().language();
     if (tagType == null)
-      title = App.config().language().translate("tags_tab.no_type");
+      title = language.translate("tags_tab.no_type");
     else
       title = "%s %s".formatted(tagType.symbol(), tagType.label());
-    return "%s (%d)".formatted(title, tagsCount);
+    return "%s (%s)".formatted(title, language.formatNumber(tagsCount));
   }
 
   public static final class TagEntry extends HBox {

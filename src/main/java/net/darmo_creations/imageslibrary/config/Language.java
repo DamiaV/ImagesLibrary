@@ -4,6 +4,7 @@ import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
 
+import java.text.*;
 import java.util.*;
 import java.util.regex.*;
 
@@ -18,6 +19,7 @@ public final class Language {
   private final String name;
   private final Locale locale;
   private final ResourceBundle resources;
+  private final NumberFormat numberFormat;
   /**
    * Mapping of plurals structured as
    * {base key: {count: plural text template}}
@@ -43,6 +45,7 @@ public final class Language {
     this.name = Objects.requireNonNull(name);
     this.locale = Objects.requireNonNull(locale);
     this.resources = Objects.requireNonNull(resources);
+    this.numberFormat = NumberFormat.getInstance(locale);
     this.extractSuffixes();
   }
 
@@ -136,6 +139,27 @@ public final class Language {
     if (formatArgs.length != 0)
       return StringUtils.format(text, formatArgs);
     return text;
+  }
+
+  /**
+   * Format the given number according to this language’s locale.
+   *
+   * @param number The number to format.
+   * @return The formatted number.
+   */
+  public String formatNumber(long number) {
+    return this.numberFormat.format(number);
+  }
+
+  /**
+   * Format the given number according to this language’s locale.
+   *
+   * @param number The number to format.
+   * @return The formatted number.
+   */
+  public String formatNumber(double number, int precision) {
+    this.numberFormat.setMaximumFractionDigits(precision);
+    return this.numberFormat.format(number);
   }
 
   /**

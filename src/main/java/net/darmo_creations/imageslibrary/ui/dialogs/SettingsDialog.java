@@ -9,6 +9,7 @@ import javafx.util.converter.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.themes.*;
+import net.darmo_creations.imageslibrary.utils.*;
 
 import java.io.*;
 import java.nio.file.*;
@@ -96,17 +97,19 @@ public class SettingsDialog extends DialogBase<ButtonType> {
 
   private Pane createDatabaseForm() {
     final Config config = App.config();
+    final Language language = config.language();
+    final Theme theme = config.theme();
 
     HBox.setHgrow(this.dbFileField, Priority.ALWAYS);
     this.dbFileField.setEditable(false);
-    final Button selectDbFileButton = new Button(null, config.theme().getIcon(Icon.OPEN_DB_FILE, Icon.Size.SMALL));
+    final Button selectDbFileButton = new Button(null, theme.getIcon(Icon.OPEN_DB_FILE, Icon.Size.SMALL));
     selectDbFileButton.setOnAction(e -> this.onSelectDatabaseFile());
     selectDbFileButton.setTooltip(new Tooltip(
-        config.language().translate("dialog.settings.database_box.db_file.select_button.tooltip")));
-    final Button goToDbFileButton = new Button(null, config.theme().getIcon(Icon.GO_TO_DB_FILE, Icon.Size.SMALL));
+        language.translate("dialog.settings.database_box.db_file.select_button.tooltip")));
+    final Button goToDbFileButton = new Button(null, theme.getIcon(Icon.OPEN_FILE_IN_EXPLORER, Icon.Size.SMALL));
     goToDbFileButton.setOnAction(e -> this.onGoToDatabaseFile());
     goToDbFileButton.setTooltip(new Tooltip(
-        config.language().translate("dialog.settings.database_box.db_file.open_containing_directory_button.tooltip")));
+        language.translate("dialog.settings.database_box.db_file.open_containing_directory_button.tooltip")));
 
     //noinspection unchecked
     return this.getBorderPane(
@@ -126,29 +129,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
   }
 
   private void onGoToDatabaseFile() {
-    // Cannot use Desktop.getDesktop().open(File) as it does not work properly outside of Windows
-    final String path = this.dbFileField.getText();
-    // Possible values: https://runmodule.com/2020/10/12/possible-values-of-os-dependent-java-system-properties/
-    final String osName = System.getProperty("os.name").toLowerCase();
-    final String[] command;
-    if (osName.contains("linux"))
-      command = new String[] {"dbus-send", "--dest=org.freedesktop.FileManager1", "--type=method_call",
-          "/org/freedesktop/FileManager1", "org.freedesktop.FileManager1.ShowItems",
-          "array:string:file:%s".formatted(path), "string:\"\""};
-    else if (osName.contains("win"))
-      command = new String[] {"explorer /select,\"{path}\""};
-    else if (osName.contains("mac"))
-      command = new String[] {"open", "-R", path};
-    else {
-      App.LOGGER.error("Unable to open file system explorer: unsupported operating system {}", osName);
-      return;
-    }
-
-    try {
-      Runtime.getRuntime().exec(command);
-    } catch (IOException e) {
-      App.LOGGER.error("Unable to open file system explorer", e);
-    }
+    FileUtils.openInFileExplorer(this.dbFileField.getText());
   }
 
   @SuppressWarnings("unchecked")

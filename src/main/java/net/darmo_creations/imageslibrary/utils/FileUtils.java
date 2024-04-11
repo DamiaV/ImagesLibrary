@@ -1,6 +1,12 @@
 package net.darmo_creations.imageslibrary.utils;
 
+import javafx.util.*;
+import net.darmo_creations.imageslibrary.*;
+import org.jetbrains.annotations.*;
+
+import java.io.*;
 import java.nio.file.*;
+import java.util.*;
 
 /**
  * Class providing methods to handle files.
@@ -18,4 +24,69 @@ public class FileUtils {
       return "";
     return fileName.substring(fileName.lastIndexOf('.') + 1);
   }
+
+  /**
+   * Open the given file path in the host system’s default file explorer.
+   *
+   * @param path The path to open.
+   */
+  public static void openInFileExplorer(String path) {
+    // Cannot use Desktop.getDesktop().open(File) as it does not work properly outside of Windows
+    // Possible values: https://runmodule.com/2020/10/12/possible-values-of-os-dependent-java-system-properties/
+    final String osName = System.getProperty("os.name").toLowerCase();
+    final String[] command;
+    if (osName.contains("linux"))
+      command = new String[] { "dbus-send", "--dest=org.freedesktop.FileManager1", "--type=method_call",
+          "/org/freedesktop/FileManager1", "org.freedesktop.FileManager1.ShowItems",
+          "array:string:file:%s".formatted(path), "string:\"\"" };
+    else if (osName.contains("win"))
+      command = new String[] { "explorer /select,\"{path}\"" };
+    else if (osName.contains("mac"))
+      command = new String[] { "open", "-R", path };
+    else {
+      App.LOGGER.error("Unable to open file system explorer: unsupported operating system {}", osName);
+      return;
+    }
+
+    try {
+      Runtime.getRuntime().exec(command);
+    } catch (IOException e) {
+      App.LOGGER.error("Unable to open file system explorer", e);
+    }
+  }
+
+  /**
+   * Format the given size in bytes.
+   *
+   * @param sizeInBytes The size in bytes.
+   * @param asBibytes   If true, result will be expressed in KiB, MiB, etc. instead of kB, MB, etc.
+   * @return A pair containing the value expressed in the closest unit,
+   * and the unit itself, without the B at the end.
+   * The latter may thus be an empty string if size is less than 1000 bytes.
+   * @throws IllegalArgumentException If the size is negative.
+   */
+  public static Pair<String, String> formatBytesSize(long sizeInBytes, boolean asBibytes) {
+    if (sizeInBytes < 0)
+      throw new IllegalArgumentException("Size cannot be negative");
+    final var units = asBibytes ? BIBYTE_UNITS : BYTE_UNITS;
+    for (final var unit : units)
+      if (sizeInBytes > unit.getKey()) {
+        final String formattedNumber = App.config().language().formatNumber(sizeInBytes / unit.getKey(), 1);
+        return new Pair<>(formattedNumber, unit.getValue());
+      }
+    return new Pair<>(String.valueOf(sizeInBytes), "");
+  }
+
+  @Unmodifiable
+  private static final List<Pair<Double, String>> BYTE_UNITS = List.of(
+      new Pair<>(1e9, "G"),
+      new Pair<>(1e6, "M"),
+      new Pair<>(1e3, "k")
+  );
+  @Unmodifiable
+  private static final List<Pair<Double, String>> BIBYTE_UNITS = List.of(
+      new Pair<>(1073741824.0, "Gi"), // 1024³
+      new Pair<>(1048576.0, "Mi"), // 1024²
+      new Pair<>(1024.0, "Ki")
+  );
 }

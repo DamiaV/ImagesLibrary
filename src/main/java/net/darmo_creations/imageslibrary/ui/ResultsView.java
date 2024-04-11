@@ -95,6 +95,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     resultsLabelBox.setAlignment(Pos.CENTER);
     final SplitPane splitPane = new SplitPane(this.imagesList, this.imagePreviewPane);
     splitPane.setDividerPositions(0.95);
+    this.imagePreviewPane.setSplitPane(splitPane, false);
     VBox.setVgrow(splitPane, Priority.ALWAYS);
     this.getChildren().addAll(searchBox, resultsLabelBox, splitPane);
   }
@@ -200,9 +201,11 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     if (pictures.isEmpty())
       this.resultsLabel.setText(language.translate("images_view.no_results"));
     else
-      this.resultsLabel.setText(language.translate("images_view.results", count, new FormatArg("count", count)));
+      this.resultsLabel.setText(language.translate("images_view.results", count,
+          new FormatArg("count", language.formatNumber(count))));
     this.resetFieldsStates();
     this.imagesList.getItems().clear();
+    // TODO add icons to images without tags and/or missing file
     pictures.forEach(picture -> this.imagesList.getItems().add(new PictureEntry(picture)));
     this.imagesList.getItems().sort(null);
     this.searchListeners.forEach(listener -> listener.onSearchEnd(count));

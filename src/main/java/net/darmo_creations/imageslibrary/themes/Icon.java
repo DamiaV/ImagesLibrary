@@ -31,7 +31,7 @@ public enum Icon {
   COMPOUND_TAG("three_tags"),
 
   OPEN_DB_FILE("folder_database"),
-  GO_TO_DB_FILE("folder_go"),
+  OPEN_FILE_IN_EXPLORER("folder_go"),
   ;
 
   private final String baseName;
