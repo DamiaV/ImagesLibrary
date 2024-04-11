@@ -125,7 +125,6 @@ public class ResultsView extends VBox {
     this.searchButton.setDisable(true);
     this.clearSearchButton.setDisable(true);
     this.searchListeners.forEach(SearchListener::onSearchStart);
-    // TODO show spinning gif?
 
     final Language language = App.config().language();
 

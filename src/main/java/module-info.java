@@ -13,6 +13,7 @@ module net.darmo_creations.imageslibrary {
   requires ini4j;
   requires org.apache.commons.cli;
   requires com.google.gson;
+  requires jdk.jfr;
 
   opens net.darmo_creations.imageslibrary to javafx.fxml;
   exports net.darmo_creations.imageslibrary;
