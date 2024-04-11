@@ -2,6 +2,7 @@ package net.darmo_creations.imageslibrary.ui;
 
 import javafx.application.*;
 import javafx.geometry.*;
+import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import net.darmo_creations.imageslibrary.*;
@@ -12,6 +13,7 @@ import net.darmo_creations.imageslibrary.query_parser.ex.*;
 import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.ui.dialogs.*;
 import net.darmo_creations.imageslibrary.utils.*;
+import org.controlsfx.control.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
@@ -27,9 +29,10 @@ public class ResultsView extends VBox {
   private final TextField searchField = new TextField();
   private final Button searchButton = new Button();
   private final Button clearSearchButton = new Button();
-  private final Label errorLabel = new Label();
+  private final Label resultsLabel = new Label();
 
   public ResultsView(final DatabaseConnection db) {
+    super(5);
     this.db = db;
 
     final Config config = App.config();
@@ -44,8 +47,13 @@ public class ResultsView extends VBox {
         this.searchButton,
         this.clearSearchButton
     );
-    searchBox.setPadding(new Insets(2));
-    this.getChildren().addAll(searchBox, this.errorLabel, this.imagesList);
+    searchBox.setPadding(new Insets(2, 2, 0, 2));
+    this.resultsLabel.setText(language.translate("images_view.suggestion"));
+    this.resultsLabel.getStyleClass().add("results-label");
+    this.resultsLabel.setPadding(new Insets(0, 2, 0, 2));
+    final HBox resultsLabelBox = new HBox(this.resultsLabel);
+    resultsLabelBox.setAlignment(Pos.CENTER);
+    this.getChildren().addAll(searchBox, resultsLabelBox, this.imagesList);
 
     this.imagesList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
     this.imagesList.getSelectionModel().selectedItemProperty().addListener(
@@ -58,10 +66,8 @@ public class ResultsView extends VBox {
 
     this.searchField.setPromptText(language.translate("image_search_field.search"));
     this.searchField.setOnAction(e -> this.search());
-    this.searchField.textProperty().addListener((observable, oldValue, newValue) -> {
-      this.errorLabel.setText(null);
-      this.clearSearchButton.setDisable(StringUtils.stripNullable(newValue).isEmpty());
-    });
+    this.searchField.textProperty().addListener((observable, oldValue, newValue) ->
+        this.clearSearchButton.setDisable(StringUtils.stripNullable(newValue).isEmpty()));
 
     this.searchButton.setOnAction(e -> this.search());
     this.searchButton.setGraphic(theme.getIcon(Icon.SEARCH, Icon.Size.SMALL));
@@ -128,14 +134,13 @@ public class ResultsView extends VBox {
     try {
       query = TagQueryParser.parse(queryString.get(), tagDefinitions, DatabaseConnection.PSEUDO_TAGS);
     } catch (TagQueryTooLargeException e) {
-      this.errorLabel.setText(language.translate("image_search_field.recursive_loop_error"));
+      this.showPopup(language.translate("image_search_field.recursive_loop_error"));
       return;
     } catch (TagQuerySyntaxErrorException e) {
-      this.errorLabel.setText(language.translate("image_search_field.query_syntax_error"));
+      this.showPopup(language.translate("image_search_field.query_syntax_error"));
       return;
     } catch (InvalidPseudoTagException e) {
-      this.errorLabel.setText(
-          language.translate("image_search_field.invalid_pseudo_tag", new FormatArg("tag", e.pseudoTag())));
+      this.showPopup(language.translate("image_search_field.invalid_pseudo_tag", new FormatArg("tag", e.pseudoTag())));
       return;
     }
 
@@ -160,14 +165,27 @@ public class ResultsView extends VBox {
     }).start();
   }
 
+  private void showPopup(String text) {
+    final var popup = new PopOver(new Label(text));
+    popup.show(this.searchField);
+    // From https://stackoverflow.com/a/36404968/3779986
+    final var stylesheets = ((Parent) popup.getSkin().getNode()).getStylesheets();
+    App.config().theme().getStyleSheets().forEach(path -> stylesheets.add(path.toExternalForm()));
+  }
+
   private void onSearchEnd(final Set<Picture> pictures) {
-    // TODO show number of results above list
+    final Language language = App.config().language();
+    final int count = pictures.size();
+    if (pictures.isEmpty())
+      this.resultsLabel.setText(language.translate("images_view.no_results"));
+    else
+      this.resultsLabel.setText(language.translate("images_view.results", count, new FormatArg("count", count)));
     // TODO show images somewhere
     this.resetFieldsStates();
     this.imagesList.getItems().clear();
     pictures.forEach(picture -> this.imagesList.getItems().add(new PictureEntry(picture)));
     this.imagesList.getItems().sort(null);
-    this.searchListeners.forEach(listener -> listener.onSearchEnd(pictures.size()));
+    this.searchListeners.forEach(listener -> listener.onSearchEnd(count));
   }
 
   private void onSearchError() {

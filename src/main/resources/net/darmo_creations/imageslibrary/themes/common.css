@@ -9,10 +9,12 @@
 /* Custom */
 
 .tags-tab:selected,
-.tags-tab-title {
+.tags-tab-title,
+.results-label {
   -fx-font-weight: bold;
 }
 
-.tags-tab-title {
+.tags-tab-title,
+.results-label {
   -fx-font-size: 1.3em;
 }
