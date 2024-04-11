@@ -15,12 +15,17 @@ import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.nio.file.*;
+import java.util.*;
 
-public class ImagePreviewPane extends VBox {
+public class ImagePreviewPane extends VBox implements ClickableListCellFactory.ClickListener<ImagePreviewPane.TagEntry> {
+  private final Set<TagClickListener> tagClickListeners = new HashSet<>();
+
   private final Button openInExplorerButton = new Button();
   private final Label fileNameLabel = new Label();
   private final Label fileMetadataLabel = new Label();
   private final ImageView imageView = new ImageView();
+  private final ListView<TagEntry> tagsList = new ListView<>();
+
   @Nullable
   private Picture picture;
 
@@ -48,11 +53,24 @@ public class ImagePreviewPane extends VBox {
     final HBox imageViewBox = new HBox(this.imageView);
     imageViewBox.setAlignment(Pos.TOP_CENTER);
     this.imageView.setPreserveRatio(true);
-    this.imageView.fitHeightProperty().bind(imageViewBox.heightProperty().subtract(50));
+    this.imageView.fitHeightProperty().bind(imageViewBox.heightProperty().subtract(5));
     VBox.setVgrow(imageViewBox, Priority.ALWAYS);
 
-    this.getChildren().addAll(controlsBox, fileNameBox, metadataBox, imageViewBox);
-    this.setImage(null);
+    final HBox tagsLabelBox = new HBox(new Label(language.translate("image_preview.section.tags.title")));
+    tagsLabelBox.getStyleClass().add("section-title");
+    tagsLabelBox.setAlignment(Pos.CENTER);
+
+    this.tagsList.setPrefHeight(150);
+    this.tagsList.setCellFactory(ignored -> ClickableListCellFactory.forListener(this));
+
+    this.getChildren().addAll(controlsBox,
+        fileNameBox,
+        metadataBox,
+        imageViewBox,
+        tagsLabelBox,
+        this.tagsList
+    );
+    this.setImage(null, null);
   }
 
   /**
@@ -74,14 +92,21 @@ public class ImagePreviewPane extends VBox {
    * Set the image to show.
    *
    * @param picture The image to show.
+   * @param tags    The tags for the image.
    */
-  public void setImage(@Nullable Picture picture) {
+  @Contract("!null, null -> fail")
+  public void setImage(@Nullable Picture picture, @Nullable Set<Tag> tags) {
+    if (picture != null)
+      Objects.requireNonNull(tags);
     this.picture = picture;
+
     boolean noPicture = true;
     this.imageView.setImage(null);
     this.fileNameLabel.setText(null);
     this.fileMetadataLabel.setText(null);
     this.fileMetadataLabel.setTooltip(null);
+    this.tagsList.getItems().clear();
+
     if (picture != null) {
       final Language language = App.config().language();
       final Path path = picture.path();
@@ -98,8 +123,17 @@ public class ImagePreviewPane extends VBox {
         this.imageView.setImage(image);
         noPicture = false;
       }
+      final var tagsEntries = tags.stream()
+          .sorted(Comparator.comparing(Tag::label))
+          .map(TagEntry::new)
+          .toList();
+      this.tagsList.getItems().addAll(tagsEntries);
     }
     this.openInExplorerButton.setDisable(noPicture);
+  }
+
+  public void addTagClickListener(TagClickListener listener) {
+    this.tagClickListeners.add(Objects.requireNonNull(listener));
   }
 
   private void displayMetadata(Path path, Image image) {
@@ -138,5 +172,32 @@ public class ImagePreviewPane extends VBox {
   private void onOpenFile() {
     if (this.picture != null)
       FileUtils.openInFileExplorer(this.picture.path().toString());
+  }
+
+  @Override
+  public void onItemClick(TagEntry item) {
+  }
+
+  @Override
+  public void onItemDoubleClick(TagEntry item) {
+    this.tagClickListeners.forEach(listener -> listener.onTagClick(item.tag()));
+  }
+
+  static class TagEntry extends HBox {
+    private final Tag tag;
+
+    private TagEntry(Tag tag) {
+      this.tag = Objects.requireNonNull(tag);
+      final Label label = new Label(tag.label());
+      tag.type().ifPresent(tagType -> {
+        label.setText(tagType.symbol() + label.getText());
+        label.setStyle("-fx-text-fill: %s;".formatted(StringUtils.colorToCss(tagType.color())));
+      });
+      this.getChildren().add(label);
+    }
+
+    public Tag tag() {
+      return this.tag;
+    }
   }
 }

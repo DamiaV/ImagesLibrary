@@ -35,6 +35,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final PopOver popup;
   private boolean popupInitialized = false;
 
+  // TODO request history
   public ResultsView(final DatabaseConnection db) {
     super(5);
     this.db = db;
@@ -96,6 +97,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     final SplitPane splitPane = new SplitPane(this.imagesList, this.imagePreviewPane);
     splitPane.setDividerPositions(0.95);
     this.imagePreviewPane.setSplitPane(splitPane, false);
+    this.imagePreviewPane.addTagClickListener(this::searchTag);
     VBox.setVgrow(splitPane, Priority.ALWAYS);
     this.getChildren().addAll(searchBox, resultsLabelBox, splitPane);
   }
@@ -108,15 +110,14 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   /**
-   * Insert the given tag’s label into the searh field.
+   * Replace the current query by the given tag and run a search.
    *
    * @param tag The tag to insert.
    */
-  public void insertTagInSearchBar(Tag tag) {
-    if (StringUtils.stripNullable(this.searchField.getText()).isPresent())
-      this.searchField.appendText(" ");
-    this.searchField.appendText(tag.label());
+  public void searchTag(Tag tag) {
+    this.searchField.setText(tag.label());
     this.searchField.requestFocus();
+    this.search();
   }
 
   /**
@@ -205,8 +206,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
           new FormatArg("count", language.formatNumber(count))));
     this.resetFieldsStates();
     this.imagesList.getItems().clear();
-    // TODO add icons to images without tags and/or missing file
-    for (final Picture picture : pictures) {
+    for (final var picture : pictures) {
       Set<Tag> imageTags;
       try {
         imageTags = this.db.getImageTags(picture);
@@ -243,15 +243,12 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   private void onSelectionChange() {
-    final var selection = this.imagesList.getSelectionModel()
-        .getSelectedItems()
-        .stream()
+    final var selectedItems = this.imagesList.getSelectionModel().getSelectedItems();
+    final var selection = selectedItems.stream()
         .map(PictureEntry::picture)
         .toList();
     if (selection.size() == 1)
-      this.imagePreviewPane.setImage(selection.get(0));
-    else if (selection.isEmpty())
-      this.imagePreviewPane.setImage(null);
+      this.imagePreviewPane.setImage(selection.get(0), selectedItems.get(0).tags());
     this.imageSelectionListeners.forEach(listener -> listener.onSelectionChange(selection));
   }
 

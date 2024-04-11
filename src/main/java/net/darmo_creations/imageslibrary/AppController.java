@@ -350,7 +350,7 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void onTagClick(Tag tag) {
-    this.resultsView.insertTagInSearchBar(tag);
+    this.resultsView.searchTag(tag);
   }
 
   private void onTagSelectionChange(final List<Tag> tags) {

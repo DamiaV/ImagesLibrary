@@ -10,11 +10,13 @@
 
 .tags-tab:selected,
 .tags-tab-title,
-.results-label {
+.results-label,
+.section-title {
   -fx-font-weight: bold;
 }
 
 .tags-tab-title,
-.results-label {
+.results-label,
+.section-title {
   -fx-font-size: 1.3em;
 }
