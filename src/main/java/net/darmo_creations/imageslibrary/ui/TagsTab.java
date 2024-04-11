@@ -17,7 +17,7 @@ import java.util.*;
 /**
  * A tab that displays a list of tags.
  */
-public final class TagsTab extends Tab {
+public final class TagsTab extends Tab implements ClickableListCellFactory.ClickListener<TagsTab.TagEntry> {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final Set<TagSelectionListener> tagSelectionListeners = new HashSet<>();
   private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
@@ -75,7 +75,7 @@ public final class TagsTab extends Tab {
       if (newValue)
         this.onSelectionChange();
     });
-    this.tagsList.setCellFactory(param -> DoubleClickableListCellFactory.forListener(this::onItemClick));
+    this.tagsList.setCellFactory(param -> ClickableListCellFactory.forListener(this));
 
     this.setContent(new VBox(top, this.tagsList));
   }
@@ -129,7 +129,12 @@ public final class TagsTab extends Tab {
     this.deleteTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
-  private void onItemClick(TagEntry tagEntry) {
+  @Override
+  public void onItemClick(TagEntry item) {
+  }
+
+  @Override
+  public void onItemDoubleClick(TagEntry tagEntry) {
     this.tagClickListeners.forEach(listener -> listener.onTagClick(tagEntry.tag()));
   }
 

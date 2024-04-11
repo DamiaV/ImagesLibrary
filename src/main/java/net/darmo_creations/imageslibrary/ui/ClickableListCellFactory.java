@@ -5,15 +5,15 @@ import javafx.scene.control.*;
 import javafx.scene.input.*;
 import org.jetbrains.annotations.*;
 
-public final class DoubleClickableListCellFactory {
+public final class ClickableListCellFactory {
   /**
-   * Create a {@link ListCell} that fires an event when it is double-clicked.
+   * Create a {@link ListCell} that fires an event when it is clicked or double-clicked.
    *
    * @param listener A listener that will listen to these events.
    * @return A new {@link ListCell} subclass.
    */
   @Contract(pure = true, value = "_ -> new")
-  public static <T> ListCell<T> forListener(DoubleClickListener<T> listener) {
+  public static <T> ListCell<T> forListener(ClickListener<T> listener) {
     return new ListCell<>() {
       // Adapted from javafx.scene.control.skin.ListViewSkin.createDefaultCellImpl()
       @Override
@@ -38,18 +38,28 @@ public final class DoubleClickableListCellFactory {
 
       private void installMouseClickListener(T item) {
         this.setOnMouseClicked(event -> {
-          if (event.getButton().equals(MouseButton.PRIMARY) && event.getClickCount() > 1)
-            listener.onItemDoubleClick(item);
+          if (event.getButton().equals(MouseButton.PRIMARY)) {
+            if (event.getClickCount() == 1)
+              listener.onItemClick(item);
+            else if (event.getClickCount() > 1)
+              listener.onItemDoubleClick(item);
+          }
         });
       }
     };
   }
 
-  private DoubleClickableListCellFactory() {
+  private ClickableListCellFactory() {
   }
 
-  @FunctionalInterface
-  public interface DoubleClickListener<T> {
+  public interface ClickListener<T> {
+    /**
+     * Called when an item is clicked.
+     *
+     * @param item The clicked item.
+     */
+    void onItemClick(T item);
+
     /**
      * Called when an item is double-clicked.
      *

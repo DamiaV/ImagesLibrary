@@ -20,17 +20,18 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 import java.util.stream.*;
 
-public class ResultsView extends VBox {
+public class ResultsView extends VBox implements ClickableListCellFactory.ClickListener<ResultsView.PictureEntry> {
   private final List<ImageClickListener> imageClickListeners = new ArrayList<>();
   private final List<ImageSelectionListener> imageSelectionListeners = new ArrayList<>();
   private final List<SearchListener> searchListeners = new ArrayList<>();
   private final DatabaseConnection db;
 
-  private final ListView<PictureEntry> imagesList = new ListView<>();
   private final TextField searchField = new TextField();
   private final Button searchButton = new Button();
   private final Button clearSearchButton = new Button();
   private final Label resultsLabel = new Label();
+  private final ListView<PictureEntry> imagesList = new ListView<>();
+  private final ImagePreviewPane imagePreviewPane = new ImagePreviewPane();
   private final PopOver popup;
   private boolean popupInitialized = false;
 
@@ -48,31 +49,6 @@ public class ResultsView extends VBox {
     this.popup.setArrowLocation(PopOver.ArrowLocation.RIGHT_CENTER);
     this.popup.setFadeInDuration(new Duration(100));
     this.popup.setFadeOutDuration(new Duration(100));
-
-    VBox.setVgrow(this.imagesList, Priority.ALWAYS);
-    HBox.setHgrow(this.searchField, Priority.ALWAYS);
-    final HBox searchBox = new HBox(
-        5,
-        this.searchField,
-        this.searchButton,
-        this.clearSearchButton
-    );
-    searchBox.setPadding(new Insets(2, 2, 0, 2));
-    this.resultsLabel.setText(language.translate("images_view.suggestion"));
-    this.resultsLabel.getStyleClass().add("results-label");
-    this.resultsLabel.setPadding(new Insets(0, 2, 0, 2));
-    final HBox resultsLabelBox = new HBox(this.resultsLabel);
-    resultsLabelBox.setAlignment(Pos.CENTER);
-    this.getChildren().addAll(searchBox, resultsLabelBox, this.imagesList);
-
-    this.imagesList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-    this.imagesList.getSelectionModel().selectedItemProperty().addListener(
-        (observable, oldValue, newValue) -> this.onSelectionChange());
-    this.imagesList.focusedProperty().addListener((observable, oldValue, newValue) -> {
-      if (newValue)
-        this.onSelectionChange();
-    });
-    this.imagesList.setCellFactory(item -> DoubleClickableListCellFactory.forListener(this::onItemClick));
 
     this.searchField.setPromptText(language.translate("image_search_field.search"));
     this.searchField.setOnAction(e -> this.search());
@@ -93,6 +69,34 @@ public class ResultsView extends VBox {
     this.clearSearchButton.setGraphic(theme.getIcon(Icon.CLEAR_TEXT, Icon.Size.SMALL));
     this.clearSearchButton.setTooltip(new Tooltip(language.translate("search_field.erase_search")));
     this.clearSearchButton.setDisable(true);
+
+    this.resultsLabel.setText(language.translate("images_view.suggestion"));
+    this.resultsLabel.getStyleClass().add("results-label");
+    this.resultsLabel.setPadding(new Insets(0, 2, 0, 2));
+
+    this.imagesList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+    this.imagesList.getSelectionModel().selectedItemProperty().addListener(
+        (observable, oldValue, newValue) -> this.onSelectionChange());
+    this.imagesList.focusedProperty().addListener((observable, oldValue, newValue) -> {
+      if (newValue)
+        this.onSelectionChange();
+    });
+    this.imagesList.setCellFactory(item -> ClickableListCellFactory.forListener(this));
+
+    HBox.setHgrow(this.searchField, Priority.ALWAYS);
+    final HBox searchBox = new HBox(
+        5,
+        this.searchField,
+        this.searchButton,
+        this.clearSearchButton
+    );
+    searchBox.setPadding(new Insets(2, 2, 0, 2));
+    final HBox resultsLabelBox = new HBox(this.resultsLabel);
+    resultsLabelBox.setAlignment(Pos.CENTER);
+    final SplitPane splitPane = new SplitPane(this.imagesList, this.imagePreviewPane);
+    splitPane.setDividerPositions(0.95);
+    VBox.setVgrow(splitPane, Priority.ALWAYS);
+    this.getChildren().addAll(searchBox, resultsLabelBox, splitPane);
   }
 
   /**
@@ -111,6 +115,7 @@ public class ResultsView extends VBox {
     if (StringUtils.stripNullable(this.searchField.getText()).isPresent())
       this.searchField.appendText(" ");
     this.searchField.appendText(tag.label());
+    this.searchField.requestFocus();
   }
 
   /**
@@ -196,7 +201,6 @@ public class ResultsView extends VBox {
       this.resultsLabel.setText(language.translate("images_view.no_results"));
     else
       this.resultsLabel.setText(language.translate("images_view.results", count, new FormatArg("count", count)));
-    // TODO show clicked image in a side panel to the right of the list -> use split pane
     this.resetFieldsStates();
     this.imagesList.getItems().clear();
     pictures.forEach(picture -> this.imagesList.getItems().add(new PictureEntry(picture)));
@@ -217,20 +221,29 @@ public class ResultsView extends VBox {
     this.clearSearchButton.setDisable(false);
   }
 
-  private void onItemClick(PictureEntry pictureEntry) {
+  @Override
+  public void onItemClick(PictureEntry item) {
+  }
+
+  @Override
+  public void onItemDoubleClick(PictureEntry pictureEntry) {
     this.imageClickListeners.forEach(listener -> listener.onImageClick(pictureEntry.picture()));
   }
 
   private void onSelectionChange() {
-    this.imageSelectionListeners.forEach(listener -> {
-      final var selection = this.imagesList.getSelectionModel().getSelectedItems().stream()
-          .map(PictureEntry::picture)
-          .toList();
-      listener.onSelectionChange(selection);
-    });
+    final var selection = this.imagesList.getSelectionModel()
+        .getSelectedItems()
+        .stream()
+        .map(PictureEntry::picture)
+        .toList();
+    if (selection.size() == 1)
+      this.imagePreviewPane.setImage(selection.get(0));
+    else if (selection.isEmpty())
+      this.imagePreviewPane.setImage(null);
+    this.imageSelectionListeners.forEach(listener -> listener.onSelectionChange(selection));
   }
 
-  private record PictureEntry(Picture picture) implements Comparable<PictureEntry> {
+  public record PictureEntry(Picture picture) implements Comparable<PictureEntry> {
     @Override
     public String toString() {
       return this.picture.path().toString();
