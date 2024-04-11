@@ -1,7 +1,5 @@
 package net.darmo_creations.imageslibrary.data;
 
-import java.util.*;
-
 /**
  * This class indicates how to update a tag type in the database.
  *
@@ -17,6 +15,6 @@ public record TagTypeUpdate(
     int color
 ) implements TagTypeLike {
   public TagTypeUpdate {
-    Objects.requireNonNull(label);
+    TagLike.ensureValidLabel(label);
   }
 }

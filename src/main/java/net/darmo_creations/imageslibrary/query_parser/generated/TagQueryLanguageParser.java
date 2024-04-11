@@ -19,8 +19,7 @@ public class TagQueryLanguageParser extends Parser {
   protected static final PredictionContextCache _sharedContextCache =
       new PredictionContextCache();
   public static final int
-      T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, WS = 6, IDENT = 7, FLAG = 8, STRING = 9,
-      REGEX = 10;
+      T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, WS = 6, IDENT = 7, STRING = 8, REGEX = 9;
   public static final int
       RULE_query = 0, RULE_expr = 1, RULE_lit = 2;
 
@@ -42,8 +41,7 @@ public class TagQueryLanguageParser extends Parser {
 
   private static String[] makeSymbolicNames() {
     return new String[] {
-        null, null, null, null, null, null, "WS", "IDENT", "FLAG", "STRING",
-        "REGEX"
+        null, null, null, null, null, null, "WS", "IDENT", "STRING", "REGEX"
     };
   }
 
@@ -464,16 +462,16 @@ public class TagQueryLanguageParser extends Parser {
   }
 
   public static class PseudoTagRegexContext extends LitContext {
-    public TerminalNode IDENT() {
-      return getToken(TagQueryLanguageParser.IDENT, 0);
+    public List<TerminalNode> IDENT() {
+      return getTokens(TagQueryLanguageParser.IDENT);
+    }
+
+    public TerminalNode IDENT(int i) {
+      return getToken(TagQueryLanguageParser.IDENT, i);
     }
 
     public TerminalNode REGEX() {
       return getToken(TagQueryLanguageParser.REGEX, 0);
-    }
-
-    public TerminalNode FLAG() {
-      return getToken(TagQueryLanguageParser.FLAG, 0);
     }
 
     public PseudoTagRegexContext(LitContext ctx) {
@@ -489,16 +487,16 @@ public class TagQueryLanguageParser extends Parser {
   }
 
   public static class PseudoTagStringContext extends LitContext {
-    public TerminalNode IDENT() {
-      return getToken(TagQueryLanguageParser.IDENT, 0);
+    public List<TerminalNode> IDENT() {
+      return getTokens(TagQueryLanguageParser.IDENT);
+    }
+
+    public TerminalNode IDENT(int i) {
+      return getToken(TagQueryLanguageParser.IDENT, i);
     }
 
     public TerminalNode STRING() {
       return getToken(TagQueryLanguageParser.STRING, 0);
-    }
-
-    public TerminalNode FLAG() {
-      return getToken(TagQueryLanguageParser.FLAG, 0);
     }
 
     public PseudoTagStringContext(LitContext ctx) {
@@ -589,10 +587,10 @@ public class TagQueryLanguageParser extends Parser {
           setState(68);
           _errHandler.sync(this);
           _la = _input.LA(1);
-          if (_la == FLAG) {
+          if (_la == IDENT) {
             {
               setState(67);
-              match(FLAG);
+              match(IDENT);
             }
           }
 
@@ -611,10 +609,10 @@ public class TagQueryLanguageParser extends Parser {
           setState(74);
           _errHandler.sync(this);
           _la = _input.LA(1);
-          if (_la == FLAG) {
+          if (_la == IDENT) {
             {
               setState(73);
-              match(FLAG);
+              match(IDENT);
             }
           }
 
@@ -660,7 +658,7 @@ public class TagQueryLanguageParser extends Parser {
   }
 
   public static final String _serializedATN =
-      "\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\fS\4\2\t\2\4\3\t" +
+      "\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\13S\4\2\t\2\4\3\t" +
       "\3\4\4\t\4\3\2\3\2\3\2\3\3\3\3\3\3\7\3\17\n\3\f\3\16\3\22\13\3\3\3\3\3" +
       "\5\3\26\n\3\3\3\3\3\7\3\32\n\3\f\3\16\3\35\13\3\3\3\3\3\3\3\7\3\"\n\3" +
       "\f\3\16\3%\13\3\3\3\3\3\7\3)\n\3\f\3\16\3,\13\3\3\3\7\3/\n\3\f\3\16\3" +
@@ -679,8 +677,8 @@ public class TagQueryLanguageParser extends Parser {
       "\2\2\64\66\7\b\2\2\65\64\3\2\2\2\669\3\2\2\2\67\65\3\2\2\2\678\3\2\2\2" +
       "8:\3\2\2\29\67\3\2\2\2:>\5\4\3\2;=\7\b\2\2<;\3\2\2\2=@\3\2\2\2><\3\2\2" +
       "\2>?\3\2\2\2?A\3\2\2\2@>\3\2\2\2AB\7\6\2\2BQ\3\2\2\2CD\7\t\2\2DF\7\7\2" +
-      "\2EG\7\n\2\2FE\3\2\2\2FG\3\2\2\2GH\3\2\2\2HQ\7\13\2\2IJ\7\t\2\2JL\7\7" +
-      "\2\2KM\7\n\2\2LK\3\2\2\2LM\3\2\2\2MN\3\2\2\2NQ\7\f\2\2OQ\7\t\2\2P\63\3" +
+      "\2EG\7\t\2\2FE\3\2\2\2FG\3\2\2\2GH\3\2\2\2HQ\7\n\2\2IJ\7\t\2\2JL\7\7\2" +
+      "\2KM\7\t\2\2LK\3\2\2\2LM\3\2\2\2MN\3\2\2\2NQ\7\13\2\2OQ\7\t\2\2P\63\3" +
       "\2\2\2PC\3\2\2\2PI\3\2\2\2PO\3\2\2\2Q\7\3\2\2\2\16\20\25\33#*.\60\67>" +
       "FLP";
   public static final ATN _ATN =

@@ -146,6 +146,7 @@ public final class TagQuery {
       throw new InvalidPseudoTagException(tagName, tagName);
     if (!"".equals(tagFlags) && !tag.acceptsRegex())
       throw new InvalidPseudoTagException("Pseudo-tag %s does not accept flags".formatted(tagName), tagName);
+    checkPseudoTagFlags(tagName, tagFlags);
 
     String escaped = tagPattern;
     switch (tagType) {
@@ -171,6 +172,14 @@ public final class TagQuery {
     return tag.acceptsRegex()
         ? tag.sqlTemplate().formatted(escaped, tagFlags)
         : tag.sqlTemplate().formatted(escaped);
+  }
+
+  private static void checkPseudoTagFlags(String pseudoTag, String flags) throws InvalidPseudoTagException {
+    for (int i = 0; i < flags.length(); i++) {
+      final char flag = flags.charAt(i);
+      if (!PseudoTag.FLAGS.contains(flag))
+        throw new InvalidPseudoTagException("Invalid pseudo-tag flag: " + flag, pseudoTag);
+    }
   }
 
   /**

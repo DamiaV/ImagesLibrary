@@ -14,6 +14,13 @@ public record PseudoTag(
     @SQLite String sqlTemplate,
     boolean acceptsRegex
 ) {
+  public static final char CASE_SENSITIVE_FLAG = 's';
+  public static final char CASE_INSENSITIVE_FLAG = 'i';
+  public static final List<Character> FLAGS = List.of(
+      CASE_SENSITIVE_FLAG,
+      CASE_INSENSITIVE_FLAG
+  );
+
   public PseudoTag {
     Objects.requireNonNull(sqlTemplate);
   }

@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.query_parser;
 
+import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.query_parser.ex.*;
 import net.darmo_creations.imageslibrary.query_parser.generated.*;
 import org.logicng.formulas.*;
@@ -64,9 +65,9 @@ class TagQueryVisitor extends TagQueryLanguageBaseVisitor<Formula> {
 
   @Override
   public Formula visitPseudoTagString(TagQueryLanguageParser.PseudoTagStringContext ctx) {
-    final String label = ctx.IDENT().getText();
-    final var flagNode = ctx.FLAG();
-    final String flags = flagNode == null ? "" : flagNode.getText().toLowerCase();
+    final String label = ctx.IDENT(0).getText();
+    final var flagNode = ctx.IDENT(1);
+    final String flags = flagNode == null ? "" : flagNode.getText();
     String pattern = ctx.STRING().getText();
     pattern = pattern.substring(1, pattern.length() - 1)
         .replaceAll("\\\\([\"\\\\])", "$1"); // Unescape \ and "
@@ -75,9 +76,9 @@ class TagQueryVisitor extends TagQueryLanguageBaseVisitor<Formula> {
 
   @Override
   public Formula visitPseudoTagRegex(TagQueryLanguageParser.PseudoTagRegexContext ctx) {
-    final String label = ctx.IDENT().getText();
-    final var flagNode = ctx.FLAG();
-    final String flags = flagNode == null ? "" : flagNode.getText().toLowerCase();
+    final String label = ctx.IDENT(0).getText();
+    final var flagNode = ctx.IDENT(1);
+    final String flags = flagNode == null ? "" : flagNode.getText();
     String pattern = ctx.REGEX().getText();
     pattern = pattern.substring(1, pattern.length() - 1)
         .replace("\\\\/", "/"); // Unescape /

@@ -1,5 +1,7 @@
 package net.darmo_creations.imageslibrary.data.sql_functions;
 
+import net.darmo_creations.imageslibrary.*;
+import net.darmo_creations.imageslibrary.data.*;
 import org.jetbrains.annotations.*;
 
 import java.sql.*;
@@ -16,7 +18,17 @@ public class RegexFunction extends org.sqlite.Function {
     final String pattern = this.value_text(1);
     @Nullable
     final String flag = this.value_text(2);
-    final boolean caseSensitive = "s".equals(flag);
+    boolean caseSensitive = App.config() != null && App.config().caseSensitiveQueriesByDefault();
+    if (flag != null) {
+      for (int i = 0; i < flag.length(); i++) {
+        final char c = flag.charAt(i);
+        switch (c) {
+          case PseudoTag.CASE_SENSITIVE_FLAG -> caseSensitive = true;
+          case PseudoTag.CASE_INSENSITIVE_FLAG -> caseSensitive = false;
+          default -> throw new SQLException("Invalid regex flag: " + c);
+        }
+      }
+    }
     final Pattern regex = Pattern.compile(pattern, caseSensitive ? 0 : Pattern.CASE_INSENSITIVE);
     this.result(regex.matcher(string).matches() ? 1 : 0);
   }

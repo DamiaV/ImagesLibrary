@@ -73,19 +73,13 @@ class TagQueryParserTest {
   @Test
   void parse_pseudoTagStringIFlags() throws InvalidPseudoTagException {
     assertEquals(ff.variable("ext:string:i:pattern"),
-        TagQueryParser.parse("ext=I\"pattern\"", Map.of(), DatabaseConnection.PSEUDO_TAGS).formula());
+        TagQueryParser.parse("ext=i\"pattern\"", Map.of(), DatabaseConnection.PSEUDO_TAGS).formula());
   }
 
   @Test
   void parse_pseudoTagStringSFlags() throws InvalidPseudoTagException {
     assertEquals(ff.variable("ext:string:s:pattern"),
-        TagQueryParser.parse("ext=S\"pattern\"", Map.of(), DatabaseConnection.PSEUDO_TAGS).formula());
-  }
-
-  @Test
-  void parse_pseudoTagStringInvalidFlag() {
-    assertThrows(TagQuerySyntaxErrorException.class,
-        () -> TagQueryParser.parse("ext=a\"pattern\"", Map.of(), DatabaseConnection.PSEUDO_TAGS).formula());
+        TagQueryParser.parse("ext=s\"pattern\"", Map.of(), DatabaseConnection.PSEUDO_TAGS).formula());
   }
 
   @Test
@@ -97,19 +91,13 @@ class TagQueryParserTest {
   @Test
   void parse_pseudoTagRegexIFlags() throws InvalidPseudoTagException {
     assertEquals(ff.variable("ext:regex:i:pattern"),
-        TagQueryParser.parse("ext=I/pattern/", Map.of(), DatabaseConnection.PSEUDO_TAGS).formula());
+        TagQueryParser.parse("ext=i/pattern/", Map.of(), DatabaseConnection.PSEUDO_TAGS).formula());
   }
 
   @Test
   void parse_pseudoTagRegexSFlags() throws InvalidPseudoTagException {
     assertEquals(ff.variable("ext:regex:s:pattern"),
-        TagQueryParser.parse("ext=S/pattern/", Map.of(), DatabaseConnection.PSEUDO_TAGS).formula());
-  }
-
-  @Test
-  void parse_pseudoTagRegexInvalidFlags() {
-    assertThrows(TagQuerySyntaxErrorException.class,
-        () -> TagQueryParser.parse("ext=a/pattern/", Map.of(), DatabaseConnection.PSEUDO_TAGS).formula());
+        TagQueryParser.parse("ext=s/pattern/", Map.of(), DatabaseConnection.PSEUDO_TAGS).formula());
   }
 
   @Test
@@ -119,9 +107,15 @@ class TagQueryParserTest {
   }
 
   @Test
+  void parse_invalidPseudoTagFlag() {
+    assertThrows(InvalidPseudoTagException.class,
+        () -> TagQueryParser.parse("ext=I\"pattern\"", Map.of(), DatabaseConnection.PSEUDO_TAGS));
+  }
+
+  @Test
   void parse_lexerErrorThrows() {
     assertThrows(TagQuerySyntaxErrorException.class,
-        () -> TagQueryParser.parse("aê", Map.of(), Map.of()));
+        () -> TagQueryParser.parse("a$", Map.of(), Map.of()));
   }
 
   @Test

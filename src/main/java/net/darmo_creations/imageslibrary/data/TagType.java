@@ -37,9 +37,11 @@ public final class TagType extends DatabaseObject implements TagTypeLike {
    * Set this tag type’s label.
    *
    * @param label The new label.
+   * @throws IllegalArgumentException If the label is invalid.
    */
   void setLabel(String label) {
-    this.label = Objects.requireNonNull(label);
+    TagLike.ensureValidLabel(label);
+    this.label = label;
   }
 
   /**

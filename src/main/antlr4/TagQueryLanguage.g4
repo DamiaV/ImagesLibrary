@@ -5,8 +5,7 @@ grammar TagQueryLanguage;
 }
 
 WS: [ \n\r\t];
-IDENT: [a-z0-9_]+;
-FLAG: [IS];
+IDENT: [\p{L}\p{N}_]+;
 STRING: '"'('\\'[\\"*?]|~[\\"])*'"';
 REGEX: '/'('\\'[\\/()[\]{}*+?|^$=!.><dDsSwWbBAGzZQEnrtf-]|~[\\/])*'/';
 
@@ -20,8 +19,8 @@ expr:
     ;
 
 lit:
-      '(' WS* expr WS* ')'   # Group
-    | IDENT '=' FLAG? STRING # PseudoTagString
-    | IDENT '=' FLAG? REGEX  # PseudoTagRegex
-    | IDENT                  # Tag
+      '(' WS* expr WS* ')'    # Group
+    | IDENT '=' IDENT? STRING # PseudoTagString
+    | IDENT '=' IDENT? REGEX  # PseudoTagRegex
+    | IDENT                   # Tag
     ;
