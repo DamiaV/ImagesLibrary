@@ -76,6 +76,10 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
         this.onSelectionChange();
     });
     this.tagsList.setCellFactory(param -> ClickableListCellFactory.forListener(this));
+    this.filteredList.predicateProperty().addListener((observable, oldValue, newValue) -> {
+      this.setText(getTitle(tagType, this.filteredList.size()));
+      this.label.setText(getTitle(tagType, this.filteredList.size()));
+    });
 
     this.setContent(new VBox(top, this.tagsList));
   }
