@@ -5,6 +5,7 @@ import javafx.geometry.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
@@ -30,6 +31,8 @@ public class ResultsView extends VBox {
   private final Button searchButton = new Button();
   private final Button clearSearchButton = new Button();
   private final Label resultsLabel = new Label();
+  private final PopOver popup;
+  private boolean popupInitialized = false;
 
   public ResultsView(final DatabaseConnection db) {
     super(5);
@@ -38,6 +41,13 @@ public class ResultsView extends VBox {
     final Config config = App.config();
     final Language language = config.language();
     final Theme theme = config.theme();
+
+    final Label content = new Label();
+    this.popup = new PopOver(content);
+    content.setPadding(new Insets(5));
+    this.popup.setArrowLocation(PopOver.ArrowLocation.RIGHT_CENTER);
+    this.popup.setFadeInDuration(new Duration(100));
+    this.popup.setFadeOutDuration(new Duration(100));
 
     VBox.setVgrow(this.imagesList, Priority.ALWAYS);
     HBox.setHgrow(this.searchField, Priority.ALWAYS);
@@ -66,8 +76,11 @@ public class ResultsView extends VBox {
 
     this.searchField.setPromptText(language.translate("image_search_field.search"));
     this.searchField.setOnAction(e -> this.search());
-    this.searchField.textProperty().addListener((observable, oldValue, newValue) ->
-        this.clearSearchButton.setDisable(StringUtils.stripNullable(newValue).isEmpty()));
+    this.searchField.textProperty().addListener((observable, oldValue, newValue) -> {
+      if (this.popup.isShowing())
+        this.popup.hide();
+      this.clearSearchButton.setDisable(StringUtils.stripNullable(newValue).isEmpty());
+    });
 
     this.searchButton.setOnAction(e -> this.search());
     this.searchButton.setGraphic(theme.getIcon(Icon.SEARCH, Icon.Size.SMALL));
@@ -166,11 +179,14 @@ public class ResultsView extends VBox {
   }
 
   private void showPopup(String text) {
-    final var popup = new PopOver(new Label(text));
-    popup.show(this.searchField);
-    // From https://stackoverflow.com/a/36404968/3779986
-    final var stylesheets = ((Parent) popup.getSkin().getNode()).getStylesheets();
-    App.config().theme().getStyleSheets().forEach(path -> stylesheets.add(path.toExternalForm()));
+    ((Label) this.popup.getContentNode()).setText(text);
+    this.popup.show(this.searchField);
+    if (!this.popupInitialized) {
+      // From https://stackoverflow.com/a/36404968/3779986
+      final var stylesheets = ((Parent) this.popup.getSkin().getNode()).getStylesheets();
+      App.config().theme().getStyleSheets().forEach(path -> stylesheets.add(path.toExternalForm()));
+      this.popupInitialized = true;
+    }
   }
 
   private void onSearchEnd(final Set<Picture> pictures) {
@@ -180,7 +196,7 @@ public class ResultsView extends VBox {
       this.resultsLabel.setText(language.translate("images_view.no_results"));
     else
       this.resultsLabel.setText(language.translate("images_view.results", count, new FormatArg("count", count)));
-    // TODO show images somewhere
+    // TODO show clicked image in a side panel to the right of the list -> use split pane
     this.resetFieldsStates();
     this.imagesList.getItems().clear();
     pictures.forEach(picture -> this.imagesList.getItems().add(new PictureEntry(picture)));
