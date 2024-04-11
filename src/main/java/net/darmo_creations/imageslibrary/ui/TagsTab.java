@@ -51,7 +51,7 @@ public final class TagsTab extends Tab {
     }
 
     final HBox top = new HBox(5, this.label);
-    top.setPadding(new Insets(5));
+    top.setPadding(new Insets(5, 2, 5, 5));
     if (tagType != null) {
       final Config config = App.config();
       final Language language = config.language();
