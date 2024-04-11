@@ -24,18 +24,20 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final List<ImageClickListener> imageClickListeners = new ArrayList<>();
   private final List<ImageSelectionListener> imageSelectionListeners = new ArrayList<>();
   private final List<SearchListener> searchListeners = new ArrayList<>();
+
   private final DatabaseConnection db;
 
-  private final TextField searchField = new TextField();
+  private final TextField searchField;
   private final Button searchButton = new Button();
   private final Button clearSearchButton = new Button();
   private final Label resultsLabel = new Label();
   private final ListView<PictureEntry> imagesList = new ListView<>();
   private final ImagePreviewPane imagePreviewPane = new ImagePreviewPane();
   private final PopOver popup;
-  private boolean popupInitialized = false;
 
-  // TODO request history
+  private boolean popupInitialized = false;
+  private final List<String> queryHistory = new ArrayList<>();
+
   public ResultsView(final DatabaseConnection db) {
     super(5);
     this.db = db;
@@ -51,6 +53,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.popup.setFadeInDuration(new Duration(100));
     this.popup.setFadeOutDuration(new Duration(100));
 
+    this.searchField = new AutoCompleteTextField<>(db.getAllTags(), Tag::label);
     this.searchField.setPromptText(language.translate("image_search_field.search"));
     this.searchField.setOnAction(e -> this.search());
     this.searchField.textProperty().addListener((observable, oldValue, newValue) -> {
