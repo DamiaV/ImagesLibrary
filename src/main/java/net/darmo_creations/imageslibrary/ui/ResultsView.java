@@ -5,6 +5,7 @@ import javafx.geometry.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.text.*;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
@@ -21,8 +22,10 @@ import java.util.*;
 import java.util.stream.*;
 
 // TODO move case sensitive setting from dialog to toggle button next to search bar
-// TODO add toggle button to toggle preview sidebar
-// TODO update and save config when any of these buttons is clicked
+//  add toggle button to toggle preview sidebar
+//  update and save config when any of these buttons is clicked
+// TODO add syntax highlighting to search field (with button to toggle it on/off)
+//  cf. JavaKeywordsDemo.java for example code
 public class ResultsView extends VBox implements ClickableListCellFactory.ClickListener<ResultsView.PictureEntry> {
   private final List<ImageClickListener> imageClickListeners = new ArrayList<>();
   private final List<ImageSelectionListener> imageSelectionListeners = new ArrayList<>();
@@ -31,7 +34,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final DatabaseConnection db;
 
   private final MenuButton historyButton = new MenuButton();
-  private final TextField searchField;
+  private final AutoCompleteTextField<Tag> searchField;
   private final Button searchButton = new Button();
   private final Button clearSearchButton = new Button();
   private final Label resultsLabel = new Label();
@@ -61,7 +64,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.historyButton.setDisable(true);
 
     this.searchField = new AutoCompleteTextField<>(db.getAllTags(), Tag::label);
-    this.searchField.setPromptText(language.translate("image_search_field.search"));
+    this.searchField.setPromptText(new Text(language.translate("image_search_field.search")));
     this.searchField.setOnAction(e -> this.search());
     this.searchField.textProperty().addListener((observable, oldValue, newValue) -> {
       if (this.popup.isShowing())

@@ -53,11 +53,6 @@ Text.hyperlink {
   -fx-fill: rgba(50, 50, 50, 0.95);
 }
 
-/* Make background of title panes opaque for better integration in list views */
-.titled-pane {
-  -fx-background: -fx-base;
-}
-
 /* Fix scroll bar buttons arrows colors */
 .scroll-bar > .increment-button > .increment-arrow,
 .scroll-bar > .decrement-button > .decrement-arrow {
@@ -72,6 +67,18 @@ Text.hyperlink {
 .scroll-bar > .increment-button:pressed > .increment-arrow,
 .scroll-bar > .decrement-button:pressed > .decrement-arrow {
   -fx-background-color: -fx-mark-highlight-color, rgb(255, 255, 255);
+}
+
+/* RichTextFx */
+
+.styled-text-field .text,
+.styled-text-area .text {
+  -fx-fill: -fx-light-text-color;
+}
+
+.styled-text-field .caret,
+.styled-text-area .caret {
+  -fx-stroke: -fx-light-text-color;
 }
 
 /* Custom */
