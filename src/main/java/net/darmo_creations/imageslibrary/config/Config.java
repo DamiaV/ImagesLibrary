@@ -28,7 +28,7 @@ public final class Config implements Cloneable {
   private static final String DEFAULT_LANGUAGE_CODE = LANGUAGE_CODES[0];
   private static final Map<String, Language> LANGUAGES = new HashMap<>();
   private static final String DEFAULT_DB_FILE = "db.sqlite3";
-  public static final int DEFAULT_MAX_IMAGES = 50;
+  public static final int DEFAULT_MAX_IMAGES = 50; // TODO remove
 
   private static final Path SETTINGS_FILE = Path.of("settings.ini");
 

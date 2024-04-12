@@ -26,6 +26,7 @@ public enum Icon {
   ABOUT("information"),
   HELP("help"),
 
+  SEARCH_HISTORY("clock_history_frame"),
   CLEAR_TEXT("draw_eraser"),
   SEARCH("magnifier"),
   NO_TAGS("tag_blue_error"),

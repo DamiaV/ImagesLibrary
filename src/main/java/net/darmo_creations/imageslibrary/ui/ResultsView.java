@@ -20,6 +20,9 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.*;
 
+// TODO move case sensitive setting from dialog to toggle button next to search bar
+// TODO add toggle button to toggle preview sidebar
+// TODO update and save config when any of these buttons is clicked
 public class ResultsView extends VBox implements ClickableListCellFactory.ClickListener<ResultsView.PictureEntry> {
   private final List<ImageClickListener> imageClickListeners = new ArrayList<>();
   private final List<ImageSelectionListener> imageSelectionListeners = new ArrayList<>();
@@ -27,6 +30,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
 
   private final DatabaseConnection db;
 
+  private final MenuButton historyButton = new MenuButton();
   private final TextField searchField;
   private final Button searchButton = new Button();
   private final Button clearSearchButton = new Button();
@@ -36,7 +40,6 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final PopOver popup;
 
   private boolean popupInitialized = false;
-  private final List<String> queryHistory = new ArrayList<>();
 
   public ResultsView(final DatabaseConnection db) {
     super(5);
@@ -52,6 +55,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.popup.setArrowLocation(PopOver.ArrowLocation.RIGHT_CENTER);
     this.popup.setFadeInDuration(new Duration(100));
     this.popup.setFadeOutDuration(new Duration(100));
+
+    this.historyButton.setTooltip(new Tooltip(language.translate("image_search_field.history")));
+    this.historyButton.setGraphic(theme.getIcon(Icon.SEARCH_HISTORY, Icon.Size.SMALL));
+    this.historyButton.setDisable(true);
 
     this.searchField = new AutoCompleteTextField<>(db.getAllTags(), Tag::label);
     this.searchField.setPromptText(language.translate("image_search_field.search"));
@@ -90,6 +97,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     HBox.setHgrow(this.searchField, Priority.ALWAYS);
     final HBox searchBox = new HBox(
         5,
+        this.historyButton,
         this.searchField,
         this.searchButton,
         this.clearSearchButton
@@ -149,13 +157,14 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     if (queryString.isEmpty())
       return;
 
-    final Language language = App.config().language();
+    final String query = queryString.get();
     final var tagDefinitions = this.db.getAllTags().stream()
         .filter(tag -> tag.definition().isPresent())
         .collect(Collectors.toMap(Tag::label, tag -> tag.definition().get()));
-    final TagQuery query;
+    final Language language = App.config().language();
+    final TagQuery tagQuery;
     try {
-      query = TagQueryParser.parse(queryString.get(), tagDefinitions, DatabaseConnection.PSEUDO_TAGS);
+      tagQuery = TagQueryParser.parse(query, tagDefinitions, DatabaseConnection.PSEUDO_TAGS);
     } catch (TagQueryTooLargeException e) {
       this.showPopup(language.translate("image_search_field.recursive_loop_error"));
       return;
@@ -171,12 +180,17 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.searchField.setDisable(true);
     this.searchButton.setDisable(true);
     this.clearSearchButton.setDisable(true);
+    final var history = this.historyButton.getItems();
+    if (history.isEmpty() || !history.get(history.size() - 1).getText().equals(query)) {
+      history.add(0, new MenuItem(query));
+      this.historyButton.setDisable(false);
+    }
 
     this.searchListeners.forEach(SearchListener::onSearchStart);
     new Thread(() -> {
       final Set<Picture> pictures;
       try {
-        pictures = this.db.queryPictures(query);
+        pictures = this.db.queryPictures(tagQuery);
       } catch (DatabaseOperationException e) {
         Platform.runLater(() -> {
           Alerts.databaseError(e.errorCode());
@@ -207,7 +221,6 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     else
       this.resultsLabel.setText(language.translate("images_view.results", count,
           new FormatArg("count", language.formatNumber(count))));
-    this.resetFieldsStates();
     this.imagesList.getItems().clear();
     for (final var picture : pictures) {
       Set<Tag> imageTags;
@@ -221,11 +234,12 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     }
     this.imagesList.getItems().sort(null);
     this.searchListeners.forEach(listener -> listener.onSearchEnd(count));
+    this.resetFieldsStates();
   }
 
   private void onSearchError() {
-    this.resetFieldsStates();
     this.searchListeners.forEach(SearchListener::onSearchFail);
+    this.resetFieldsStates();
   }
 
   private void resetFieldsStates() {
