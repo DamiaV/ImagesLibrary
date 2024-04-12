@@ -2,6 +2,7 @@ package net.darmo_creations.imageslibrary.ui;
 
 import javafx.geometry.*;
 import javafx.scene.control.*;
+import javafx.scene.input.*;
 
 import java.util.*;
 import java.util.function.*;
@@ -16,6 +17,8 @@ public class AutoCompleteTextField<T> extends TextField {
 
   private final ContextMenu entriesPopup = new ContextMenu();
 
+  private boolean canShowSuggestions = false;
+
   /**
    * Construct a new AutoCompleteTextField.
    *
@@ -24,33 +27,45 @@ public class AutoCompleteTextField<T> extends TextField {
    */
   public AutoCompleteTextField(final Set<T> entries, Function<T, String> stringConverter) {
     this.selectedTextProperty().addListener((observable, oldValue, newValue) -> this.entriesPopup.hide());
-    this.textProperty().addListener((observableValue, oldValue, newValue) -> {
-      if (newValue.isEmpty()) {
-        this.entriesPopup.hide();
-      } else {
-        int caretPosition = this.getCaretPosition();
-        // Caret position is not updated yet at this stage, manually adjust it
-        if (oldValue.length() < newValue.length())
-          caretPosition++; // A character was added
-        else
-          caretPosition--; // A character was removed
-        String beforeCaret = newValue.substring(0, Math.min(caretPosition, newValue.length()));
-        String wordBegining = beforeCaret.substring(beforeCaret.lastIndexOf(' ') + 1);
-        final var suggestions = entries.stream()
-            .map(stringConverter)
-            .filter(s -> s.startsWith(wordBegining))
-            .sorted()
-            .toList();
-        if (!suggestions.isEmpty()) {
-          this.populatePopup(suggestions);
-          if (!this.entriesPopup.isShowing())
-            this.entriesPopup.show(this, Side.BOTTOM, 0, 0);
-        } else {
-          this.entriesPopup.hide();
-        }
-      }
-    });
+    this.textProperty().addListener((observableValue, oldValue, newValue) -> this.canShowSuggestions = true);
     this.focusedProperty().addListener((observableValue, oldValue, newValue) -> this.entriesPopup.hide());
+    this.caretPositionProperty().addListener((observable, oldValue, newValue) -> {
+      if (!this.canShowSuggestions) {
+        this.entriesPopup.hide();
+        return;
+      }
+      final String text = this.getText();
+      if (text == null || text.isEmpty()) {
+        this.entriesPopup.hide();
+        return;
+      }
+      final int caretPos = newValue.intValue();
+      this.showSuggestions(entries, stringConverter, caretPos);
+      this.canShowSuggestions = false;
+    });
+    this.setOnKeyPressed(event -> {
+      if (event.getCode() == KeyCode.SPACE && event.isControlDown()
+          && !event.isAltDown() && !event.isMetaDown() && !event.isShiftDown())
+        this.showSuggestions(entries, stringConverter, this.getCaretPosition());
+    });
+  }
+
+  private void showSuggestions(final Set<T> entries, Function<T, String> stringConverter, int caretIndex) {
+    final String text = this.getText();
+    final String beforeCaret = text.substring(0, caretIndex);
+    final String wordBegining = beforeCaret.substring(beforeCaret.lastIndexOf(' ') + 1);
+    final var suggestions = entries.stream()
+        .map(stringConverter)
+        .filter(s -> s.startsWith(wordBegining))
+        .sorted()
+        .toList();
+    if (!suggestions.isEmpty()) {
+      this.populatePopup(suggestions);
+      if (!this.entriesPopup.isShowing())
+        this.entriesPopup.show(this, Side.BOTTOM, 0, 0);
+    } else {
+      this.entriesPopup.hide();
+    }
   }
 
   /**
@@ -71,7 +86,7 @@ public class AutoCompleteTextField<T> extends TextField {
     final CustomMenuItem item = new CustomMenuItem(new Label(suggestion), true);
     item.setOnAction(actionEvent -> {
       final String text = this.getText();
-      final int caretPosition = Math.min(this.getCaretPosition(), text.length());
+      final int caretPosition = this.getCaretPosition();
       final String beforeCaret = text.substring(0, caretPosition);
       final int length = beforeCaret.substring(beforeCaret.lastIndexOf(' ') + 1).length();
       this.insertText(caretPosition, suggestion.substring(length));
