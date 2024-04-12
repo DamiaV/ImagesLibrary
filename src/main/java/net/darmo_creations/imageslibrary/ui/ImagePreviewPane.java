@@ -144,29 +144,16 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
       App.LOGGER.error("Unable to get size of file {}", path, e);
     }
 
-    final Pair<String, String> inBytes, inBibytes;
-    if (size >= 0) {
-      inBytes = FileUtils.formatBytesSize(size, false);
-      inBibytes = FileUtils.formatBytesSize(size, true);
-    } else {
-      inBytes = new Pair<>("?", "");
-      inBibytes = new Pair<>("?", "");
-    }
-
     final Language language = App.config().language();
+    final var formattedSize = size >= 0 ? FileUtils.formatBytesSize(size) : new Pair<>("?", "");
     this.fileMetadataLabel.setText(language.translate(
         "image_preview.file_metadata.label",
         new FormatArg("width", (int) image.getWidth()),
         new FormatArg("height", (int) image.getHeight()),
-        new FormatArg("bytes", inBytes.getKey()),
-        new FormatArg("unit", inBytes.getValue()),
-        new FormatArg("bibytes", inBibytes.getKey()),
-        new FormatArg("biunit", inBibytes.getValue())
-    ));
-    this.fileMetadataLabel.setTooltip(new Tooltip(language.translate(
-        "image_preview.file_metadata.tooltip",
-        new FormatArg("bytes", language.formatNumber(size))
-    )));
+        new FormatArg("abbr_bytes", formattedSize.getKey()),
+        new FormatArg("unit", formattedSize.getValue()),
+        new FormatArg("full_bytes", language.formatNumber(size)))
+    );
   }
 
   private void onOpenFile() {

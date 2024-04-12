@@ -59,17 +59,15 @@ public class FileUtils {
    * Format the given size in bytes.
    *
    * @param sizeInBytes The size in bytes.
-   * @param asBibytes   If true, result will be expressed in KiB, MiB, etc. instead of kB, MB, etc.
    * @return A pair containing the value expressed in the closest unit,
    * and the unit itself, without the B at the end.
-   * The latter may thus be an empty string if size is less than 1000 bytes.
+   * The latter may thus be an empty string if size is less than 1024 bytes.
    * @throws IllegalArgumentException If the size is negative.
    */
-  public static Pair<String, String> formatBytesSize(long sizeInBytes, boolean asBibytes) {
+  public static Pair<String, String> formatBytesSize(long sizeInBytes) {
     if (sizeInBytes < 0)
       throw new IllegalArgumentException("Size cannot be negative");
-    final var units = asBibytes ? BIBYTE_UNITS : BYTE_UNITS;
-    for (final var unit : units)
+    for (final var unit : BYTE_UNITS)
       if (sizeInBytes > unit.getKey()) {
         final String formattedNumber = App.config().language().formatNumber(sizeInBytes / unit.getKey(), 1);
         return new Pair<>(formattedNumber, unit.getValue());
@@ -79,12 +77,6 @@ public class FileUtils {
 
   @Unmodifiable
   private static final List<Pair<Double, String>> BYTE_UNITS = List.of(
-      new Pair<>(1e9, "G"),
-      new Pair<>(1e6, "M"),
-      new Pair<>(1e3, "k")
-  );
-  @Unmodifiable
-  private static final List<Pair<Double, String>> BIBYTE_UNITS = List.of(
       new Pair<>(1073741824.0, "Gi"), // 1024³
       new Pair<>(1048576.0, "Mi"), // 1024²
       new Pair<>(1024.0, "Ki")
