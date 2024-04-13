@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.query_parser;
 
+import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.query_parser.ex.*;
 import org.intellij.lang.annotations.*;
@@ -138,7 +139,7 @@ public final class TagQuery {
     final var parts = text.split(":", 4);
     final String tagName = parts[0];
     final String tagType = parts[1];
-    final String tagFlags = parts[2];
+    String tagFlags = parts[2];
     final String tagPattern = parts[3];
 
     final PseudoTag tag = pseudoTags.get(tagName);
@@ -168,6 +169,11 @@ public final class TagQuery {
       default -> throw new RuntimeException("Invalid metatag type: " + tagType);
     }
     escaped = escaped.replace("'", "''"); // Espace single quotes
+
+    if (tag.acceptsRegex()
+        && !tagFlags.contains(String.valueOf(PseudoTag.CASE_SENSITIVE_FLAG))
+        && !tagFlags.contains(String.valueOf(PseudoTag.CASE_INSENSITIVE_FLAG)))
+      tagFlags += App.config() != null && App.config().caseSensitiveQueriesByDefault() ? "s" : "i";
 
     return tag.acceptsRegex()
         ? tag.sqlTemplate().formatted(escaped, tagFlags)

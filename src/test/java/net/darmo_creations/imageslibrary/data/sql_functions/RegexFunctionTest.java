@@ -41,7 +41,25 @@ class RegexFunctionTest extends FunctionTest<RegexFunction> {
   void testInvalidFlagError() throws SQLException {
     try (final var statement = this.connection.createStatement()) {
       assertThrows(SQLException.class, () -> statement.executeQuery("""
-          SELECT "REGEX"('test20', '^test\\d+', 'a')
+          SELECT "REGEX"('test20', '^test\\d+', 'ia')
+          """));
+    }
+  }
+
+  @Test
+  void testMissingCaseFlagError() throws SQLException {
+    try (final var statement = this.connection.createStatement()) {
+      assertThrows(SQLException.class, () -> statement.executeQuery("""
+          SELECT "REGEX"('test20', '^test\\d+', '')
+          """));
+    }
+  }
+
+  @Test
+  void testMissingBothCaseFlagsError() throws SQLException {
+    try (final var statement = this.connection.createStatement()) {
+      assertThrows(SQLException.class, () -> statement.executeQuery("""
+          SELECT "REGEX"('test20', '^test\\d+', 'is')
           """));
     }
   }

@@ -1,8 +1,6 @@
 package net.darmo_creations.imageslibrary.data.sql_functions;
 
-import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.data.*;
-import org.jetbrains.annotations.*;
 
 import java.sql.*;
 import java.util.regex.*;
@@ -16,18 +14,20 @@ public class RegexFunction extends org.sqlite.Function {
   protected void xFunc() throws SQLException {
     final String string = this.value_text(0);
     final String pattern = this.value_text(1);
-    @Nullable
     final String flag = this.value_text(2);
-    // TODO Make flags mandatory
-    boolean caseSensitive = App.config() != null && App.config().caseSensitiveQueriesByDefault();
-    if (flag != null) {
-      for (int i = 0; i < flag.length(); i++) {
-        final char c = flag.charAt(i);
-        switch (c) {
-          case PseudoTag.CASE_SENSITIVE_FLAG -> caseSensitive = true;
-          case PseudoTag.CASE_INSENSITIVE_FLAG -> caseSensitive = false;
-          default -> throw new SQLException("Invalid regex flag: " + c);
-        }
+    if (flag == null || !flag.contains(String.valueOf(PseudoTag.CASE_SENSITIVE_FLAG))
+                        && !flag.contains(String.valueOf(PseudoTag.CASE_INSENSITIVE_FLAG)))
+      throw new SQLException("Missing case sensitivity flag");
+    if (flag.contains(String.valueOf(PseudoTag.CASE_SENSITIVE_FLAG))
+        && flag.contains(String.valueOf(PseudoTag.CASE_INSENSITIVE_FLAG)))
+      throw new SQLException("Both case sensitivity flags present");
+    boolean caseSensitive = true;
+    for (int i = 0; i < flag.length(); i++) {
+      final char c = flag.charAt(i);
+      switch (c) {
+        case PseudoTag.CASE_SENSITIVE_FLAG -> caseSensitive = true;
+        case PseudoTag.CASE_INSENSITIVE_FLAG -> caseSensitive = false;
+        default -> throw new SQLException("Invalid regex flag: " + c);
       }
     }
     final Pattern regex = Pattern.compile(pattern, caseSensitive ? 0 : Pattern.CASE_INSENSITIVE);
