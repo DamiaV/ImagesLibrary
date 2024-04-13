@@ -53,13 +53,13 @@ public class AppController implements ResultsView.SearchListener {
    *
    * @param stage  The stage to associate this controller to.
    * @param config The app’s config.
+   * @param db     The database.
    * @throws DatabaseOperationException If any database initialization error occurs.
    */
-  public AppController(Stage stage, Config config) throws DatabaseOperationException {
-    // TODO show splash while DB loads
+  public AppController(Stage stage, Config config, DatabaseConnection db) throws DatabaseOperationException {
     this.stage = Objects.requireNonNull(stage);
     this.config = config;
-    this.db = new DatabaseConnection(config.databaseFile());
+    this.db = db;
     final Theme theme = config.theme();
     theme.getAppIcon().ifPresent(icon -> stage.getIcons().add(icon));
     stage.setMinWidth(300);
@@ -90,10 +90,10 @@ public class AppController implements ResultsView.SearchListener {
       event.consume();
     });
     scene.setOnDragDropped(event -> {
-      final Dragboard db = event.getDragboard();
-      final boolean success = this.isDragAndDropValid(db);
+      final Dragboard dragboard = event.getDragboard();
+      final boolean success = this.isDragAndDropValid(dragboard);
       if (success)
-        this.loadFiles(db.getFiles());
+        this.loadFiles(dragboard.getFiles());
       event.setDropCompleted(success);
       event.consume();
     });

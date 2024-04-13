@@ -64,18 +64,41 @@ public class App extends Application {
 
   @Override
   public void start(Stage stage) {
-    if (config.isDebug())
-      // Must be set before calling LoggerFactory.getLogger()
-      System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
-    LOGGER = LoggerFactory.getLogger("App");
     LOGGER.info("Running %s (v%s)".formatted(NAME, VERSION));
     if (config.isDebug())
       LOGGER.info("Debug mode is ON");
-    try {
-      new AppController(stage, config).show();
-    } catch (DatabaseOperationException e) {
-      Alerts.databaseError(config, e.errorCode());
-    }
+
+    final var splash = new Splash(config);
+    splash.show();
+
+    new Thread(() -> {
+      final DatabaseConnection db;
+      try {
+        //noinspection resource
+        db = new DatabaseConnection(config.databaseFile());
+      } catch (DatabaseOperationException e) {
+        generateCrashReport(e);
+        Platform.runLater(() -> {
+          splash.hide();
+          Alerts.databaseError(config, e.errorCode());
+        });
+        return;
+      }
+
+      Platform.runLater(() -> {
+        // FIXME never executed if splash is closed before DB is loaded
+        splash.hide();
+        final AppController controller;
+        try {
+          controller = new AppController(stage, config, db);
+        } catch (DatabaseOperationException e) {
+          generateCrashReport(e);
+          Alerts.databaseError(config, e.errorCode());
+          return;
+        }
+        controller.show();
+      });
+    }, "Database Loader Thread").start();
   }
 
   public static void main(String[] args) {
@@ -87,6 +110,10 @@ public class App extends Application {
       generateCrashReport(e);
       System.exit(1);
     }
+    if (config.isDebug())
+      // Must be set before calling LoggerFactory.getLogger()
+      System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
+    LOGGER = LoggerFactory.getLogger("App");
     try {
       launch();
     } catch (Exception e) {
@@ -145,7 +172,8 @@ public class App extends Application {
         stackTrace,
         getSystemProperties()
     );
-    LOGGER.error(message);
+    if (LOGGER != null)
+      LOGGER.error(message);
     final Path logsDir = Path.of("logs");
     final String fileName = "crash_report_%s.log".formatted(date.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
     try {
