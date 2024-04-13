@@ -20,7 +20,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
   private final ComboBox<Language> languageCombo = new ComboBox<>();
   private final ComboBox<Theme> themeCombo = new ComboBox<>();
   private final TextField dbFileField = new TextField();
-  private final CheckBox caseSensitiveByDefaultCheckBox = new CheckBox();
 
   private Config initialConfig;
   private Config localConfig;
@@ -33,8 +32,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
 
     final VBox content = new VBox(
         this.createInterfaceForm(),
-        new Separator(),
-        this.createQueriesForm(),
         new Separator(),
         this.createDatabaseForm()
     );
@@ -74,17 +71,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
         "dialog.settings.interface_box.title",
         new Pair<>("dialog.settings.interface_box.language.label", this.languageCombo),
         new Pair<>("dialog.settings.interface_box.theme.label", this.themeCombo)
-    );
-  }
-
-  private Pane createQueriesForm() {
-    this.caseSensitiveByDefaultCheckBox.selectedProperty()
-        .addListener((observable, oldValue, newValue) -> this.onCaseSensitiveUpdate(newValue));
-
-    //noinspection unchecked
-    return this.getBorderPane(
-        "dialog.settings.queries_box.title",
-        new Pair<>("dialog.settings.queries_box.case_sensitive_by_default.label", this.caseSensitiveByDefaultCheckBox)
     );
   }
 
@@ -168,7 +154,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
     this.languageCombo.getSelectionModel().select(this.localConfig.language());
     this.themeCombo.getSelectionModel().select(this.localConfig.theme());
     this.dbFileField.setText(this.localConfig.databaseFile().toString());
-    this.caseSensitiveByDefaultCheckBox.setSelected(this.localConfig.caseSensitiveQueriesByDefault());
 
     this.updateState();
   }
@@ -206,11 +191,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
 
   private void onDatabaseFileSelect(Path newValue) {
     this.localConfig = this.localConfig.withDatabaseFile(newValue);
-    this.updateState();
-  }
-
-  private void onCaseSensitiveUpdate(boolean newValue) {
-    this.localConfig.setCaseSensitiveQueriesByDefault(newValue);
     this.updateState();
   }
 

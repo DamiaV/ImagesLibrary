@@ -103,6 +103,22 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     syntaxHighlightingButton.setGraphic(theme.getIcon(Icon.SYNTAX_HIGHLIGHTING, Icon.Size.BIG));
     syntaxHighlightingButton.setTooltip(new Tooltip(language.translate("image_search_field.syntax_highlighting")));
 
+    final ToggleButton caseSensitivityButton = new ToggleButton();
+    caseSensitivityButton.setSelected(config.caseSensitiveQueriesByDefault());
+    caseSensitivityButton.setOnAction(e -> {
+      config.setCaseSensitiveQueriesByDefault(!config.caseSensitiveQueriesByDefault());
+      try {
+        config.save();
+      } catch (IOException ex) {
+        App.LOGGER.error("Unable to save config", ex);
+      }
+      caseSensitivityButton.setTooltip(new Tooltip(language.translate(
+          "image_search_field.case_sensitivity." + config.caseSensitiveQueriesByDefault())));
+    });
+    caseSensitivityButton.setGraphic(theme.getIcon(Icon.CASE_SENSITIVITY, Icon.Size.BIG));
+    caseSensitivityButton.setTooltip(new Tooltip(language.translate(
+        "image_search_field.case_sensitivity." + config.caseSensitiveQueriesByDefault())));
+
     this.resultsLabel.setText(language.translate("images_view.suggestion"));
     this.resultsLabel.getStyleClass().add("results-label");
     this.resultsLabel.setPadding(new Insets(0, 2, 0, 2));
@@ -123,6 +139,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         this.searchField,
         this.searchButton,
         this.clearSearchButton,
+        caseSensitivityButton,
         syntaxHighlightingButton
     );
     searchBox.setPadding(new Insets(2, 2, 0, 2));

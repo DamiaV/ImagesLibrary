@@ -30,6 +30,7 @@ public enum Icon {
   CLEAR_TEXT("draw_eraser"),
   SEARCH("magnifier"),
   SYNTAX_HIGHLIGHTING("highlighter"),
+  CASE_SENSITIVITY("text_smallcaps"),
   NO_TAGS("tag_blue_error"),
   NO_FILE("picture_error"),
 
