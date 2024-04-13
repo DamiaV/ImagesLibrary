@@ -13,6 +13,11 @@ class TagQueryParserTest {
   private static final FormulaFactory ff = new FormulaFactory();
 
   @Test
+  void parse_star() throws InvalidPseudoTagException {
+    assertEquals(ff.verum(), TagQueryParser.parse("*", Map.of(), Map.of(), null).formula());
+  }
+
+  @Test
   void parse_tag() throws InvalidPseudoTagException {
     assertEquals(ff.variable("a"), TagQueryParser.parse("a", Map.of(), Map.of(), null).formula());
   }

@@ -16,6 +16,7 @@ class TagQueryVisitor2 extends TagQueryLanguageBaseVisitor<List<Span>> {
   @Override
   public List<Span> visitQuery(TagQueryLanguageParser.QueryContext ctx) {
     final var list = this.visit(ctx.expr());
+    addTerminal(ctx.STAR(), list, "star");
     addTerminal(ctx.WS(0), list, "ws");
     addTerminal(ctx.WS(1), list, "ws");
     return list;

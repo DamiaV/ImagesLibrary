@@ -34,6 +34,8 @@ class TagQueryVisitor extends TagQueryLanguageBaseVisitor<Formula> {
 
   @Override
   public Formula visitQuery(TagQueryLanguageParser.QueryContext ctx) {
+    if (ctx.STAR() != null)
+      return this.formulaFactory.verum();
     return this.visit(ctx.expr());
   }
 

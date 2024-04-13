@@ -14,8 +14,9 @@ LPAREN: '(';
 RPAREN: ')';
 EQUAL: '=';
 HASH: '#';
+STAR: '*';
 
-query: WS? expr WS? EOF;
+query: WS? (expr | STAR) WS? EOF;
 
 expr:
       expr WS? expr        # And
