@@ -185,7 +185,12 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.clearSearchButton.setDisable(true);
     final var history = this.historyButton.getItems();
     if (history.isEmpty() || !history.get(history.size() - 1).getText().equals(query)) {
-      history.add(0, new MenuItem(query));
+      final MenuItem menuItem = new MenuItem(query);
+      menuItem.setOnAction(e -> {
+        this.searchField.setText(query);
+        this.searchField.requestFocus();
+      });
+      history.add(0, menuItem);
       this.historyButton.setDisable(false);
     }
 
