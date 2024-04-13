@@ -99,9 +99,12 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         App.LOGGER.error("Unable to save config", ex);
       }
       this.searchField.setSyntaxHighlighter(config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null);
+      syntaxHighlightingButton.setTooltip(new Tooltip(language.translate(
+          "image_search_field.syntax_highlighting." + config.isQuerySyntaxHighlightingEnabled())));
     });
     syntaxHighlightingButton.setGraphic(theme.getIcon(Icon.SYNTAX_HIGHLIGHTING, Icon.Size.BIG));
-    syntaxHighlightingButton.setTooltip(new Tooltip(language.translate("image_search_field.syntax_highlighting")));
+    syntaxHighlightingButton.setTooltip(new Tooltip(language.translate(
+        "image_search_field.syntax_highlighting." + config.isQuerySyntaxHighlightingEnabled())));
 
     final ToggleButton caseSensitivityButton = new ToggleButton();
     caseSensitivityButton.setSelected(config.caseSensitiveQueriesByDefault());
