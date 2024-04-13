@@ -19,7 +19,8 @@ public class TagQueryLanguageParser extends Parser {
   protected static final PredictionContextCache _sharedContextCache =
       new PredictionContextCache();
   public static final int
-      WS = 1, IDENT = 2, STRING = 3, REGEX = 4, OR = 5, NOT = 6, LPAREN = 7, RPAREN = 8, EQUAL = 9;
+      WS = 1, IDENT = 2, STRING = 3, REGEX = 4, OR = 5, NOT = 6, LPAREN = 7, RPAREN = 8, EQUAL = 9,
+      HASH = 10;
   public static final int
       RULE_query = 0, RULE_expr = 1, RULE_lit = 2;
 
@@ -33,7 +34,7 @@ public class TagQueryLanguageParser extends Parser {
 
   private static String[] makeLiteralNames() {
     return new String[] {
-        null, null, null, null, null, "'+'", "'-'", "'('", "')'", "'='"
+        null, null, null, null, null, "'+'", "'-'", "'('", "')'", "'='", "'#'"
     };
   }
 
@@ -42,7 +43,7 @@ public class TagQueryLanguageParser extends Parser {
   private static String[] makeSymbolicNames() {
     return new String[] {
         null, "WS", "IDENT", "STRING", "REGEX", "OR", "NOT", "LPAREN", "RPAREN",
-        "EQUAL"
+        "EQUAL", "HASH"
     };
   }
 
@@ -341,7 +342,8 @@ public class TagQueryLanguageParser extends Parser {
           }
           break;
           case IDENT:
-          case LPAREN: {
+          case LPAREN:
+          case HASH: {
             _localctx = new LiteralContext(_localctx);
             _ctx = _localctx;
             _prevctx = _localctx;
@@ -512,6 +514,27 @@ public class TagQueryLanguageParser extends Parser {
     }
   }
 
+  public static class BooleanPseudoTagContext extends LitContext {
+    public TerminalNode HASH() {
+      return getToken(TagQueryLanguageParser.HASH, 0);
+    }
+
+    public TerminalNode IDENT() {
+      return getToken(TagQueryLanguageParser.IDENT, 0);
+    }
+
+    public BooleanPseudoTagContext(LitContext ctx) {
+      copyFrom(ctx);
+    }
+
+    @Override
+    public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+      if (visitor instanceof TagQueryLanguageVisitor)
+        return ((TagQueryLanguageVisitor<? extends T>) visitor).visitBooleanPseudoTag(this);
+      else return visitor.visitChildren(this);
+    }
+  }
+
   public static class PseudoTagStringContext extends LitContext {
     public List<TerminalNode> IDENT() {
       return getTokens(TagQueryLanguageParser.IDENT);
@@ -563,7 +586,7 @@ public class TagQueryLanguageParser extends Parser {
     enterRule(_localctx, 4, RULE_lit);
     int _la;
     try {
-      setState(66);
+      setState(68);
       _errHandler.sync(this);
       switch (getInterpreter().adaptivePredict(_input, 13, _ctx)) {
         case 1:
@@ -643,10 +666,20 @@ public class TagQueryLanguageParser extends Parser {
         }
         break;
         case 4:
-          _localctx = new TagContext(_localctx);
+          _localctx = new BooleanPseudoTagContext(_localctx);
           enterOuterAlt(_localctx, 4);
         {
           setState(65);
+          match(HASH);
+          setState(66);
+          match(IDENT);
+        }
+        break;
+        case 5:
+          _localctx = new TagContext(_localctx);
+          enterOuterAlt(_localctx, 5);
+        {
+          setState(67);
           match(IDENT);
         }
         break;
@@ -680,26 +713,27 @@ public class TagQueryLanguageParser extends Parser {
   }
 
   public static final String _serializedATN =
-      "\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\13G\4\2\t\2\4\3\t" +
+      "\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\fI\4\2\t\2\4\3\t" +
       "\3\4\4\t\4\3\2\5\2\n\n\2\3\2\3\2\5\2\16\n\2\3\2\3\2\3\3\3\3\3\3\5\3\25" +
       "\n\3\3\3\3\3\5\3\31\n\3\3\3\3\3\5\3\35\n\3\3\3\3\3\3\3\5\3\"\n\3\3\3\3" +
       "\3\5\3&\n\3\3\3\7\3)\n\3\f\3\16\3,\13\3\3\4\3\4\5\4\60\n\4\3\4\3\4\5\4" +
       "\64\n\4\3\4\3\4\3\4\3\4\3\4\5\4;\n\4\3\4\3\4\3\4\3\4\5\4A\n\4\3\4\3\4" +
-      "\5\4E\n\4\3\4\2\3\4\5\2\4\6\2\2\2S\2\t\3\2\2\2\4\30\3\2\2\2\6D\3\2\2\2" +
-      "\b\n\7\3\2\2\t\b\3\2\2\2\t\n\3\2\2\2\n\13\3\2\2\2\13\r\5\4\3\2\f\16\7" +
-      "\3\2\2\r\f\3\2\2\2\r\16\3\2\2\2\16\17\3\2\2\2\17\20\7\2\2\3\20\3\3\2\2" +
-      "\2\21\22\b\3\1\2\22\24\7\b\2\2\23\25\7\3\2\2\24\23\3\2\2\2\24\25\3\2\2" +
-      "\2\25\26\3\2\2\2\26\31\5\6\4\2\27\31\5\6\4\2\30\21\3\2\2\2\30\27\3\2\2" +
-      "\2\31*\3\2\2\2\32\34\f\6\2\2\33\35\7\3\2\2\34\33\3\2\2\2\34\35\3\2\2\2" +
-      "\35\36\3\2\2\2\36)\5\4\3\7\37!\f\5\2\2 \"\7\3\2\2! \3\2\2\2!\"\3\2\2\2" +
-      "\"#\3\2\2\2#%\7\7\2\2$&\7\3\2\2%$\3\2\2\2%&\3\2\2\2&\'\3\2\2\2\')\5\4" +
-      "\3\6(\32\3\2\2\2(\37\3\2\2\2),\3\2\2\2*(\3\2\2\2*+\3\2\2\2+\5\3\2\2\2" +
-      ",*\3\2\2\2-/\7\t\2\2.\60\7\3\2\2/.\3\2\2\2/\60\3\2\2\2\60\61\3\2\2\2\61" +
-      "\63\5\4\3\2\62\64\7\3\2\2\63\62\3\2\2\2\63\64\3\2\2\2\64\65\3\2\2\2\65" +
-      "\66\7\n\2\2\66E\3\2\2\2\678\7\4\2\28:\7\13\2\29;\7\4\2\2:9\3\2\2\2:;\3" +
-      "\2\2\2;<\3\2\2\2<E\7\5\2\2=>\7\4\2\2>@\7\13\2\2?A\7\4\2\2@?\3\2\2\2@A" +
-      "\3\2\2\2AB\3\2\2\2BE\7\6\2\2CE\7\4\2\2D-\3\2\2\2D\67\3\2\2\2D=\3\2\2\2" +
-      "DC\3\2\2\2E\7\3\2\2\2\20\t\r\24\30\34!%(*/\63:@D";
+      "\3\4\3\4\5\4G\n\4\3\4\2\3\4\5\2\4\6\2\2\2V\2\t\3\2\2\2\4\30\3\2\2\2\6" +
+      "F\3\2\2\2\b\n\7\3\2\2\t\b\3\2\2\2\t\n\3\2\2\2\n\13\3\2\2\2\13\r\5\4\3" +
+      "\2\f\16\7\3\2\2\r\f\3\2\2\2\r\16\3\2\2\2\16\17\3\2\2\2\17\20\7\2\2\3\20" +
+      "\3\3\2\2\2\21\22\b\3\1\2\22\24\7\b\2\2\23\25\7\3\2\2\24\23\3\2\2\2\24" +
+      "\25\3\2\2\2\25\26\3\2\2\2\26\31\5\6\4\2\27\31\5\6\4\2\30\21\3\2\2\2\30" +
+      "\27\3\2\2\2\31*\3\2\2\2\32\34\f\6\2\2\33\35\7\3\2\2\34\33\3\2\2\2\34\35" +
+      "\3\2\2\2\35\36\3\2\2\2\36)\5\4\3\7\37!\f\5\2\2 \"\7\3\2\2! \3\2\2\2!\"" +
+      "\3\2\2\2\"#\3\2\2\2#%\7\7\2\2$&\7\3\2\2%$\3\2\2\2%&\3\2\2\2&\'\3\2\2\2" +
+      "\')\5\4\3\6(\32\3\2\2\2(\37\3\2\2\2),\3\2\2\2*(\3\2\2\2*+\3\2\2\2+\5\3" +
+      "\2\2\2,*\3\2\2\2-/\7\t\2\2.\60\7\3\2\2/.\3\2\2\2/\60\3\2\2\2\60\61\3\2" +
+      "\2\2\61\63\5\4\3\2\62\64\7\3\2\2\63\62\3\2\2\2\63\64\3\2\2\2\64\65\3\2" +
+      "\2\2\65\66\7\n\2\2\66G\3\2\2\2\678\7\4\2\28:\7\13\2\29;\7\4\2\2:9\3\2" +
+      "\2\2:;\3\2\2\2;<\3\2\2\2<G\7\5\2\2=>\7\4\2\2>@\7\13\2\2?A\7\4\2\2@?\3" +
+      "\2\2\2@A\3\2\2\2AB\3\2\2\2BG\7\6\2\2CD\7\f\2\2DG\7\4\2\2EG\7\4\2\2F-\3" +
+      "\2\2\2F\67\3\2\2\2F=\3\2\2\2FC\3\2\2\2FE\3\2\2\2G\7\3\2\2\2\20\t\r\24" +
+      "\30\34!%(*/\63:@F";
   public static final ATN _ATN =
       new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 

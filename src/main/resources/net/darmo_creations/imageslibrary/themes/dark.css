@@ -105,7 +105,8 @@ Text.hyperlink {
 .highlight-tag-query .not,
 .highlight-tag-query .or,
 .highlight-tag-query .paren,
-.highlight-tag-query .equal {
+.highlight-tag-query .equal,
+.highlight-tag-query .hash {
   -fx-fill: #ff80ff;
   -fx-font-weight: bold;
 }

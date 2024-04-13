@@ -30,28 +30,46 @@ public final class DatabaseConnection implements AutoCloseable {
   @Unmodifiable
   public static final Map<String, PseudoTag> PSEUDO_TAGS = Map.of(
       "ext",
-      new PseudoTag("""
+      new PatternPseudoTag("""
           SELECT id, path, hash
           FROM images
           WHERE "REGEX"(SUBSTR(path, "RINSTR"(path, '.') + 1), '%s', '%s')
           """, true),
 
+      "no_file",
+      new BooleanPseudoTag("""
+          SELECT id, path, hash
+          FROM images
+          WHERE NOT "FILE_EXISTS"(path)
+          """),
+
+      "no_tags",
+      new BooleanPseudoTag("""
+          SELECT i.id, i.path, i.hash
+          FROM images AS i
+          WHERE (
+            SELECT COUNT(*)
+            FROM image_tag AS it
+            WHERE it.image_id = i.id
+          ) = 0
+          """),
+
       "name",
-      new PseudoTag("""
+      new PatternPseudoTag("""
           SELECT id, path, hash
           FROM images
           WHERE "REGEX"(SUBSTR(path, "RINSTR"(path, '/') + 1), '%s', '%s')
           """.replace("/", File.separator), true),
 
       "path",
-      new PseudoTag("""
+      new PatternPseudoTag("""
           SELECT id, path, hash
           FROM images
           WHERE "REGEX"(path, '%s', '%s')
           """, true),
 
       "similar_to",
-      new PseudoTag("""
+      new PatternPseudoTag("""
           SELECT id, path, hash
           FROM images
           WHERE hash IS NOT NULL
@@ -602,46 +620,6 @@ public final class DatabaseConnection implements AutoCloseable {
     if (sql.isEmpty())
       return Set.of();
     return this.getPictures(sql.get());
-  }
-
-  @SQLite
-  private static final String SELECT_IMAGES_WITHOUT_TAGS_QUERY = """
-      SELECT i.id, i.path, i.hash
-      FROM images AS i
-      WHERE (
-        SELECT COUNT(*)
-        FROM image_tag AS it
-        WHERE it.image_id = i.id
-      ) = 0
-      """;
-
-  /**
-   * Fetch all images that do not have any tags.
-   *
-   * @return The set of all images that do not have any tags.
-   * @throws DatabaseOperationException If any database error occurs.
-   */
-  @Contract(pure = true, value = "-> new")
-  public Set<Picture> getImagesWithNoTags() throws DatabaseOperationException {
-    return this.getPictures(SELECT_IMAGES_WITHOUT_TAGS_QUERY);
-  }
-
-  @SQLite
-  private static final String SELECT_IMAGES_WITH_NO_FILE_QUERY = """
-      SELECT id, path, hash
-      FROM images
-      WHERE NOT "FILE_EXISTS"(path)
-      """;
-
-  /**
-   * Fetch all images that whose file is missing.
-   *
-   * @return The set of all images whose file is missing.
-   * @throws DatabaseOperationException If any database error occurs.
-   */
-  @Contract(pure = true, value = "-> new")
-  public Set<Picture> getImagesWithNoFile() throws DatabaseOperationException {
-    return this.getPictures(SELECT_IMAGES_WITH_NO_FILE_QUERY);
   }
 
   private Set<Picture> getPictures(@SQLite String query) throws DatabaseOperationException {

@@ -205,14 +205,17 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    * Search for all images that are not associated to any tag.
    */
   public void searchImagesWithNoTags() {
-    this.performSearch(this.db::getImagesWithNoTags);
+    this.searchField.setText("#no_tags");
+    this.search();
   }
 
   /**
    * Search for all images whose file is missing.
    */
   public void searchImagesWithNoFile() {
-    this.performSearch(this.db::getImagesWithNoFile);
+    this.searchField.setText("#no_file");
+    this.searchField.requestFocus();
+    this.search();
   }
 
   private void search() {
@@ -311,10 +314,12 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     }
     this.imagesList.getItems().sort(null);
     this.searchListeners.forEach(listener -> listener.onSearchEnd(count));
+    this.searchField.requestFocus();
   }
 
   private void onSearchError() {
     this.searchListeners.forEach(SearchListener::onSearchFail);
+    this.searchField.requestFocus();
   }
 
   @Override

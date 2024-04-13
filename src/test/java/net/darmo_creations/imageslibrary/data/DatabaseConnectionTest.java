@@ -721,28 +721,6 @@ class DatabaseConnectionTest {
   }
 
   // endregion
-  // region getImagesWithNoTags
-
-  @Test
-  void getImagesWithNoTags() throws IOException, DatabaseOperationException {
-    final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Hash.computeForFile(path), Set.of(), Set.of()));
-    final var imagesWithNoTags = this.db.getImagesWithNoTags();
-    assertFalse(imagesWithNoTags.isEmpty());
-  }
-
-  // endregion
-  // region getImagesWithNoFile
-
-  @Test
-  void getImagesWithNoFile() throws DatabaseOperationException {
-    final Path path = Path.of("test_file_0.png");
-    this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
-    final var imagesWithNoTags = this.db.getImagesWithNoFile();
-    assertFalse(imagesWithNoTags.isEmpty());
-  }
-
-  // endregion
   // region getImageTags
 
   @Test

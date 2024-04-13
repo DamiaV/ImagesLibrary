@@ -65,6 +65,12 @@ class TagQueryParserTest {
   }
 
   @Test
+  void parse_booleanPseudoTag() throws InvalidPseudoTagException {
+    assertEquals(ff.variable("no_file:boolean"),
+        TagQueryParser.parse("#no_file", Map.of(), DatabaseConnection.PSEUDO_TAGS, null).formula());
+  }
+
+  @Test
   void parse_pseudoTagStringNoFlags() throws InvalidPseudoTagException {
     assertEquals(ff.variable("ext:string::pattern"),
         TagQueryParser.parse("ext=\"pattern\"", Map.of(), DatabaseConnection.PSEUDO_TAGS, null).formula());

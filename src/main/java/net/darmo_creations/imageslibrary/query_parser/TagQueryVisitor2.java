@@ -83,6 +83,14 @@ class TagQueryVisitor2 extends TagQueryLanguageBaseVisitor<List<Span>> {
   }
 
   @Override
+  public List<Span> visitBooleanPseudoTag(TagQueryLanguageParser.BooleanPseudoTagContext ctx) {
+    final List<Span> list = new LinkedList<>();
+    addTerminal(ctx.HASH(), list, "hash");
+    addTerminal(ctx.IDENT(), list, "pseudo-tag");
+    return list;
+  }
+
+  @Override
   public List<Span> visitTag(TagQueryLanguageParser.TagContext ctx) {
     final List<Span> list = new LinkedList<>();
     addTerminal(ctx.IDENT(), list, "tag");

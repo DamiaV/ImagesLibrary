@@ -13,6 +13,7 @@ NOT: '-';
 LPAREN: '(';
 RPAREN: ')';
 EQUAL: '=';
+HASH: '#';
 
 query: WS? expr WS? EOF;
 
@@ -27,5 +28,6 @@ lit:
       LPAREN WS? expr WS? RPAREN # Group
     | IDENT EQUAL IDENT? STRING  # PseudoTagString
     | IDENT EQUAL IDENT? REGEX   # PseudoTagRegex
+    | HASH IDENT                 # BooleanPseudoTag
     | IDENT                      # Tag
     ;

@@ -15,18 +15,18 @@ public class RegexFunction extends org.sqlite.Function {
     final String string = this.value_text(0);
     final String pattern = this.value_text(1);
     final String flag = this.value_text(2);
-    if (flag == null || !flag.contains(String.valueOf(PseudoTag.CASE_SENSITIVE_FLAG))
-                        && !flag.contains(String.valueOf(PseudoTag.CASE_INSENSITIVE_FLAG)))
+    if (flag == null || !flag.contains(String.valueOf(PatternPseudoTag.CASE_SENSITIVE_FLAG))
+                        && !flag.contains(String.valueOf(PatternPseudoTag.CASE_INSENSITIVE_FLAG)))
       throw new SQLException("Missing case sensitivity flag");
-    if (flag.contains(String.valueOf(PseudoTag.CASE_SENSITIVE_FLAG))
-        && flag.contains(String.valueOf(PseudoTag.CASE_INSENSITIVE_FLAG)))
+    if (flag.contains(String.valueOf(PatternPseudoTag.CASE_SENSITIVE_FLAG))
+        && flag.contains(String.valueOf(PatternPseudoTag.CASE_INSENSITIVE_FLAG)))
       throw new SQLException("Both case sensitivity flags present");
     boolean caseSensitive = true;
     for (int i = 0; i < flag.length(); i++) {
       final char c = flag.charAt(i);
       switch (c) {
-        case PseudoTag.CASE_SENSITIVE_FLAG -> caseSensitive = true;
-        case PseudoTag.CASE_INSENSITIVE_FLAG -> caseSensitive = false;
+        case PatternPseudoTag.CASE_SENSITIVE_FLAG -> caseSensitive = true;
+        case PatternPseudoTag.CASE_INSENSITIVE_FLAG -> caseSensitive = false;
         default -> throw new SQLException("Invalid regex flag: " + c);
       }
     }

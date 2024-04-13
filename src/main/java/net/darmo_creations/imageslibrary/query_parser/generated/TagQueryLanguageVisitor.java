@@ -84,6 +84,15 @@ public interface TagQueryLanguageVisitor<T> extends ParseTreeVisitor<T> {
   T visitPseudoTagRegex(TagQueryLanguageParser.PseudoTagRegexContext ctx);
 
   /**
+   * Visit a parse tree produced by the {@code BooleanPseudoTag}
+   * labeled alternative in {@link TagQueryLanguageParser#lit}.
+   *
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  T visitBooleanPseudoTag(TagQueryLanguageParser.BooleanPseudoTagContext ctx);
+
+  /**
    * Visit a parse tree produced by the {@code Tag}
    * labeled alternative in {@link TagQueryLanguageParser#lit}.
    *

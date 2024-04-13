@@ -85,6 +85,11 @@ class TagQueryVisitor extends TagQueryLanguageBaseVisitor<Formula> {
   }
 
   @Override
+  public Formula visitBooleanPseudoTag(TagQueryLanguageParser.BooleanPseudoTagContext ctx) {
+    return this.formulaFactory.variable("%s:boolean".formatted(ctx.IDENT().getText()));
+  }
+
+  @Override
   public Formula visitTag(TagQueryLanguageParser.TagContext ctx) {
     final String label = ctx.IDENT().getText();
     final String definition = this.tagDefinitions.get(label);

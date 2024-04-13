@@ -141,13 +141,34 @@ public final class TagQuery {
   private String pseudoTagToSql(String text, final Map<String, PseudoTag> pseudoTags)
       throws InvalidPseudoTagException {
     final var parts = text.split(":", 4);
-    final String tagName = parts[0];
-    final String tagType = parts[1];
-    String tagFlags = parts[2];
-    final String tagPattern = parts[3];
+    if (parts.length == 2)
+      return this.parseBooleanPseudoTag(pseudoTags, parts[0]);
+    return this.parsePseudoTag(pseudoTags, parts[0], parts[2], parts[3], parts[1]);
+  }
 
-    final PseudoTag tag = pseudoTags.get(tagName);
-    if (tag == null)
+  private String parseBooleanPseudoTag(
+      final Map<String, PseudoTag> pseudoTags,
+      String tagName
+  ) throws InvalidPseudoTagException {
+    final PseudoTag t = pseudoTags.get(tagName);
+    if (t == null)
+      throw new InvalidPseudoTagException(tagName, tagName);
+    if (!(t instanceof BooleanPseudoTag))
+      throw new InvalidPseudoTagException(tagName, tagName);
+    return t.sqlTemplate();
+  }
+
+  private String parsePseudoTag(
+      final Map<String, PseudoTag> pseudoTags,
+      String tagName,
+      String tagFlags,
+      String tagPattern,
+      String tagType
+  ) throws InvalidPseudoTagException {
+    final PseudoTag t = pseudoTags.get(tagName);
+    if (t == null)
+      throw new InvalidPseudoTagException(tagName, tagName);
+    if (!(t instanceof PatternPseudoTag tag))
       throw new InvalidPseudoTagException(tagName, tagName);
     if (!"".equals(tagFlags) && !tag.acceptsRegex())
       throw new InvalidPseudoTagException("Pseudo-tag %s does not accept flags".formatted(tagName), tagName);
@@ -174,10 +195,14 @@ public final class TagQuery {
     }
     escaped = escaped.replace("'", "''"); // Espace single quotes
 
-    if (tag.acceptsRegex()
-        && !tagFlags.contains(String.valueOf(PseudoTag.CASE_SENSITIVE_FLAG))
-        && !tagFlags.contains(String.valueOf(PseudoTag.CASE_INSENSITIVE_FLAG)))
-      tagFlags += this.config != null && this.config.caseSensitiveQueriesByDefault() ? "s" : "i";
+    if (tag.acceptsRegex()) {
+      if (!tagFlags.contains(String.valueOf(PatternPseudoTag.CASE_SENSITIVE_FLAG))
+          && !tagFlags.contains(String.valueOf(PatternPseudoTag.CASE_INSENSITIVE_FLAG)))
+        tagFlags += this.config != null && this.config.caseSensitiveQueriesByDefault() ? "s" : "i";
+      else if (tagFlags.contains(String.valueOf(PatternPseudoTag.CASE_SENSITIVE_FLAG))
+               && tagFlags.contains(String.valueOf(PatternPseudoTag.CASE_INSENSITIVE_FLAG)))
+        throw new InvalidPseudoTagException(tagName, tagName);
+    }
 
     return tag.acceptsRegex()
         ? tag.sqlTemplate().formatted(escaped, tagFlags)
@@ -187,7 +212,7 @@ public final class TagQuery {
   private static void checkPseudoTagFlags(String pseudoTag, String flags) throws InvalidPseudoTagException {
     for (int i = 0; i < flags.length(); i++) {
       final char flag = flags.charAt(i);
-      if (!PseudoTag.FLAGS.contains(flag))
+      if (!PatternPseudoTag.FLAGS.contains(flag))
         throw new InvalidPseudoTagException("Invalid pseudo-tag flag: " + flag, pseudoTag);
     }
   }
