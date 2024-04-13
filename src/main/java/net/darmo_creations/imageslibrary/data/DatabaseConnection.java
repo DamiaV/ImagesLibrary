@@ -129,6 +129,7 @@ public final class DatabaseConnection implements AutoCloseable {
     // Cannot use reflection to get classes as it does not work in tests
     @SuppressWarnings("unchecked")
     final Class<? extends org.sqlite.Function>[] functions = new Class[] {
+        FileExistsFunction.class,
         HashesSimilarityFunction.class,
         RegexFunction.class,
         RightIndexFunction.class,
@@ -275,11 +276,11 @@ public final class DatabaseConnection implements AutoCloseable {
       SET label = ?1, symbol = ?2, color = ?3, updating = ?4
       WHERE id = ?5
       """;
-  @SuppressWarnings("SqlWithoutWhere")
   @SQLite
   public static final String RESET_UPDATING_TAG_TYPES_QUERY = """
       UPDATE tag_types
       SET updating = 0
+      WHERE updating != 0
       """;
 
   /**
@@ -477,11 +478,11 @@ public final class DatabaseConnection implements AutoCloseable {
       SET label = ?1, type_id = ?2, definition = ?3, updating = ?4
       WHERE id = ?5
       """;
-  @SuppressWarnings("SqlWithoutWhere")
   @SQLite
   public static final String RESET_UPDATING_TAGS_QUERY = """
       UPDATE tags
       SET updating = 0
+      WHERE updating != 0
       """;
 
   /**
@@ -597,23 +598,10 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   @Contract(pure = true, value = "_ -> new")
   public Set<Picture> queryPictures(final TagQuery query) throws DatabaseOperationException {
-    final Set<Picture> pictures = new HashSet<>();
     final var sql = query.asSQL();
     if (sql.isEmpty())
-      return pictures;
-    //noinspection SqlSourceToSinkFlow
-    try (final var statement = this.connection.prepareStatement(sql.get());
-         final var resultSet = statement.executeQuery()) {
-      while (resultSet.next())
-        pictures.add(new Picture(
-            resultSet.getInt("id"),
-            Path.of(resultSet.getString("path")),
-            new Hash(resultSet.getLong("hash"))
-        ));
-    } catch (SQLException e) {
-      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
-    }
-    return pictures;
+      return Set.of();
+    return this.getPictures(sql.get());
   }
 
   @SQLite
@@ -635,8 +623,30 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   @Contract(pure = true, value = "-> new")
   public Set<Picture> getImagesWithNoTags() throws DatabaseOperationException {
+    return this.getPictures(SELECT_IMAGES_WITHOUT_TAGS_QUERY);
+  }
+
+  @SQLite
+  private static final String SELECT_IMAGES_WITH_NO_FILE_QUERY = """
+      SELECT id, path, hash
+      FROM images
+      WHERE NOT "FILE_EXISTS"(path)
+      """;
+
+  /**
+   * Fetch all images that whose file is missing.
+   *
+   * @return The set of all images whose file is missing.
+   * @throws DatabaseOperationException If any database error occurs.
+   */
+  @Contract(pure = true, value = "-> new")
+  public Set<Picture> getImagesWithNoFile() throws DatabaseOperationException {
+    return this.getPictures(SELECT_IMAGES_WITH_NO_FILE_QUERY);
+  }
+
+  private Set<Picture> getPictures(@SQLite String query) throws DatabaseOperationException {
     final Set<Picture> pictures = new HashSet<>();
-    try (final var statement = this.connection.prepareStatement(SELECT_IMAGES_WITHOUT_TAGS_QUERY);
+    try (final var statement = this.connection.prepareStatement(query);
          final var resultSet = statement.executeQuery()) {
       while (resultSet.next()) {
         pictures.add(new Picture(

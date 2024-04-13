@@ -212,7 +212,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    * Search for all images whose file is missing.
    */
   public void searchImagesWithNoFile() {
-    // TODO
+    this.performSearch(this.db::getImagesWithNoFile);
   }
 
   private void search() {
