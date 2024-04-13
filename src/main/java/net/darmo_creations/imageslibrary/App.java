@@ -25,7 +25,7 @@ public class App extends Application {
    */
   // TODO add support for WEBP
   @Unmodifiable
-  public static final List<String> VALID_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif");
+  public static final List<String> VALID_IMAGE_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif");
 
   /**
    * Jar path to the resources’ root directory.

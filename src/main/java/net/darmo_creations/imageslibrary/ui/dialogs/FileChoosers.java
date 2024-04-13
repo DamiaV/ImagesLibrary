@@ -55,7 +55,7 @@ public final class FileChoosers {
         stage,
         "image_file_chooser",
         defaultName,
-        App.VALID_EXTENSIONS
+        App.VALID_IMAGE_EXTENSIONS
     );
   }
 

@@ -102,7 +102,7 @@ public class AppController implements ResultsView.SearchListener {
   private boolean isDragAndDropValid(final Dragboard dragboard) {
     return dragboard.hasFiles() && dragboard.getFiles().stream().allMatch(
         // Accept directories and files with valid extensions
-        file -> file.isDirectory() || App.VALID_EXTENSIONS.contains(FileUtils.getExtension(file.toPath()).toLowerCase()));
+        file -> file.isDirectory() || App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(file.toPath()).toLowerCase()));
   }
 
   private MenuBar createMenuBar() {
