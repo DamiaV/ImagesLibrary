@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.query_parser;
 
+import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.query_parser.ex.*;
 import net.darmo_creations.imageslibrary.query_parser.generated.*;
@@ -26,13 +27,14 @@ public final class TagQueryParser {
    * @throws InvalidPseudoTagException    If the formula contains a pseudo-tag
    *                                      that is not present in the {@code pseudoTags} map.
    */
-  @Contract("_, _, _ -> new")
+  @Contract("_, _, _, _ -> new")
   public static TagQuery parse(
       String query,
       final Map<String, String> tagDefinitions,
-      final Map<String, PseudoTag> pseudoTags
+      final Map<String, PseudoTag> pseudoTags,
+      final Config config
   ) throws InvalidPseudoTagException {
-    return new TagQuery(parse(query, tagDefinitions, 0, new FormulaFactory()), pseudoTags);
+    return new TagQuery(parse(query, tagDefinitions, 0, new FormulaFactory()), pseudoTags, config);
   }
 
   /**

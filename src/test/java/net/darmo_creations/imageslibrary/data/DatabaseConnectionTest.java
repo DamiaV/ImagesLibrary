@@ -568,28 +568,28 @@ class DatabaseConnectionTest {
   @Test
   void queryPictures_trueReturnsAll() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.verum(), Map.of()));
+    final var pictures = this.db.queryPictures(new TagQuery(ff.verum(), Map.of(), null));
     assertEquals(3, pictures.size());
   }
 
   @Test
   void queryPictures_falseReturnsNone() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.falsum(), Map.of()));
+    final var pictures = this.db.queryPictures(new TagQuery(ff.falsum(), Map.of(), null));
     assertTrue(pictures.isEmpty());
   }
 
   @Test
   void queryPictures_or() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.or(ff.variable("test2"), ff.variable("test3")), Map.of()));
+    final var pictures = this.db.queryPictures(new TagQuery(ff.or(ff.variable("test2"), ff.variable("test3")), Map.of(), null));
     assertEquals(2, pictures.size());
   }
 
   @Test
   void queryPictures_and() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.and(ff.variable("test1"), ff.variable("test2")), Map.of()));
+    final var pictures = this.db.queryPictures(new TagQuery(ff.and(ff.variable("test1"), ff.variable("test2")), Map.of(), null));
     assertEquals(1, pictures.size());
     //noinspection OptionalGetWithoutIsPresent
     assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
@@ -598,7 +598,7 @@ class DatabaseConnectionTest {
   @Test
   void queryPictures_not() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.not(ff.variable("test2")), Map.of()));
+    final var pictures = this.db.queryPictures(new TagQuery(ff.not(ff.variable("test2")), Map.of(), null));
     assertEquals(2, pictures.size());
     assertEquals(Set.of(
         new Picture(2, Path.of("test_file_2.jpg"), new Hash(1)),
@@ -610,7 +610,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_extPlainString() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("ext:string::jpeg"), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("ext:string::jpeg"), DatabaseConnection.PSEUDO_TAGS, null));
     assertEquals(1, pictures.size());
     //noinspection OptionalGetWithoutIsPresent
     assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
@@ -620,7 +620,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_extTemplateString() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("ext:string::jp?g"), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("ext:string::jp?g"), DatabaseConnection.PSEUDO_TAGS, null));
     assertEquals(2, pictures.size());
   }
 
@@ -628,7 +628,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_extRegex() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("ext:regex::jp[e]?g"), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("ext:regex::jp[e]?g"), DatabaseConnection.PSEUDO_TAGS, null));
     assertEquals(2, pictures.size());
   }
 
@@ -636,7 +636,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_namePlainString() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("name:string::test_file.jpeg"), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("name:string::test_file.jpeg"), DatabaseConnection.PSEUDO_TAGS, null));
     assertEquals(1, pictures.size());
     //noinspection OptionalGetWithoutIsPresent
     assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
@@ -646,7 +646,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_nameTemplateString() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("name:string::test_file*.jp?g"), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("name:string::test_file*.jp?g"), DatabaseConnection.PSEUDO_TAGS, null));
     assertEquals(2, pictures.size());
   }
 
@@ -654,7 +654,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_nameRegex() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("name:regex::test_file.*\\.jpe?g"), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("name:regex::test_file.*\\.jpe?g"), DatabaseConnection.PSEUDO_TAGS, null));
     assertEquals(2, pictures.size());
   }
 
@@ -662,7 +662,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_pathPlainString() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("path:string::%s/test_file.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("path:string::%s/test_file.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS, null));
     assertEquals(1, pictures.size());
     //noinspection OptionalGetWithoutIsPresent
     assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
@@ -672,7 +672,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_pathTemplateString() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("path:string::*/test_file*.jp?g"), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("path:string::*/test_file*.jp?g"), DatabaseConnection.PSEUDO_TAGS, null));
     assertEquals(2, pictures.size());
   }
 
@@ -680,7 +680,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_pathRegex() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("path:regex::.*/test_file.*\\.jpe?g"), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("path:regex::.*/test_file.*\\.jpe?g"), DatabaseConnection.PSEUDO_TAGS, null));
     assertEquals(2, pictures.size());
   }
 
@@ -688,7 +688,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_similar_toPlainString() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("similar_to:string::%s/test_file.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("similar_to:string::%s/test_file.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS, null));
     assertEquals(2, pictures.size());
   }
 
@@ -696,7 +696,7 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_similar_toTemplateStringNoError() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
     final var pictures = this.db.queryPictures(
-        new TagQuery(ff.variable("similar_to:string::%s/test_file.jp?g".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS));
+        new TagQuery(ff.variable("similar_to:string::%s/test_file.jp?g".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS, null));
     assertTrue(pictures.isEmpty());
   }
 
@@ -704,20 +704,20 @@ class DatabaseConnectionTest {
   void queryPictures_pseudoTag_similar_toRegexError() throws DatabaseOperationException {
     final var ff = this.initQueryPicturesTest();
     assertThrows(InvalidPseudoTagException.class,
-        () -> this.db.queryPictures(new TagQuery(ff.variable("similar_to:regex::%s/test_file\\.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS)));
+        () -> this.db.queryPictures(new TagQuery(ff.variable("similar_to:regex::%s/test_file\\.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS, null)));
   }
 
   @Test
   void queryPictures_nonExistentTagNoError() throws DatabaseOperationException, InvalidPseudoTagException {
     final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.variable("yo"), Map.of()));
+    final var pictures = this.db.queryPictures(new TagQuery(ff.variable("yo"), Map.of(), null));
     assertTrue(pictures.isEmpty());
   }
 
   @Test
   void queryPictures_nonExistentPseudoTagError() throws DatabaseOperationException {
     final var ff = this.initQueryPicturesTest();
-    assertThrows(InvalidPseudoTagException.class, () -> this.db.queryPictures(new TagQuery(ff.variable("invalid:string::a"), Map.of())));
+    assertThrows(InvalidPseudoTagException.class, () -> this.db.queryPictures(new TagQuery(ff.variable("invalid:string::a"), Map.of(), null)));
   }
 
   // endregion
@@ -1441,7 +1441,7 @@ class DatabaseConnectionTest {
 
   private Set<Picture> getAllPictures() {
     try {
-      return this.db.queryPictures(TagQueryParser.parse("a + -a", Map.of(), DatabaseConnection.PSEUDO_TAGS));
+      return this.db.queryPictures(TagQueryParser.parse("a + -a", Map.of(), DatabaseConnection.PSEUDO_TAGS, null));
     } catch (InvalidPseudoTagException | DatabaseOperationException e) {
       throw new RuntimeException(e);
     }

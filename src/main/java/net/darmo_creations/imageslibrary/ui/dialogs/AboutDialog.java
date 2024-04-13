@@ -5,6 +5,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.*;
 import javafx.scene.layout.*;
 import net.darmo_creations.imageslibrary.*;
+import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.utils.*;
 
 import java.util.*;
@@ -15,9 +16,11 @@ import java.util.*;
 public class AboutDialog extends DialogBase<ButtonType> {
   /**
    * Create an about dialog.
+   *
+   * @param config The app’s configuration.
    */
-  public AboutDialog() {
-    super("about", false, ButtonTypes.CLOSE);
+  public AboutDialog(final Config config) {
+    super("about", false, config, ButtonTypes.CLOSE);
     final Label titleLabel = new Label();
     titleLabel.setText(App.NAME);
     titleLabel.setStyle("-fx-font-size: 1.2em; -fx-font-weight: bold");
@@ -38,7 +41,7 @@ public class AboutDialog extends DialogBase<ButtonType> {
 
     final VBox vBox = new VBox(10, titleLabel, contentView);
 
-    final var appIcon = App.config().theme().getAppIcon();
+    final var appIcon = config.theme().getAppIcon();
     final ImageView logo = new ImageView(appIcon.orElse(null));
     logo.setFitHeight(100);
     logo.setFitWidth(100);

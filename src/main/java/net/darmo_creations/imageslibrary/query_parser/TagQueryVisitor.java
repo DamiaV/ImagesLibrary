@@ -1,6 +1,5 @@
 package net.darmo_creations.imageslibrary.query_parser;
 
-import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.query_parser.ex.*;
 import net.darmo_creations.imageslibrary.query_parser.generated.*;
 import org.logicng.formulas.*;

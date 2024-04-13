@@ -23,9 +23,10 @@ public class AppController implements ResultsView.SearchListener {
    * The stage associated to this controller.
    */
   private final Stage stage;
+  private final Config config;
 
-  private final SettingsDialog settingsDialog = new SettingsDialog();
-  private final AboutDialog aboutDialog = new AboutDialog();
+  private final SettingsDialog settingsDialog;
+  private final AboutDialog aboutDialog;
 
   private final Map<MenuItem, Boolean> menuItemStates = new HashMap<>();
   private MenuItem renameImagesMenuItem;
@@ -47,22 +48,35 @@ public class AppController implements ResultsView.SearchListener {
   private final List<Picture> selectedPictures = new ArrayList<>();
   private final List<Tag> selectedTags = new ArrayList<>();
 
-  public AppController(Stage stage) throws DatabaseOperationException {
+  /**
+   * Create a controller for the given {@link Stage}.
+   *
+   * @param stage  The stage to associate this controller to.
+   * @param config The app’s config.
+   * @throws DatabaseOperationException If any database initialization error occurs.
+   */
+  public AppController(Stage stage, Config config) throws DatabaseOperationException {
     // TODO show splash while DB loads
     this.stage = Objects.requireNonNull(stage);
-    this.db = new DatabaseConnection(App.config().databaseFile());
-    final Theme theme = App.config().theme();
+    this.config = config;
+    this.db = new DatabaseConnection(config.databaseFile());
+    final Theme theme = config.theme();
     theme.getAppIcon().ifPresent(icon -> stage.getIcons().add(icon));
     stage.setMinWidth(300);
     stage.setMinHeight(200);
     stage.setTitle(App.NAME);
     stage.setMaximized(true);
+
+    this.aboutDialog = new AboutDialog(config);
+    this.settingsDialog = new SettingsDialog(config);
+
     this.tagsView = new TagsView(
+        config,
         this.db.getAllTags(),
         this.db.getAllTagsCounts(),
         this.db.getAllTagTypes()
     );
-    this.resultsView = new ResultsView(this.db);
+    this.resultsView = new ResultsView(config, this.db);
     final Scene scene = new Scene(new VBox(this.createMenuBar(), this.createToolBar(), this.createContent()));
     stage.setScene(scene);
     theme.getStyleSheets().forEach(path -> scene.getStylesheets().add(path.toExternalForm()));
@@ -92,9 +106,8 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private MenuBar createMenuBar() {
-    final Config config = App.config();
-    final Language language = config.language();
-    final Theme theme = config.theme();
+    final Language language = this.config.language();
+    final Theme theme = this.config.theme();
 
     final Menu fileMenu = new Menu(language.translate("menu.file"));
     final MenuItem importImagesMenuItem = new MenuItem(
@@ -241,9 +254,8 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private ToolBar createToolBar() {
-    final Config config = App.config();
-    final Language language = config.language();
-    final Theme theme = config.theme();
+    final Language language = this.config.language();
+    final Theme theme = this.config.theme();
 
     final Button importImagesButton = new Button(null, theme.getIcon(Icon.IMPORT_IMAGES, Icon.Size.BIG));
     importImagesButton.setOnAction(e -> this.onImportImages());
@@ -337,14 +349,6 @@ public class AppController implements ResultsView.SearchListener {
     });
   }
 
-  /**
-   * Called whenever the global config object is updated.
-   */
-  public void onConfigUpdate() {
-    this.tagsView.refresh();
-    this.resultsView.refresh();
-  }
-
   private void loadFiles(final List<File> filesOrDirs) {
     // TODO
   }
@@ -367,9 +371,8 @@ public class AppController implements ResultsView.SearchListener {
     this.slideshowSelectedMenuItem.setDisable(true);
     this.slideshowSelectedButton.setDisable(true);
 
-    final Config config = App.config();
-    final Language language = config.language();
-    final Theme theme = config.theme();
+    final Language language = this.config.language();
+    final Theme theme = this.config.theme();
 
     final boolean empty = tags.isEmpty();
     final boolean nonSingleSelection = tags.size() != 1;
@@ -407,9 +410,8 @@ public class AppController implements ResultsView.SearchListener {
     this.selectedPictures.clear();
     this.selectedPictures.addAll(pictures);
 
-    final Config config = App.config();
-    final Language language = config.language();
-    final Theme theme = config.theme();
+    final Language language = this.config.language();
+    final Theme theme = this.config.theme();
 
     final boolean empty = pictures.isEmpty();
     this.editMenuItem.setDisable(empty);

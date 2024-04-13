@@ -37,24 +37,11 @@ public class App extends Application {
   public static final String IMAGES_PATH = RESOURCES_ROOT + "images/";
 
   /**
-   * Application’s controller.
-   */
-  private static AppController controller;
-  /**
    * App’s global configuration object.
    */
   private static Config config;
-
-  // TODO get rid of global object
   /**
-   * Return the application’s configuration object.
-   */
-  public static Config config() {
-    return config;
-  }
-
-  /**
-   * Application’s resource bundlo for the currently selected language.
+   * Application’s resource bundle for the currently selected language.
    */
   private static ResourceBundle resourceBundle;
 
@@ -63,21 +50,8 @@ public class App extends Application {
    */
   public static ResourceBundle getResourceBundle() {
     if (resourceBundle == null)
-      resourceBundle = config().language().resources();
+      resourceBundle = config.language().resources();
     return resourceBundle;
-  }
-
-  /**
-   * Update the current configuration object with the given one.
-   * <p>
-   * Only the options that do <b>not</b> need a restart are copied.
-   *
-   * @param localConfig Configuration object to copy from.
-   */
-  public static void updateConfig(final Config localConfig) {
-    config.setCaseSensitiveQueriesByDefault(localConfig.caseSensitiveQueriesByDefault());
-    config.setQuerySyntaxHighlightingEnabled(localConfig.isQuerySyntaxHighlightingEnabled());
-    controller.onConfigUpdate();
   }
 
   @Override
@@ -88,10 +62,9 @@ public class App extends Application {
       LOGGER.info("Debug mode is ON");
     }
     try {
-      controller = new AppController(stage);
-      controller.show();
+      new AppController(stage, config).show();
     } catch (DatabaseOperationException e) {
-      Alerts.databaseError(e.errorCode());
+      Alerts.databaseError(config, e.errorCode());
     }
   }
 

@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.config;
 
+import javafx.beans.property.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.utils.*;
@@ -142,8 +143,8 @@ public final class Config implements Cloneable {
   private final Theme theme;
   private final Path databaseFile;
   private final boolean debug;
-  private boolean caseSensitiveQueriesByDefault;
-  private boolean querySyntaxHighlighting;
+  private final BooleanProperty caseSensitiveQueriesByDefault = new SimpleBooleanProperty(this, "case_sensitive_by_default", false);
+  private final BooleanProperty querySyntaxHighlighting = new SimpleBooleanProperty(this, "query_syntax_highlighting", false);
 
   /**
    * Create a configuration object.
@@ -166,8 +167,8 @@ public final class Config implements Cloneable {
     this.language = Objects.requireNonNull(language);
     this.theme = Objects.requireNonNull(theme);
     this.databaseFile = databaseFile.toAbsolutePath();
-    this.querySyntaxHighlighting = querySyntaxHighlighting;
     this.setCaseSensitiveQueriesByDefault(caseSensitiveQueriesByDefault);
+    this.setQuerySyntaxHighlightingEnabled(querySyntaxHighlighting);
     this.debug = debug;
   }
 
@@ -192,11 +193,15 @@ public final class Config implements Cloneable {
     return this.databaseFile;
   }
 
+  public BooleanProperty caseSensitiveQueriesByDefaultProperty() {
+    return this.caseSensitiveQueriesByDefault;
+  }
+
   /**
    * Whether pseudo-tag pattern should be treated as case sensitive when no flag is present.
    */
   public boolean caseSensitiveQueriesByDefault() {
-    return this.caseSensitiveQueriesByDefault;
+    return this.caseSensitiveQueriesByDefault.get();
   }
 
   /**
@@ -205,14 +210,18 @@ public final class Config implements Cloneable {
    * @param caseSensitiveQueriesByDefault The new value.
    */
   public void setCaseSensitiveQueriesByDefault(boolean caseSensitiveQueriesByDefault) {
-    this.caseSensitiveQueriesByDefault = caseSensitiveQueriesByDefault;
+    this.caseSensitiveQueriesByDefault.set(caseSensitiveQueriesByDefault);
+  }
+
+  public BooleanProperty querySyntaxHighlightingProperty() {
+    return this.querySyntaxHighlighting;
   }
 
   /**
    * Whether tag query syntax highlighting is enabled.
    */
   public boolean isQuerySyntaxHighlightingEnabled() {
-    return this.querySyntaxHighlighting;
+    return this.querySyntaxHighlighting.get();
   }
 
   /**
@@ -221,7 +230,7 @@ public final class Config implements Cloneable {
    * @param querySyntaxHighlighting The new value.
    */
   public void setQuerySyntaxHighlightingEnabled(boolean querySyntaxHighlighting) {
-    this.querySyntaxHighlighting = querySyntaxHighlighting;
+    this.querySyntaxHighlighting.set(querySyntaxHighlighting);
   }
 
   /**
@@ -243,8 +252,8 @@ public final class Config implements Cloneable {
         language,
         this.theme,
         this.databaseFile,
-        this.caseSensitiveQueriesByDefault,
-        this.querySyntaxHighlighting,
+        this.caseSensitiveQueriesByDefault.get(),
+        this.querySyntaxHighlighting.get(),
         this.debug
     );
   }
@@ -261,8 +270,8 @@ public final class Config implements Cloneable {
         this.language,
         theme,
         this.databaseFile,
-        this.caseSensitiveQueriesByDefault,
-        this.querySyntaxHighlighting,
+        this.caseSensitiveQueriesByDefault.get(),
+        this.querySyntaxHighlighting.get(),
         this.debug
     );
   }
@@ -279,8 +288,8 @@ public final class Config implements Cloneable {
         this.language,
         this.theme,
         path,
-        this.caseSensitiveQueriesByDefault,
-        this.querySyntaxHighlighting,
+        this.caseSensitiveQueriesByDefault.get(),
+        this.querySyntaxHighlighting.get(),
         this.debug
     );
   }
@@ -308,8 +317,8 @@ public final class Config implements Cloneable {
     ini.put(APP_SECTION, LANGUAGE_OPTION, this.language.code());
     ini.put(APP_SECTION, THEME_OPTION, this.theme.id());
     ini.put(APP_SECTION, DB_FILE, this.databaseFile);
-    ini.put(QUERIES_SECTION, CASE_SENSITIVITE_BY_DEFAULT, this.caseSensitiveQueriesByDefault);
-    ini.put(QUERIES_SECTION, QUERY_SYNTAX_HIGHLIGHTING, this.querySyntaxHighlighting);
+    ini.put(QUERIES_SECTION, CASE_SENSITIVITE_BY_DEFAULT, this.caseSensitiveQueriesByDefault.get());
+    ini.put(QUERIES_SECTION, QUERY_SYNTAX_HIGHLIGHTING, this.querySyntaxHighlighting.get());
     ini.store();
     App.LOGGER.info("Done.");
   }
@@ -320,8 +329,8 @@ public final class Config implements Cloneable {
     if (o == null || this.getClass() != o.getClass()) return false;
     final var config = (Config) o;
     return this.debug == config.debug
-           && this.caseSensitiveQueriesByDefault == config.caseSensitiveQueriesByDefault
-           && this.querySyntaxHighlighting == config.querySyntaxHighlighting
+           && this.caseSensitiveQueriesByDefault.get() == config.caseSensitiveQueriesByDefault.get()
+           && this.querySyntaxHighlighting.get() == config.querySyntaxHighlighting.get()
            && Objects.equals(this.language, config.language)
            && Objects.equals(this.theme, config.theme)
            && Objects.equals(this.databaseFile, config.databaseFile);
@@ -334,8 +343,8 @@ public final class Config implements Cloneable {
         this.theme,
         this.databaseFile,
         this.debug,
-        this.caseSensitiveQueriesByDefault,
-        this.querySyntaxHighlighting
+        this.caseSensitiveQueriesByDefault.get(),
+        this.querySyntaxHighlighting.get()
     );
   }
 }

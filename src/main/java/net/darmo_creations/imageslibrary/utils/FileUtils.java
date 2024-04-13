@@ -2,6 +2,7 @@ package net.darmo_creations.imageslibrary.utils;
 
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
+import net.darmo_creations.imageslibrary.config.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
@@ -64,12 +65,12 @@ public class FileUtils {
    * The latter may thus be an empty string if size is less than 1024 bytes.
    * @throws IllegalArgumentException If the size is negative.
    */
-  public static Pair<String, String> formatBytesSize(long sizeInBytes) {
+  public static Pair<String, String> formatBytesSize(long sizeInBytes, Language language) {
     if (sizeInBytes < 0)
       throw new IllegalArgumentException("Size cannot be negative");
     for (final var unit : BYTE_UNITS)
       if (sizeInBytes > unit.getKey()) {
-        final String formattedNumber = App.config().language().formatNumber(sizeInBytes / unit.getKey(), 1);
+        final String formattedNumber = language.formatNumber(sizeInBytes / unit.getKey(), 1);
         return new Pair<>(formattedNumber, unit.getValue());
       }
     return new Pair<>(String.valueOf(sizeInBytes), "");

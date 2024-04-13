@@ -23,14 +23,13 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.*;
 
-// TODO move case sensitive setting from dialog to toggle button next to search bar
 // TODO add toggle button to toggle preview sidebar
-//  update and save config when any of these buttons is clicked
 public class ResultsView extends VBox implements ClickableListCellFactory.ClickListener<ResultsView.PictureEntry> {
   private final List<ImageClickListener> imageClickListeners = new ArrayList<>();
   private final List<ImageSelectionListener> imageSelectionListeners = new ArrayList<>();
   private final List<SearchListener> searchListeners = new ArrayList<>();
 
+  private final Config config;
   private final DatabaseConnection db;
 
   private final MenuButton historyButton = new MenuButton();
@@ -39,18 +38,20 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final Button clearSearchButton = new Button();
   private final Label resultsLabel = new Label();
   private final ListView<PictureEntry> imagesList = new ListView<>();
-  private final ImagePreviewPane imagePreviewPane = new ImagePreviewPane();
+  private final ImagePreviewPane imagePreviewPane;
   private final PopOver popup;
 
   private boolean popupInitialized = false;
 
-  public ResultsView(final DatabaseConnection db) {
+  public ResultsView(Config config, final DatabaseConnection db) {
     super(5);
+    this.config = config;
     this.db = db;
 
-    final Config config = App.config();
     final Language language = config.language();
     final Theme theme = config.theme();
+
+    this.imagePreviewPane = new ImagePreviewPane(config);
 
     final Label content = new Label();
     this.popup = new PopOver(content);
@@ -90,7 +91,14 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.clearSearchButton.setDisable(true);
 
     final ToggleButton syntaxHighlightingButton = new ToggleButton();
+    config.querySyntaxHighlightingProperty().addListener((observable, oldValue, enabled) -> {
+      syntaxHighlightingButton.setTooltip(new Tooltip(language.translate(
+          "image_search_field.syntax_highlighting." + enabled)));
+      this.searchField.setSyntaxHighlighter(enabled ? new TagQuerySyntaxHighlighter() : null);
+    });
     syntaxHighlightingButton.setSelected(config.isQuerySyntaxHighlightingEnabled());
+    syntaxHighlightingButton.setTooltip(new Tooltip(language.translate(
+        "image_search_field.syntax_highlighting." + config.isQuerySyntaxHighlightingEnabled())));
     syntaxHighlightingButton.setOnAction(e -> {
       config.setQuerySyntaxHighlightingEnabled(!config.isQuerySyntaxHighlightingEnabled());
       try {
@@ -98,16 +106,18 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       } catch (IOException ex) {
         App.LOGGER.error("Unable to save config", ex);
       }
-      this.searchField.setSyntaxHighlighter(config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null);
-      syntaxHighlightingButton.setTooltip(new Tooltip(language.translate(
-          "image_search_field.syntax_highlighting." + config.isQuerySyntaxHighlightingEnabled())));
     });
     syntaxHighlightingButton.setGraphic(theme.getIcon(Icon.SYNTAX_HIGHLIGHTING, Icon.Size.BIG));
-    syntaxHighlightingButton.setTooltip(new Tooltip(language.translate(
-        "image_search_field.syntax_highlighting." + config.isQuerySyntaxHighlightingEnabled())));
 
     final ToggleButton caseSensitivityButton = new ToggleButton();
+    config.caseSensitiveQueriesByDefaultProperty().addListener((observable, oldValue, enabled) -> {
+      caseSensitivityButton.setTooltip(new Tooltip(language.translate(
+          "image_search_field.case_sensitivity." + enabled)));
+      this.search();
+    });
     caseSensitivityButton.setSelected(config.caseSensitiveQueriesByDefault());
+    caseSensitivityButton.setTooltip(new Tooltip(language.translate(
+        "image_search_field.case_sensitivity." + config.caseSensitiveQueriesByDefault())));
     caseSensitivityButton.setOnAction(e -> {
       config.setCaseSensitiveQueriesByDefault(!config.caseSensitiveQueriesByDefault());
       try {
@@ -115,12 +125,8 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       } catch (IOException ex) {
         App.LOGGER.error("Unable to save config", ex);
       }
-      caseSensitivityButton.setTooltip(new Tooltip(language.translate(
-          "image_search_field.case_sensitivity." + config.caseSensitiveQueriesByDefault())));
     });
     caseSensitivityButton.setGraphic(theme.getIcon(Icon.CASE_SENSITIVITY, Icon.Size.BIG));
-    caseSensitivityButton.setTooltip(new Tooltip(language.translate(
-        "image_search_field.case_sensitivity." + config.caseSensitiveQueriesByDefault())));
 
     this.resultsLabel.setText(language.translate("images_view.suggestion"));
     this.resultsLabel.getStyleClass().add("results-label");
@@ -154,13 +160,6 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.imagePreviewPane.addTagClickListener(this::searchTag);
     VBox.setVgrow(splitPane, Priority.ALWAYS);
     this.getChildren().addAll(searchBox, resultsLabelBox, splitPane);
-  }
-
-  /**
-   * Refresh this view’s result list.
-   */
-  public void refresh() {
-    this.search();
   }
 
   /**
@@ -204,10 +203,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     final var tagDefinitions = this.db.getAllTags().stream()
         .filter(tag -> tag.definition().isPresent())
         .collect(Collectors.toMap(Tag::label, tag -> tag.definition().get()));
-    final Language language = App.config().language();
+    final Language language = this.config.language();
     final TagQuery tagQuery;
     try {
-      tagQuery = TagQueryParser.parse(query, tagDefinitions, DatabaseConnection.PSEUDO_TAGS);
+      tagQuery = TagQueryParser.parse(query, tagDefinitions, DatabaseConnection.PSEUDO_TAGS, this.config);
     } catch (TagQueryTooLargeException e) {
       this.showPopup(language.translate("image_search_field.recursive_loop_error"));
       return;
@@ -248,7 +247,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         pictures = this.db.queryPictures(tagQuery);
       } catch (DatabaseOperationException e) {
         Platform.runLater(() -> {
-          Alerts.databaseError(e.errorCode());
+          Alerts.databaseError(this.config, e.errorCode());
           this.onSearchError();
         });
         return;
@@ -263,13 +262,13 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     if (!this.popupInitialized) {
       // From https://stackoverflow.com/a/36404968/3779986
       final var stylesheets = ((Parent) this.popup.getSkin().getNode()).getStylesheets();
-      App.config().theme().getStyleSheets().forEach(path -> stylesheets.add(path.toExternalForm()));
+      this.config.theme().getStyleSheets().forEach(path -> stylesheets.add(path.toExternalForm()));
       this.popupInitialized = true;
     }
   }
 
   private void onSearchEnd(final Set<Picture> pictures) {
-    final Language language = App.config().language();
+    final Language language = this.config.language();
     final int count = pictures.size();
     if (pictures.isEmpty())
       this.resultsLabel.setText(language.translate("images_view.no_results"));
@@ -285,7 +284,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         App.LOGGER.error("Error getting tags for image {}", picture, e);
         imageTags = Set.of();
       }
-      this.imagesList.getItems().add(new PictureEntry(picture, imageTags));
+      this.imagesList.getItems().add(new PictureEntry(picture, imageTags, this.config));
     }
     this.imagesList.getItems().sort(null);
     this.searchListeners.forEach(listener -> listener.onSearchEnd(count));
@@ -328,11 +327,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     private final Picture picture;
     private final Set<Tag> tags;
 
-    public PictureEntry(Picture picture, final Set<Tag> tags) {
+    public PictureEntry(Picture picture, final Set<Tag> tags, final Config config) {
       super(5);
       this.picture = picture;
       this.tags = tags;
-      final Config config = App.config();
       final Language language = config.language();
       final Theme theme = config.theme();
       if (!Files.exists(picture.path())) {

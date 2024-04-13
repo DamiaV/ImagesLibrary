@@ -1,9 +1,9 @@
 package net.darmo_creations.imageslibrary.query_parser;
 
-import net.darmo_creations.imageslibrary.*;
+import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.query_parser.ex.*;
-import org.intellij.lang.annotations.*;
+import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.*;
 import org.logicng.formulas.*;
 import org.logicng.transformations.simplification.*;
@@ -16,7 +16,10 @@ import java.util.*;
  */
 public final class TagQuery {
   private final Formula formula;
-  private final @Nullable String sql;
+  @Nullable
+  private final String sql;
+  @Nullable
+  private final Config config;
 
   /**
    * Create a new tag query from the given formula.
@@ -26,10 +29,11 @@ public final class TagQuery {
    * @throws InvalidPseudoTagException If the formula contains a pseudo-tag
    *                                   that is not present in the {@code pseudoTags} map.
    */
-  public TagQuery(final Formula formula, final Map<String, PseudoTag> pseudoTags)
+  public TagQuery(final Formula formula, final Map<String, PseudoTag> pseudoTags, final @Nullable Config config)
       throws InvalidPseudoTagException {
+    this.config = config;
     this.formula = new FactorOutSimplifier().apply(formula, false);
-    this.sql = toSql(this.formula, pseudoTags);
+    this.sql = this.toSql(this.formula, pseudoTags);
   }
 
   /**
@@ -58,7 +62,7 @@ public final class TagQuery {
    * @param pseudoTags A map containing pseudo-tag definitions.
    * @return The SQL query for the given formula or null if the formula is false.
    */
-  private static @Nullable String toSql(final Formula formula, final Map<String, PseudoTag> pseudoTags)
+  private @Nullable String toSql(final Formula formula, final Map<String, PseudoTag> pseudoTags)
       throws InvalidPseudoTagException {
     // Checking for CTrue and CFalse only here as the simplified formula should contain neither in any branch
     if (formula instanceof CTrue)
@@ -66,7 +70,7 @@ public final class TagQuery {
       return "SELECT id, path, hash FROM images";
     if (formula instanceof CFalse)
       return null;
-    return toSql_(formula, pseudoTags);
+    return this.toSql_(formula, pseudoTags);
   }
 
   /**
@@ -78,14 +82,14 @@ public final class TagQuery {
    * @param pseudoTags A map containing pseudo-tag definitions.
    * @return The SQL query for the given formula or null if the formula is false.
    */
-  private static String toSql_(final Formula formula, final Map<String, PseudoTag> pseudoTags)
+  private String toSql_(final Formula formula, final Map<String, PseudoTag> pseudoTags)
       throws InvalidPseudoTagException {
     Objects.requireNonNull(formula);
 
     if (formula instanceof Variable variable) {
       final String text = variable.name();
       if (text.contains(":")) // Pseudo-tag
-        return pseudoTagToSql(text, pseudoTags);
+        return this.pseudoTagToSql(text, pseudoTags);
       else // Normal tag
         // language=sqlite
         return """
@@ -103,25 +107,25 @@ public final class TagQuery {
                  SELECT id, path, hash
                  FROM images
                  EXCEPT
-                 """ + toSql_(not.operand(), pseudoTags);
+                 """ + this.toSql_(not.operand(), pseudoTags);
 
     if (formula instanceof And and)
-      return joinOperands(and, pseudoTags, "INTERSECT");
+      return this.joinOperands(and, pseudoTags, "INTERSECT");
 
     if (formula instanceof Or or)
-      return joinOperands(or, pseudoTags, "UNION");
+      return this.joinOperands(or, pseudoTags, "UNION");
 
     if (formula instanceof Literal literal) {
       final var variable = literal.variable();
       if (literal.phase()) // Positive variable
-        return toSql_(variable, pseudoTags);
+        return this.toSql_(variable, pseudoTags);
       else // Negated variable
         // language=sqlite
         return """
                    SELECT id, path, hash
                    FROM images
                    EXCEPT
-                   """ + toSql_(variable, pseudoTags);
+                   """ + this.toSql_(variable, pseudoTags);
     }
 
     throw new RuntimeException("Unsupported Formula type: " + formula.getClass());
@@ -134,7 +138,7 @@ public final class TagQuery {
    * @param pseudoTags A map containing pseudo-tag definitions.
    * @return The SQL query for the pseudo-tag.
    */
-  private static String pseudoTagToSql(String text, final Map<String, PseudoTag> pseudoTags)
+  private String pseudoTagToSql(String text, final Map<String, PseudoTag> pseudoTags)
       throws InvalidPseudoTagException {
     final var parts = text.split(":", 4);
     final String tagName = parts[0];
@@ -173,7 +177,7 @@ public final class TagQuery {
     if (tag.acceptsRegex()
         && !tagFlags.contains(String.valueOf(PseudoTag.CASE_SENSITIVE_FLAG))
         && !tagFlags.contains(String.valueOf(PseudoTag.CASE_INSENSITIVE_FLAG)))
-      tagFlags += App.config() != null && App.config().caseSensitiveQueriesByDefault() ? "s" : "i";
+      tagFlags += this.config != null && this.config.caseSensitiveQueriesByDefault() ? "s" : "i";
 
     return tag.acceptsRegex()
         ? tag.sqlTemplate().formatted(escaped, tagFlags)
@@ -196,7 +200,7 @@ public final class TagQuery {
    * @param joinerKeyword The SQL keyword to use as a joiner.
    * @return The constructed SQL query.
    */
-  private static String joinOperands(
+  private String joinOperands(
       final NAryOperator operator,
       final Map<String, PseudoTag> pseudoTags,
       @Language(value = "sqlite", prefix = "(SELECT * FROM table) ", suffix = " (SELECT * FROM table)")
@@ -212,7 +216,7 @@ public final class TagQuery {
         ")"
     );
     for (final var subQuery : operator)
-      query.add(toSql_(subQuery, pseudoTags));
+      query.add(this.toSql_(subQuery, pseudoTags));
     return query.toString();
   }
 

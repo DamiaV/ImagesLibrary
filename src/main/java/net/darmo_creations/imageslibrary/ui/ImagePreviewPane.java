@@ -26,15 +26,16 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
   private final ImageView imageView = new ImageView();
   private final ListView<TagEntry> tagsList = new ListView<>();
 
+  private final Config config;
   @Nullable
   private Picture picture;
 
-  public ImagePreviewPane() {
+  public ImagePreviewPane(final Config config) {
     super(5);
+    this.config = config;
     this.setMinWidth(300);
     this.setPadding(new Insets(2, 0, 0, 0));
 
-    final Config config = App.config();
     final Language language = config.language();
     final Theme theme = config.theme();
 
@@ -108,7 +109,7 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     this.tagsList.getItems().clear();
 
     if (picture != null) {
-      final Language language = App.config().language();
+      final Language language = this.config.language();
       final Path path = picture.path();
       this.fileNameLabel.setText(path.getFileName().toString());
       this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
@@ -144,8 +145,8 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
       App.LOGGER.error("Unable to get size of file {}", path, e);
     }
 
-    final Language language = App.config().language();
-    final var formattedSize = size >= 0 ? FileUtils.formatBytesSize(size) : new Pair<>("?", "");
+    final Language language = this.config.language();
+    final var formattedSize = size >= 0 ? FileUtils.formatBytesSize(size, language) : new Pair<>("?", "");
     this.fileMetadataLabel.setText(language.translate(
         "image_preview.file_metadata.label",
         new FormatArg("width", (int) image.getWidth()),

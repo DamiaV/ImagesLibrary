@@ -26,9 +26,11 @@ public class SettingsDialog extends DialogBase<ButtonType> {
 
   /**
    * Create a settings dialog.
+   *
+   * @param config The app’s configuration.
    */
-  public SettingsDialog() {
-    super("settings", false, ButtonTypes.OK, ButtonTypes.CANCEL);
+  public SettingsDialog(Config config) {
+    super("settings", false, config, ButtonTypes.OK, ButtonTypes.CANCEL);
 
     final VBox content = new VBox(
         this.createInterfaceForm(),
@@ -37,20 +39,19 @@ public class SettingsDialog extends DialogBase<ButtonType> {
     );
     content.setPrefWidth(550);
     this.getDialogPane().setContent(content);
-    App.config().theme().getAppIcon().ifPresent(this::setIcon);
+    config.theme().getAppIcon().ifPresent(this::setIcon);
 
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton()) {
         final ChangeType changeType = this.configChanged();
         if (changeType.changed()) {
           try {
-            App.updateConfig(this.localConfig);
             this.localConfig.save();
             if (changeType.needsRestart())
-              Alerts.info("dialog.settings.alert.needs_restart.header", null, null);
+              Alerts.info(config, "dialog.settings.alert.needs_restart.header", null, null);
           } catch (IOException e) {
             App.LOGGER.error("Exception caught while saving settings", e);
-            Alerts.error("dialog.settings.alert.save_error.header", null, null);
+            Alerts.error(config, "dialog.settings.alert.save_error.header", null, null);
           }
         }
       }
@@ -75,9 +76,8 @@ public class SettingsDialog extends DialogBase<ButtonType> {
   }
 
   private Pane createDatabaseForm() {
-    final Config config = App.config();
-    final Language language = config.language();
-    final Theme theme = config.theme();
+    final Language language = this.config.language();
+    final Theme theme = this.config.theme();
 
     HBox.setHgrow(this.dbFileField, Priority.ALWAYS);
     this.dbFileField.setEditable(false);
@@ -99,7 +99,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
   }
 
   private void onSelectDatabaseFile() {
-    final var path = FileChoosers.showDatabaseFileChooser(this.stage(), null);
+    final var path = FileChoosers.showDatabaseFileChooser(this.config, this.stage(), null);
     if (path.isPresent()) {
       final Path file = path.get();
       this.dbFileField.setText(file.toString());
@@ -113,7 +113,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
 
   @SuppressWarnings("unchecked")
   private BorderPane getBorderPane(String title, final Pair<String, ? extends Node>... rows) {
-    final Label titleLabel = new Label(App.config().language().translate(title));
+    final Label titleLabel = new Label(this.config.language().translate(title));
     BorderPane.setAlignment(titleLabel, Pos.CENTER);
 
     final GridPane gridPane = new GridPane();
@@ -123,7 +123,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
     BorderPane.setAlignment(gridPane, Pos.CENTER);
 
     for (int i = 0; i < rows.length; i++) {
-      final Label nodeLabel = new Label(App.config().language().translate(rows[i].getKey()));
+      final Label nodeLabel = new Label(this.config.language().translate(rows[i].getKey()));
       nodeLabel.setWrapText(true);
       GridPane.setHalignment(nodeLabel, HPos.RIGHT);
       final Node node = rows[i].getValue();
@@ -148,7 +148,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
    * Reset the local {@link Config} object of this dialog.
    */
   public void resetLocalConfig() {
-    this.localConfig = App.config().clone();
+    this.localConfig = this.config.clone();
     this.initialConfig = this.localConfig.clone();
 
     this.languageCombo.getSelectionModel().select(this.localConfig.language());

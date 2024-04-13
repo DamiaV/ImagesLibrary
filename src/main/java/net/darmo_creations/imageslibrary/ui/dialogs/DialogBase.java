@@ -3,7 +3,6 @@ package net.darmo_creations.imageslibrary.ui.dialogs;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
 import javafx.stage.*;
-import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.utils.*;
 
@@ -15,6 +14,8 @@ import java.util.*;
  * @param <T> Type of returned values.
  */
 public abstract class DialogBase<T> extends Dialog<T> {
+  protected final Config config;
+
   /**
    * Create a modal dialog.
    *
@@ -22,8 +23,8 @@ public abstract class DialogBase<T> extends Dialog<T> {
    * @param resizable   Whether the dialog should be resizable.
    * @param buttonTypes The dialog’s button types.
    */
-  public DialogBase(String name, boolean resizable, final ButtonType... buttonTypes) {
-    this(name, resizable, true, buttonTypes);
+  public DialogBase(String name, boolean resizable, Config config, final ButtonType... buttonTypes) {
+    this(name, resizable, true, config, buttonTypes);
   }
 
   /**
@@ -34,8 +35,8 @@ public abstract class DialogBase<T> extends Dialog<T> {
    * @param modal       Whether this dialog should be modal.
    * @param buttonTypes The dialog’s button types.
    */
-  public DialogBase(String name, boolean resizable, boolean modal, final ButtonType... buttonTypes) {
-    final Config config = App.config();
+  public DialogBase(String name, boolean resizable, boolean modal, Config config, final ButtonType... buttonTypes) {
+    this.config = config;
     config.theme().getStyleSheets()
         .forEach(url -> this.stage().getScene().getStylesheets().add(url.toExternalForm()));
     this.initModality(modal ? Modality.APPLICATION_MODAL : Modality.NONE);

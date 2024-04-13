@@ -2,6 +2,7 @@ package net.darmo_creations.imageslibrary.ui.dialogs;
 
 import javafx.stage.*;
 import net.darmo_creations.imageslibrary.*;
+import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
@@ -21,8 +22,13 @@ public final class FileChoosers {
    * @param defaultName Default file name.
    * @return The selected file.
    */
-  public static Optional<Path> showDatabaseFileChooser(final Window stage, @Nullable String defaultName) {
+  public static Optional<Path> showDatabaseFileChooser(
+      final Config config,
+      final Window stage,
+      @Nullable String defaultName
+  ) {
     return openFileChooser(
+        config,
         stage,
         "database_file_chooser",
         defaultName,
@@ -33,13 +39,19 @@ public final class FileChoosers {
   /**
    * Open a dialog to choose an image file.
    *
+   * @param config      The current config.
    * @param stage       The parent stage object.
    * @param defaultName Default file name.
    * @return The selected file.
    */
   @Unmodifiable
-  public static List<Path> showImagesFileChooser(final Window stage, @Nullable String defaultName) {
+  public static List<Path> showImagesFileChooser(
+      final Config config,
+      final Window stage,
+      @Nullable String defaultName
+  ) {
     return openMultipleFilesChooser(
+        config,
         stage,
         "image_file_chooser",
         defaultName,
@@ -50,6 +62,7 @@ public final class FileChoosers {
   /**
    * Open a single file chooser.
    *
+   * @param config      The current config.
    * @param stage       The parent stage object.
    * @param dialogName  Name of the file chooser.
    * @param defaultName Default file name.
@@ -57,12 +70,13 @@ public final class FileChoosers {
    * @return The selected file.
    */
   private static Optional<Path> openFileChooser(
+      final Config config,
       Window stage,
       String dialogName,
       @Nullable String defaultName,
       final List<String> extensions
   ) {
-    final File file = buildFileChooser(dialogName, defaultName, extensions).showOpenDialog(stage);
+    final File file = buildFileChooser(config, dialogName, defaultName, extensions).showOpenDialog(stage);
     if (file == null)
       return Optional.empty();
     final String fileName = file.getName();
@@ -74,6 +88,7 @@ public final class FileChoosers {
   /**
    * Open a multiple file chooser.
    *
+   * @param config      The current config.
    * @param stage       The parent stage object.
    * @param dialogName  Name of the file chooser.
    * @param defaultName Default file name.
@@ -82,12 +97,13 @@ public final class FileChoosers {
    */
   @Unmodifiable
   private static List<Path> openMultipleFilesChooser(
+      final Config config,
       Window stage,
       String dialogName,
       @Nullable String defaultName,
       final List<String> extensions
   ) {
-    final List<File> file = buildFileChooser(dialogName, defaultName, extensions).showOpenMultipleDialog(stage);
+    final List<File> file = buildFileChooser(config, dialogName, defaultName, extensions).showOpenMultipleDialog(stage);
     if (file == null)
       return List.of();
     return file.stream()
@@ -99,6 +115,7 @@ public final class FileChoosers {
   /**
    * Open a file saver.
    *
+   * @param config      The current config.
    * @param stage       The parent stage object.
    * @param dialogName  Name of the file saver.
    * @param defaultName Default file name.
@@ -106,12 +123,13 @@ public final class FileChoosers {
    * @return The selected file.
    */
   private static Optional<Path> openSaveFileChooser(
+      final Config config,
       Window stage,
       String dialogName,
       @Nullable String defaultName,
       final List<String> extensions
   ) {
-    final File file = buildFileChooser(dialogName, defaultName, extensions).showSaveDialog(stage);
+    final File file = buildFileChooser(config, dialogName, defaultName, extensions).showSaveDialog(stage);
     if (file == null)
       return Optional.empty();
     Path path = file.toPath().toAbsolutePath();
@@ -121,14 +139,15 @@ public final class FileChoosers {
   }
 
   private static FileChooser buildFileChooser(
+      final Config config,
       String dialogName,
       @Nullable String defaultName,
       final List<String> extensions
   ) {
     final var fileChooser = new FileChooser();
-    fileChooser.setTitle(App.config().language().translate("dialog.%s.title".formatted(dialogName)));
+    fileChooser.setTitle(config.language().translate("dialog.%s.title".formatted(dialogName)));
     final List<String> exts = extensions.stream().map(e -> "*." + e).toList();
-    final String desc = App.config().language().translate(
+    final String desc = config.language().translate(
         "dialog.%s.filter_description".formatted(dialogName),
         new FormatArg("exts", String.join(", ", exts))
     );

@@ -5,7 +5,6 @@ import javafx.collections.transformation.*;
 import javafx.geometry.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.themes.*;
@@ -23,6 +22,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
   private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
   private final Set<DeleteTagTypeListener> deleteTagTypeListeners = new HashSet<>();
 
+  private final Config config;
   @Nullable
   private final TagType tagType;
 
@@ -36,11 +36,12 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
    *
    * @param tagType A tag type. May be null.
    */
-  public TagsTab(@Nullable TagType tagType) {
-    super(getTitle(tagType, 0));
+  public TagsTab(final Config config, @Nullable TagType tagType) {
+    super(getTitle(tagType, 0, config.language()));
+    this.config = config;
     this.tagType = tagType;
 
-    this.label = new Label(getTitle(tagType, 0));
+    this.label = new Label(getTitle(tagType, 0, config.language()));
     this.label.getStyleClass().add("tags-tab-title");
 
     this.getStyleClass().add("tags-tab");
@@ -53,7 +54,6 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     final HBox top = new HBox(5, this.label);
     top.setPadding(new Insets(5, 2, 5, 5));
     if (tagType != null) {
-      final Config config = App.config();
       final Language language = config.language();
       final Theme theme = config.theme();
       final Button editTagTypeButton = new Button(null, theme.getIcon(Icon.EDIT_TAG_TYPE, Icon.Size.SMALL));
@@ -77,8 +77,8 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     });
     this.tagsList.setCellFactory(param -> ClickableListCellFactory.forListener(this));
     this.filteredList.predicateProperty().addListener((observable, oldValue, newValue) -> {
-      this.setText(getTitle(tagType, this.filteredList.size()));
-      this.label.setText(getTitle(tagType, this.filteredList.size()));
+      this.setText(getTitle(tagType, this.filteredList.size(), config.language()));
+      this.label.setText(getTitle(tagType, this.filteredList.size(), config.language()));
     });
 
     this.setContent(new VBox(top, this.tagsList));
@@ -93,7 +93,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     this.tagEntries.clear();
     this.tagEntries.addAll(tags);
     this.tagEntries.sort(Comparator.comparing(e -> e.tag().label()));
-    final String title = getTitle(this.tagType, this.tagEntries.size());
+    final String title = getTitle(this.tagType, this.tagEntries.size(), this.config.language());
     this.setText(title);
     this.label.setText(title);
   }
@@ -151,9 +151,8 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     this.tagSelectionListeners.forEach(listener -> listener.onSelectionChanged(tags));
   }
 
-  private static String getTitle(@Nullable TagType tagType, int tagsCount) {
+  private static String getTitle(@Nullable TagType tagType, int tagsCount, final Language language) {
     final String title;
-    final Language language = App.config().language();
     if (tagType == null)
       title = language.translate("tags_tab.no_type");
     else
@@ -164,11 +163,11 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
   public static final class TagEntry extends HBox {
     private final Tag tag;
 
-    public TagEntry(Tag tag, int useCount) {
+    public TagEntry(Tag tag, int useCount, final Config config) {
       this.tag = tag;
       final Label label = new Label();
       if (this.tag.definition().isPresent()) {
-        label.setGraphic(App.config().theme().getIcon(Icon.COMPOUND_TAG, Icon.Size.SMALL));
+        label.setGraphic(config.theme().getIcon(Icon.COMPOUND_TAG, Icon.Size.SMALL));
         label.setTooltip(new Tooltip(this.tag.definition().get()));
         label.setText(this.tag.label());
       } else

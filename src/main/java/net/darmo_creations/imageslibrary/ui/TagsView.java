@@ -3,7 +3,6 @@ package net.darmo_creations.imageslibrary.ui;
 import javafx.geometry.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.themes.*;
@@ -18,6 +17,7 @@ public class TagsView extends VBox {
   private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
   private final Set<DeleteTagTypeListener> deleteTagTypeListeners = new HashSet<>();
 
+  private final Config config;
   private final Set<Tag> tags;
   private final Map<Integer, Integer> tagsCounts;
   private final Set<TagType> tagTypes;
@@ -29,20 +29,22 @@ public class TagsView extends VBox {
   /**
    * Create a new tag tree view.
    *
+   * @param config     The app’s config.
    * @param tags       A view to the available tags.
    * @param tagsCounts A view to the existing tags use counts.
    * @param tagTypes   A view to the available tag types.
    */
   public TagsView(
+      final Config config,
       final Set<Tag> tags,
       final Map<Integer, Integer> tagsCounts,
       final Set<TagType> tagTypes
   ) {
+    this.config = config;
     this.tags = Objects.requireNonNull(tags);
     this.tagsCounts = Objects.requireNonNull(tagsCounts);
     this.tagTypes = Objects.requireNonNull(tagTypes);
 
-    final Config config = App.config();
     final Language language = config.language();
     final Theme theme = config.theme();
 
@@ -89,7 +91,7 @@ public class TagsView extends VBox {
 
     // Create a new tab for the given tag type
     final Consumer<TagType> createTab = tagType -> {
-      final TagsTab tab = new TagsTab(tagType);
+      final TagsTab tab = new TagsTab(this.config, tagType);
       this.tabPane.getTabs().add(tab);
       tagTypeTabs.put(tagType, tab);
       tabTags.put(tab, new HashSet<>());
@@ -105,7 +107,7 @@ public class TagsView extends VBox {
         .forEach(createTab);
     this.tags.forEach(tag -> {
       final var tab = tagTypeTabs.get(tag.type().orElse(null));
-      tabTags.get(tab).add(new TagsTab.TagEntry(tag, this.tagsCounts.get(tag.id())));
+      tabTags.get(tab).add(new TagsTab.TagEntry(tag, this.tagsCounts.get(tag.id()), this.config));
     });
     tabTags.forEach(TagsTab::setTags);
   }
