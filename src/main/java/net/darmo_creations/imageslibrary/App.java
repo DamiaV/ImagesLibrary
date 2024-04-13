@@ -81,6 +81,7 @@ public class App extends Application {
         Platform.runLater(() -> {
           splash.hide();
           Alerts.databaseError(config, e.errorCode());
+          System.exit(3);
         });
         return;
       }
@@ -94,6 +95,7 @@ public class App extends Application {
         } catch (DatabaseOperationException e) {
           generateCrashReport(e);
           Alerts.databaseError(config, e.errorCode());
+          System.exit(4);
           return;
         }
         controller.show();
