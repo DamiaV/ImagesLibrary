@@ -60,7 +60,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.popup.setFadeOutDuration(new Duration(100));
 
     this.historyButton.setTooltip(new Tooltip(language.translate("image_search_field.history")));
-    this.historyButton.setGraphic(theme.getIcon(Icon.SEARCH_HISTORY, Icon.Size.SMALL));
+    this.historyButton.setGraphic(theme.getIcon(Icon.SEARCH_HISTORY, Icon.Size.BIG));
     this.historyButton.setDisable(true);
 
     this.searchField = new AutoCompleteTextField<>(
@@ -69,6 +69,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null
     );
     this.searchField.setPromptText(new Text(language.translate("image_search_field.search")));
+    this.searchField.setStyle("-fx-font-size: 2em");
     this.searchField.setOnAction(e -> this.search());
     this.searchField.textProperty().addListener((observable, oldValue, newValue) -> {
       if (this.popup.isShowing())
@@ -77,14 +78,14 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     });
 
     this.searchButton.setOnAction(e -> this.search());
-    this.searchButton.setGraphic(theme.getIcon(Icon.SEARCH, Icon.Size.SMALL));
+    this.searchButton.setGraphic(theme.getIcon(Icon.SEARCH, Icon.Size.BIG));
     this.searchButton.setTooltip(new Tooltip(language.translate("image_search_field.go")));
 
     this.clearSearchButton.setOnAction(e -> {
       this.searchField.setText("");
       this.searchField.requestFocus();
     });
-    this.clearSearchButton.setGraphic(theme.getIcon(Icon.CLEAR_TEXT, Icon.Size.SMALL));
+    this.clearSearchButton.setGraphic(theme.getIcon(Icon.CLEAR_TEXT, Icon.Size.BIG));
     this.clearSearchButton.setTooltip(new Tooltip(language.translate("search_field.erase_search")));
     this.clearSearchButton.setDisable(true);
 
@@ -99,7 +100,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       }
       this.searchField.setSyntaxHighlighter(config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null);
     });
-    syntaxHighlightingButton.setGraphic(theme.getIcon(Icon.SYNTAX_HIGHLIGHTING, Icon.Size.SMALL));
+    syntaxHighlightingButton.setGraphic(theme.getIcon(Icon.SYNTAX_HIGHLIGHTING, Icon.Size.BIG));
     syntaxHighlightingButton.setTooltip(new Tooltip(language.translate("image_search_field.syntax_highlighting")));
 
     this.resultsLabel.setText(language.translate("images_view.suggestion"));

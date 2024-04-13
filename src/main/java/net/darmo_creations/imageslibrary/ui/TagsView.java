@@ -63,13 +63,14 @@ public class TagsView extends VBox {
         this.onTabSelectionChange());
 
     this.searchField.setPromptText(language.translate("tag_search_field.search"));
+    this.searchField.setStyle("-fx-font-size: 1.5em");
     this.searchField.textProperty().addListener((observable, oldValue, newValue) -> this.onSearchFilterChange(newValue));
 
     this.clearSearchButton.setOnAction(e -> {
       this.searchField.setText(null);
       this.searchField.requestFocus();
     });
-    this.clearSearchButton.setGraphic(theme.getIcon(Icon.CLEAR_TEXT, Icon.Size.SMALL));
+    this.clearSearchButton.setGraphic(theme.getIcon(Icon.CLEAR_TEXT, Icon.Size.BIG));
     this.clearSearchButton.setTooltip(new Tooltip(language.translate("search_field.erase_search")));
     this.clearSearchButton.setDisable(true);
 
