@@ -234,8 +234,7 @@ public final class Alerts {
       case CONFIRMATION -> List.of(ButtonTypes.OK, ButtonTypes.CANCEL);
       case NONE -> throw new IllegalArgumentException(type.name()); // Should never happen
     });
-    config.theme().getStyleSheets()
-        .forEach(url -> dialogPane.getStylesheets().add(url.toExternalForm()));
+    config.theme().applyTo(dialogPane);
     if (titleKey == null)
       titleKey = "alert.%s.title".formatted(type.name().toLowerCase());
     final Language language = config.language();

@@ -37,8 +37,7 @@ public abstract class DialogBase<T> extends Dialog<T> {
    */
   public DialogBase(String name, boolean resizable, boolean modal, Config config, final ButtonType... buttonTypes) {
     this.config = config;
-    config.theme().getStyleSheets()
-        .forEach(url -> this.stage().getScene().getStylesheets().add(url.toExternalForm()));
+    config.theme().applyTo(this.stage().getScene());
     this.initModality(modal ? Modality.APPLICATION_MODAL : Modality.NONE);
     this.setResizable(resizable);
     this.setTitle(config.language().translate("dialog.%s.title".formatted(name),

@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.themes;
 
 import com.google.gson.*;
+import javafx.scene.*;
 import javafx.scene.image.*;
 import net.darmo_creations.imageslibrary.*;
 import org.jetbrains.annotations.*;
@@ -151,9 +152,27 @@ public final class Theme {
   }
 
   /**
+   * Add this theme’s stylesheets to those of the given scene.
+   *
+   * @param scene The scene to apply this theme to.
+   */
+  public void applyTo(Scene scene) {
+    this.getStyleSheets().forEach(path -> scene.getStylesheets().add(path.toExternalForm()));
+  }
+
+  /**
+   * Add this theme’s stylesheets to those of the given {@link Parent}.
+   *
+   * @param parent The {@link Parent} object to apply this theme to.
+   */
+  public void applyTo(Parent parent) {
+    this.getStyleSheets().forEach(path -> parent.getStylesheets().add(path.toExternalForm()));
+  }
+
+  /**
    * Return the URLs of this theme’s stylesheets.
    */
-  public List<URL> getStyleSheets() {
+  private List<URL> getStyleSheets() {
     final List<URL> urls = new LinkedList<>();
     this.getStyleSheet("common").ifPresent(urls::add);
     this.getStyleSheet(this.id).ifPresent(urls::add);

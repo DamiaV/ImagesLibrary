@@ -261,8 +261,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.popup.show(this.searchField);
     if (!this.popupInitialized) {
       // From https://stackoverflow.com/a/36404968/3779986
-      final var stylesheets = ((Parent) this.popup.getSkin().getNode()).getStylesheets();
-      this.config.theme().getStyleSheets().forEach(path -> stylesheets.add(path.toExternalForm()));
+      this.config.theme().applyTo((Parent) this.popup.getSkin().getNode());
       this.popupInitialized = true;
     }
   }

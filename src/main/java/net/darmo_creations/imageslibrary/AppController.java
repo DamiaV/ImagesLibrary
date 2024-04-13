@@ -79,7 +79,7 @@ public class AppController implements ResultsView.SearchListener {
     this.resultsView = new ResultsView(config, this.db);
     final Scene scene = new Scene(new VBox(this.createMenuBar(), this.createToolBar(), this.createContent()));
     stage.setScene(scene);
-    theme.getStyleSheets().forEach(path -> scene.getStylesheets().add(path.toExternalForm()));
+    theme.applyTo(scene);
 
     // Files/directories drag-and-drop
     scene.setOnDragOver(event -> {
