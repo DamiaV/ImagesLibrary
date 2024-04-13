@@ -223,8 +223,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.searchField.setDisable(true);
     this.searchButton.setDisable(true);
     this.clearSearchButton.setDisable(true);
+
     final var history = this.historyButton.getItems();
-    if (history.isEmpty() || !history.get(history.size() - 1).getText().equals(query)) {
+    final var matchingItem = history.stream().filter(t -> t.getText().equals(query)).findFirst();
+    if (matchingItem.isEmpty()) {
       final MenuItem menuItem = new MenuItem(query);
       menuItem.setOnAction(e -> {
         this.searchField.setText(query);
@@ -232,6 +234,11 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       });
       history.add(0, menuItem);
       this.historyButton.setDisable(false);
+    } else {
+      // Put matching item on top
+      final MenuItem item = matchingItem.get();
+      history.remove(item);
+      history.add(0, item);
     }
 
     this.searchListeners.forEach(SearchListener::onSearchStart);
