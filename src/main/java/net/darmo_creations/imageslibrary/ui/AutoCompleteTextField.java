@@ -107,7 +107,8 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
   }
 
   private void showSuggestions() {
-    this.entriesPopup.show(this.getScene().getWindow());
+    if (!this.entriesPopup.getItems().isEmpty())
+      this.entriesPopup.show(this.getScene().getWindow());
   }
 
   private void hideSuggestions() {
