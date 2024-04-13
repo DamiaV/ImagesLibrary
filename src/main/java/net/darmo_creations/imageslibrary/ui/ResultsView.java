@@ -163,6 +163,13 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   /**
+   * Focus the search bar.
+   */
+  public void focusSearchBar() {
+    this.searchField.requestFocus();
+  }
+
+  /**
    * Replace the current query by the given tag and run a search.
    *
    * @param tag The tag to insert.

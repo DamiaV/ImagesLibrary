@@ -23,6 +23,7 @@ public enum Icon {
   SEARCH_NO_TAGS("tag_blue_error"),
   SEARCH_NO_FILE("picture_error"),
   CONVERT_PYTHON_DB("database_gear"),
+  FOCUS_SEARCH_BAR("search_field_go"),
   ABOUT("information"),
   HELP("help"),
 

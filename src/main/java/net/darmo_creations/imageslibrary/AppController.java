@@ -219,19 +219,28 @@ public class AppController implements ResultsView.SearchListener {
         theme.getIcon(Icon.SEARCH_NO_FILE, Icon.Size.SMALL)
     );
     showNoFileMenuItem.setOnAction(e -> this.onShowImagesWithNoFile());
-    showNoFileMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN));
+    showNoFileMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
     this.menuItemStates.put(showNoFileMenuItem, showNoFileMenuItem.isDisable());
     final MenuItem convertPythonDbMenuItem = new MenuItem(
         language.translate("menu.tools.convert_python_db"),
         theme.getIcon(Icon.CONVERT_PYTHON_DB, Icon.Size.SMALL)
     );
     convertPythonDbMenuItem.setOnAction(e -> this.onConvertPythonDbMenuItem());
+    final MenuItem focusSearchBarMenuItem = new MenuItem(
+        language.translate("menu.tools.focus_search_bar"),
+        theme.getIcon(Icon.FOCUS_SEARCH_BAR, Icon.Size.SMALL)
+    );
+    focusSearchBarMenuItem.setOnAction(e -> this.onFocusSearchBar());
+    focusSearchBarMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN));
+    this.menuItemStates.put(focusSearchBarMenuItem, focusSearchBarMenuItem.isDisable());
     this.menuItemStates.put(convertPythonDbMenuItem, convertPythonDbMenuItem.isDisable());
     toolsMenu.getItems().addAll(
         showNoTagsMenuItem,
         showNoFileMenuItem,
         new SeparatorMenuItem(),
-        convertPythonDbMenuItem
+        convertPythonDbMenuItem,
+        new SeparatorMenuItem(),
+        focusSearchBarMenuItem
     );
 
     final Menu helpMenu = new Menu(language.translate("menu.help"));
@@ -562,6 +571,13 @@ public class AppController implements ResultsView.SearchListener {
   private void onConvertPythonDbMenuItem() {
     // TODO
     System.out.println("convert python db");
+  }
+
+  /**
+   * Focus the search bar in ResultView.
+   */
+  private void onFocusSearchBar() {
+    this.resultsView.focusSearchBar();
   }
 
   /**
