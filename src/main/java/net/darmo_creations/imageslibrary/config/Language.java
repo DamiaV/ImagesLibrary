@@ -132,7 +132,7 @@ public final class Language {
       try {
         text = this.resources.getString(key);
       } catch (MissingResourceException e) {
-        App.LOGGER.warn("Can’t find key {}", key);
+        App.logger().warn("Can’t find key {}", key);
         return key;
       }
     }

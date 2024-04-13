@@ -50,7 +50,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
             if (changeType.needsRestart())
               Alerts.info(config, "dialog.settings.alert.needs_restart.header", null, null);
           } catch (IOException e) {
-            App.LOGGER.error("Exception caught while saving settings", e);
+            App.logger().error("Exception caught while saving settings", e);
             Alerts.error(config, "dialog.settings.alert.save_error.header", null, null);
           }
         }

@@ -18,7 +18,15 @@ import java.util.*;
 public class App extends Application {
   public static final String NAME = "Image Library";
   public static final String VERSION = "1.0-SNAPSHOT";
-  public static final Logger LOGGER = LoggerFactory.getLogger("App");
+
+  private static Logger LOGGER;
+
+  /**
+   * This app’s logger.
+   */
+  public static Logger logger() {
+    return LOGGER;
+  }
 
   /**
    * The list of accepted image file extensions.
@@ -56,11 +64,13 @@ public class App extends Application {
 
   @Override
   public void start(Stage stage) {
+    if (config.isDebug())
+      // Must be set before calling LoggerFactory.getLogger()
+      System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
+    LOGGER = LoggerFactory.getLogger("App");
     LOGGER.info("Running %s (v%s)".formatted(NAME, VERSION));
-    if (config.isDebug()) {
-      // TODO put logger at debug level
+    if (config.isDebug())
       LOGGER.info("Debug mode is ON");
-    }
     try {
       new AppController(stage, config).show();
     } catch (DatabaseOperationException e) {

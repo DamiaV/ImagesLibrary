@@ -45,14 +45,14 @@ public class FileUtils {
     else if (osName.contains("mac"))
       command = new String[] { "open", "-R", path };
     else {
-      App.LOGGER.error("Unable to open file system explorer: unsupported operating system {}", osName);
+      App.logger().error("Unable to open file system explorer: unsupported operating system {}", osName);
       return;
     }
 
     try {
       Runtime.getRuntime().exec(command);
     } catch (IOException e) {
-      App.LOGGER.error("Unable to open file system explorer", e);
+      App.logger().error("Unable to open file system explorer", e);
     }
   }
 

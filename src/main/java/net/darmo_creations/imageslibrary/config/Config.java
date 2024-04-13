@@ -312,7 +312,7 @@ public final class Config implements Cloneable {
    * Save this configuration object to the disk.
    */
   public void save() throws IOException {
-    App.LOGGER.info("Saving config…");
+    App.logger().info("Saving config…");
     final Wini ini = getOrCreateIniFile();
     ini.put(APP_SECTION, LANGUAGE_OPTION, this.language.code());
     ini.put(APP_SECTION, THEME_OPTION, this.theme.id());
@@ -320,7 +320,7 @@ public final class Config implements Cloneable {
     ini.put(QUERIES_SECTION, CASE_SENSITIVITE_BY_DEFAULT, this.caseSensitiveQueriesByDefault.get());
     ini.put(QUERIES_SECTION, QUERY_SYNTAX_HIGHLIGHTING, this.querySyntaxHighlighting.get());
     ini.store();
-    App.LOGGER.info("Done.");
+    App.logger().info("Done.");
   }
 
   @Override

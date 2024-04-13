@@ -48,7 +48,7 @@ public final class Theme {
           }
         }
       } catch (RuntimeException e) {
-        App.LOGGER.error("Exception while loading theme %s".formatted(themeID), e);
+        App.logger().error("Exception while loading theme %s".formatted(themeID), e);
       }
     }
     if (THEMES.isEmpty())
@@ -125,7 +125,7 @@ public final class Theme {
     final String path = "%s%s_%d.png".formatted(ICONS_PATH, icon.baseName(), size.pixels());
     try (final var stream = this.getClass().getResourceAsStream(path)) {
       if (stream == null) {
-        App.LOGGER.warn("Missing icon: {}", icon.baseName());
+        App.logger().warn("Missing icon: {}", icon.baseName());
         return null;
       }
       return new Image(stream);
@@ -141,7 +141,7 @@ public final class Theme {
     final String path = "%s%s.png".formatted(App.IMAGES_PATH, "app_icon");
     try (final var stream = this.getClass().getResourceAsStream(path)) {
       if (stream == null) {
-        App.LOGGER.warn("Missing icon: app_icon");
+        App.logger().warn("Missing icon: app_icon");
         return Optional.empty();
       }
       return Optional.of(new Image(stream));

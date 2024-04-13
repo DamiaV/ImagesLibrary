@@ -104,7 +104,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       try {
         config.save();
       } catch (IOException ex) {
-        App.LOGGER.error("Unable to save config", ex);
+        App.logger().error("Unable to save config", ex);
       }
     });
     syntaxHighlightingButton.setGraphic(theme.getIcon(Icon.SYNTAX_HIGHLIGHTING, Icon.Size.BIG));
@@ -123,7 +123,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       try {
         config.save();
       } catch (IOException ex) {
-        App.LOGGER.error("Unable to save config", ex);
+        App.logger().error("Unable to save config", ex);
       }
     });
     caseSensitivityButton.setGraphic(theme.getIcon(Icon.CASE_SENSITIVITY, Icon.Size.BIG));
@@ -281,7 +281,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       try {
         imageTags = this.db.getImageTags(picture);
       } catch (DatabaseOperationException e) {
-        App.LOGGER.error("Error getting tags for image {}", picture, e);
+        App.logger().error("Error getting tags for image {}", picture, e);
         imageTags = Set.of();
       }
       this.imagesList.getItems().add(new PictureEntry(picture, imageTags, this.config));

@@ -64,7 +64,7 @@ public class AppController implements ResultsView.SearchListener {
     theme.getAppIcon().ifPresent(icon -> stage.getIcons().add(icon));
     stage.setMinWidth(300);
     stage.setMinHeight(200);
-    stage.setTitle(App.NAME);
+    stage.setTitle(App.NAME + (config.isDebug() ? "*" : ""));
     stage.setMaximized(true);
 
     this.aboutDialog = new AboutDialog(config);

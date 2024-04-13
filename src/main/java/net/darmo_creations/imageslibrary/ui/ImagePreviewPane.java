@@ -142,7 +142,7 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     try {
       size = Files.size(path);
     } catch (IOException e) {
-      App.LOGGER.error("Unable to get size of file {}", path, e);
+      App.logger().error("Unable to get size of file {}", path, e);
     }
 
     final Language language = this.config.language();
