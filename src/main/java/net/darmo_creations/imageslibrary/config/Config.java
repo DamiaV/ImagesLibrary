@@ -28,7 +28,6 @@ public final class Config implements Cloneable {
   private static final String DEFAULT_LANGUAGE_CODE = LANGUAGE_CODES[0];
   private static final Map<String, Language> LANGUAGES = new HashMap<>();
   private static final String DEFAULT_DB_FILE = "db.sqlite3";
-  public static final int DEFAULT_MAX_IMAGES = 50; // TODO remove
 
   private static final Path SETTINGS_FILE = Path.of("settings.ini");
 
@@ -38,7 +37,7 @@ public final class Config implements Cloneable {
   private static final String DB_FILE = "database_file";
   private static final String QUERIES_SECTION = "Queries";
   private static final String CASE_SENSITIVITE_BY_DEFAULT = "case_sensitive_by_default";
-  private static final String MAX_SHOWN_IMAGES_OPTION = "max_shown_images";
+  private static final String QUERY_SYNTAX_HIGHLIGHTING = "syntax_highlighting";
 
   /**
    * Load the configuration from the settings file.
@@ -67,9 +66,8 @@ public final class Config implements Cloneable {
     final String path = StringUtils.stripNullable(ini.get(APP_SECTION, DB_FILE, String.class)).orElse(DEFAULT_DB_FILE);
     final Path databaseFile = Paths.get(path);
 
-    final int maxImagesShown = Optional.ofNullable(ini.get(APP_SECTION, MAX_SHOWN_IMAGES_OPTION, Integer.class)).orElse(DEFAULT_MAX_IMAGES);
-
     final boolean caseSensitiveDefault = Optional.ofNullable(ini.get(QUERIES_SECTION, CASE_SENSITIVITE_BY_DEFAULT, Boolean.class)).orElse(false);
+    final boolean querySH = Optional.ofNullable(ini.get(QUERIES_SECTION, QUERY_SYNTAX_HIGHLIGHTING, Boolean.class)).orElse(false);
 
     try {
       return new Config(
@@ -77,7 +75,7 @@ public final class Config implements Cloneable {
           theme,
           databaseFile,
           caseSensitiveDefault,
-          maxImagesShown,
+          querySH,
           debug
       );
     } catch (IllegalArgumentException e) {
@@ -145,7 +143,7 @@ public final class Config implements Cloneable {
   private final Path databaseFile;
   private final boolean debug;
   private boolean caseSensitiveQueriesByDefault;
-  private int maxImagesShown;
+  private boolean querySyntaxHighlighting;
 
   /**
    * Create a configuration object.
@@ -154,7 +152,7 @@ public final class Config implements Cloneable {
    * @param theme                         Theme to use.
    * @param databaseFile                  Path to the database file.
    * @param caseSensitiveQueriesByDefault Whether pseudo-tag pattern should be treated as case sensitive when no flag is present.
-   * @param maxImagesShown                The maximum number of images to show in query results.
+   * @param querySyntaxHighlighting       Whether to perform syntax highlighting in the tag query search bar.
    * @param debug                         Whether to run the app in debug mode.
    */
   public Config(
@@ -162,14 +160,14 @@ public final class Config implements Cloneable {
       Theme theme,
       Path databaseFile,
       boolean caseSensitiveQueriesByDefault,
-      int maxImagesShown,
+      boolean querySyntaxHighlighting,
       boolean debug
   ) {
     this.language = Objects.requireNonNull(language);
     this.theme = Objects.requireNonNull(theme);
     this.databaseFile = databaseFile.toAbsolutePath();
+    this.querySyntaxHighlighting = querySyntaxHighlighting;
     this.setCaseSensitiveQueriesByDefault(caseSensitiveQueriesByDefault);
-    this.setMaxImagesShown(maxImagesShown);
     this.debug = debug;
   }
 
@@ -211,22 +209,19 @@ public final class Config implements Cloneable {
   }
 
   /**
-   * The maximum number of images to show in query results.
+   * Whether tag query syntax highlighting is enabled.
    */
-  public int maxImagesShown() {
-    return this.maxImagesShown;
+  public boolean isQuerySyntaxHighlightingEnabled() {
+    return this.querySyntaxHighlighting;
   }
 
   /**
-   * Set the maximum number of images to show in query results.
+   * Set whether tag query syntax highlighting is enabled.
    *
-   * @param maxImagesShown The new value.
-   * @throws IllegalArgumentException If the value is < 0.
+   * @param querySyntaxHighlighting The new value.
    */
-  public void setMaxImagesShown(int maxImagesShown) {
-    if (maxImagesShown < 0)
-      throw new IllegalArgumentException("Invalid value, expected >= 0, got " + maxImagesShown);
-    this.maxImagesShown = maxImagesShown;
+  public void setQuerySyntaxHighlightingEnabled(boolean querySyntaxHighlighting) {
+    this.querySyntaxHighlighting = querySyntaxHighlighting;
   }
 
   /**
@@ -249,7 +244,7 @@ public final class Config implements Cloneable {
         this.theme,
         this.databaseFile,
         this.caseSensitiveQueriesByDefault,
-        this.maxImagesShown,
+        this.querySyntaxHighlighting,
         this.debug
     );
   }
@@ -267,7 +262,7 @@ public final class Config implements Cloneable {
         theme,
         this.databaseFile,
         this.caseSensitiveQueriesByDefault,
-        this.maxImagesShown,
+        this.querySyntaxHighlighting,
         this.debug
     );
   }
@@ -285,7 +280,7 @@ public final class Config implements Cloneable {
         this.theme,
         path,
         this.caseSensitiveQueriesByDefault,
-        this.maxImagesShown,
+        this.querySyntaxHighlighting,
         this.debug
     );
   }
@@ -313,8 +308,8 @@ public final class Config implements Cloneable {
     ini.put(APP_SECTION, LANGUAGE_OPTION, this.language.code());
     ini.put(APP_SECTION, THEME_OPTION, this.theme.id());
     ini.put(APP_SECTION, DB_FILE, this.databaseFile);
-    ini.put(APP_SECTION, MAX_SHOWN_IMAGES_OPTION, this.maxImagesShown);
     ini.put(QUERIES_SECTION, CASE_SENSITIVITE_BY_DEFAULT, this.caseSensitiveQueriesByDefault);
+    ini.put(QUERIES_SECTION, QUERY_SYNTAX_HIGHLIGHTING, this.querySyntaxHighlighting);
     ini.store();
     App.LOGGER.info("Done.");
   }
@@ -326,7 +321,7 @@ public final class Config implements Cloneable {
     final var config = (Config) o;
     return this.debug == config.debug
            && this.caseSensitiveQueriesByDefault == config.caseSensitiveQueriesByDefault
-           && this.maxImagesShown == config.maxImagesShown
+           && this.querySyntaxHighlighting == config.querySyntaxHighlighting
            && Objects.equals(this.language, config.language)
            && Objects.equals(this.theme, config.theme)
            && Objects.equals(this.databaseFile, config.databaseFile);
@@ -340,7 +335,7 @@ public final class Config implements Cloneable {
         this.databaseFile,
         this.debug,
         this.caseSensitiveQueriesByDefault,
-        this.maxImagesShown
+        this.querySyntaxHighlighting
     );
   }
 }

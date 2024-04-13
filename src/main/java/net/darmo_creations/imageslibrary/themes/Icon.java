@@ -29,6 +29,7 @@ public enum Icon {
   SEARCH_HISTORY("clock_history_frame"),
   CLEAR_TEXT("draw_eraser"),
   SEARCH("magnifier"),
+  SYNTAX_HIGHLIGHTING("highlighter"),
   NO_TAGS("tag_blue_error"),
   NO_FILE("picture_error"),
 

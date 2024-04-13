@@ -15,8 +15,39 @@ Text.hyperlink {
   -fx-background: -fx-base;
 }
 
-/* Custom */
+/* Tag query highlighting */
 
-.tree-cell.search-match {
-  -fx-background: #ffcc80;
+.highlight-tag-query .text {
+  -fx-fill: red;
+}
+
+.highlight-tag-query .ws {
+}
+
+.highlight-tag-query .tag {
+  -fx-fill: #ff5200;
+}
+
+.highlight-tag-query .pseudo-tag {
+  -fx-fill: #1eb540;
+}
+
+.highlight-tag-query .flags {
+  -fx-fill: #3e6ab1;
+}
+
+.highlight-tag-query .not,
+.highlight-tag-query .or,
+.highlight-tag-query .paren,
+.highlight-tag-query .equal {
+  -fx-fill: #ff80ff;
+  -fx-font-weight: bold;
+}
+
+.highlight-tag-query .string {
+  -fx-fill: #9a8f37;
+}
+
+.highlight-tag-query .regex {
+  -fx-fill: #d5335e;
 }

@@ -28,4 +28,6 @@ module net.darmo_creations.imageslibrary {
   requires org.jetbrains.annotations;
 
   exports net.darmo_creations.imageslibrary;
+  exports net.darmo_creations.imageslibrary.ui;
+  exports net.darmo_creations.imageslibrary.ui.syntax_highlighting;
 }

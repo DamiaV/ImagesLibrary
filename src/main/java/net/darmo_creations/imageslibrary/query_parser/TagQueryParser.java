@@ -3,6 +3,7 @@ package net.darmo_creations.imageslibrary.query_parser;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.query_parser.ex.*;
 import net.darmo_creations.imageslibrary.query_parser.generated.*;
+import net.darmo_creations.imageslibrary.ui.syntax_highlighting.*;
 import org.antlr.v4.runtime.*;
 import org.jetbrains.annotations.*;
 import org.logicng.formulas.*;
@@ -20,8 +21,10 @@ public final class TagQueryParser {
    * @param tagDefinitions A map containing definitions of compound tags.
    * @param pseudoTags     A map containing pseudo-tags.
    * @return The parsed {@link TagQuery} object.
-   * @throws InvalidPseudoTagException If the formula contains a pseudo-tag
-   *                                   that is not present in the {@code pseudoTags} map.
+   * @throws TagQuerySyntaxErrorException If the query string contains a syntax error.
+   * @throws TagQueryTooLargeException    If the query string is too large or one or more tag definition is circular.
+   * @throws InvalidPseudoTagException    If the formula contains a pseudo-tag
+   *                                      that is not present in the {@code pseudoTags} map.
    */
   @Contract("_, _, _ -> new")
   public static TagQuery parse(
@@ -55,7 +58,22 @@ public final class TagQueryParser {
     final var parser = new TagQueryLanguageParser(new CommonTokenStream(lexer));
     parser.removeErrorListeners(); // Remove default listener that prints to STDOUT
     parser.addErrorListener(errorListener);
-    return new TagQueryVisitor(tagDefinitions, depth, formulaFactory).visit(parser.expr());
+    return new TagQueryVisitor(tagDefinitions, depth, formulaFactory).visit(parser.query());
+  }
+
+  /**
+   * Parse the given tag query into a list of {@link Span}s.
+   *
+   * @param query The query to parse.
+   * @return A list of {@link Span} objects, one for each valid token.
+   */
+  @Contract("_ -> new")
+  public static List<Span> parse(String query) {
+    final var lexer = new TagQueryLanguageLexer(CharStreams.fromString(query));
+    lexer.removeErrorListeners(); // Remove default listener that prints to STDOUT
+    final var parser = new TagQueryLanguageParser(new CommonTokenStream(lexer));
+    parser.removeErrorListeners(); // Remove default listener that prints to STDOUT
+    return new TagQueryVisitor2().visit(parser.query());
   }
 
   private TagQueryParser() {

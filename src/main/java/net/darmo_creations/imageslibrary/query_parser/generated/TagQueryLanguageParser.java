@@ -19,7 +19,7 @@ public class TagQueryLanguageParser extends Parser {
   protected static final PredictionContextCache _sharedContextCache =
       new PredictionContextCache();
   public static final int
-      T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, WS = 6, IDENT = 7, STRING = 8, REGEX = 9;
+      WS = 1, IDENT = 2, STRING = 3, REGEX = 4, OR = 5, NOT = 6, LPAREN = 7, RPAREN = 8, EQUAL = 9;
   public static final int
       RULE_query = 0, RULE_expr = 1, RULE_lit = 2;
 
@@ -33,7 +33,7 @@ public class TagQueryLanguageParser extends Parser {
 
   private static String[] makeLiteralNames() {
     return new String[] {
-        null, "'+'", "'-'", "'('", "')'", "'='"
+        null, null, null, null, null, "'+'", "'-'", "'('", "')'", "'='"
     };
   }
 
@@ -41,7 +41,8 @@ public class TagQueryLanguageParser extends Parser {
 
   private static String[] makeSymbolicNames() {
     return new String[] {
-        null, null, null, null, null, null, "WS", "IDENT", "STRING", "REGEX"
+        null, "WS", "IDENT", "STRING", "REGEX", "OR", "NOT", "LPAREN", "RPAREN",
+        "EQUAL"
     };
   }
 
@@ -114,6 +115,14 @@ public class TagQueryLanguageParser extends Parser {
       return getToken(TagQueryLanguageParser.EOF, 0);
     }
 
+    public List<TerminalNode> WS() {
+      return getTokens(TagQueryLanguageParser.WS);
+    }
+
+    public TerminalNode WS(int i) {
+      return getToken(TagQueryLanguageParser.WS, i);
+    }
+
     public QueryContext(ParserRuleContext parent, int invokingState) {
       super(parent, invokingState);
     }
@@ -134,12 +143,33 @@ public class TagQueryLanguageParser extends Parser {
   public final QueryContext query() throws RecognitionException {
     QueryContext _localctx = new QueryContext(_ctx, getState());
     enterRule(_localctx, 0, RULE_query);
+    int _la;
     try {
       enterOuterAlt(_localctx, 1);
       {
-        setState(6);
-        expr(0);
         setState(7);
+        _errHandler.sync(this);
+        _la = _input.LA(1);
+        if (_la == WS) {
+          {
+            setState(6);
+            match(WS);
+          }
+        }
+
+        setState(9);
+        expr(0);
+        setState(11);
+        _errHandler.sync(this);
+        _la = _input.LA(1);
+        if (_la == WS) {
+          {
+            setState(10);
+            match(WS);
+          }
+        }
+
+        setState(13);
         match(EOF);
       }
     } catch (RecognitionException re) {
@@ -179,6 +209,10 @@ public class TagQueryLanguageParser extends Parser {
       return getRuleContext(ExprContext.class, i);
     }
 
+    public TerminalNode OR() {
+      return getToken(TagQueryLanguageParser.OR, 0);
+    }
+
     public List<TerminalNode> WS() {
       return getTokens(TagQueryLanguageParser.WS);
     }
@@ -200,16 +234,16 @@ public class TagQueryLanguageParser extends Parser {
   }
 
   public static class NegationContext extends ExprContext {
+    public TerminalNode NOT() {
+      return getToken(TagQueryLanguageParser.NOT, 0);
+    }
+
     public LitContext lit() {
       return getRuleContext(LitContext.class, 0);
     }
 
-    public List<TerminalNode> WS() {
-      return getTokens(TagQueryLanguageParser.WS);
-    }
-
-    public TerminalNode WS(int i) {
-      return getToken(TagQueryLanguageParser.WS, i);
+    public TerminalNode WS() {
+      return getToken(TagQueryLanguageParser.WS, 0);
     }
 
     public NegationContext(ExprContext ctx) {
@@ -233,12 +267,8 @@ public class TagQueryLanguageParser extends Parser {
       return getRuleContext(ExprContext.class, i);
     }
 
-    public List<TerminalNode> WS() {
-      return getTokens(TagQueryLanguageParser.WS);
-    }
-
-    public TerminalNode WS(int i) {
-      return getToken(TagQueryLanguageParser.WS, i);
+    public TerminalNode WS() {
+      return getToken(TagQueryLanguageParser.WS, 0);
     }
 
     public AndContext(ExprContext ctx) {
@@ -286,40 +316,36 @@ public class TagQueryLanguageParser extends Parser {
       int _alt;
       enterOuterAlt(_localctx, 1);
       {
-        setState(19);
+        setState(22);
         _errHandler.sync(this);
         switch (_input.LA(1)) {
-          case T__1: {
+          case NOT: {
             _localctx = new NegationContext(_localctx);
             _ctx = _localctx;
             _prevctx = _localctx;
 
-            setState(10);
-            match(T__1);
-            setState(14);
+            setState(16);
+            match(NOT);
+            setState(18);
             _errHandler.sync(this);
             _la = _input.LA(1);
-            while (_la == WS) {
+            if (_la == WS) {
               {
-                {
-                  setState(11);
-                  match(WS);
-                }
+                setState(17);
+                match(WS);
               }
-              setState(16);
-              _errHandler.sync(this);
-              _la = _input.LA(1);
             }
-            setState(17);
+
+            setState(20);
             lit();
           }
           break;
-          case T__2:
-          case IDENT: {
+          case IDENT:
+          case LPAREN: {
             _localctx = new LiteralContext(_localctx);
             _ctx = _localctx;
             _prevctx = _localctx;
-            setState(18);
+            setState(21);
             lit();
           }
           break;
@@ -327,36 +353,32 @@ public class TagQueryLanguageParser extends Parser {
             throw new NoViableAltException(this);
         }
         _ctx.stop = _input.LT(-1);
-        setState(46);
+        setState(40);
         _errHandler.sync(this);
-        _alt = getInterpreter().adaptivePredict(_input, 6, _ctx);
+        _alt = getInterpreter().adaptivePredict(_input, 8, _ctx);
         while (_alt != 2 && _alt != org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER) {
           if (_alt == 1) {
             if (_parseListeners != null) triggerExitRuleEvent();
             _prevctx = _localctx;
             {
-              setState(44);
+              setState(38);
               _errHandler.sync(this);
-              switch (getInterpreter().adaptivePredict(_input, 5, _ctx)) {
+              switch (getInterpreter().adaptivePredict(_input, 7, _ctx)) {
                 case 1: {
                   _localctx = new AndContext(new ExprContext(_parentctx, _parentState));
                   pushNewRecursionContext(_localctx, _startState, RULE_expr);
-                  setState(21);
+                  setState(24);
                   if (!(precpred(_ctx, 4))) throw new FailedPredicateException(this, "precpred(_ctx, 4)");
-                  setState(25);
+                  setState(26);
                   _errHandler.sync(this);
                   _la = _input.LA(1);
-                  while (_la == WS) {
+                  if (_la == WS) {
                     {
-                      {
-                        setState(22);
-                        match(WS);
-                      }
+                      setState(25);
+                      match(WS);
                     }
-                    setState(27);
-                    _errHandler.sync(this);
-                    _la = _input.LA(1);
                   }
+
                   setState(28);
                   expr(5);
                 }
@@ -366,46 +388,38 @@ public class TagQueryLanguageParser extends Parser {
                   pushNewRecursionContext(_localctx, _startState, RULE_expr);
                   setState(29);
                   if (!(precpred(_ctx, 3))) throw new FailedPredicateException(this, "precpred(_ctx, 3)");
+                  setState(31);
+                  _errHandler.sync(this);
+                  _la = _input.LA(1);
+                  if (_la == WS) {
+                    {
+                      setState(30);
+                      match(WS);
+                    }
+                  }
+
                   setState(33);
+                  match(OR);
+                  setState(35);
                   _errHandler.sync(this);
                   _la = _input.LA(1);
-                  while (_la == WS) {
+                  if (_la == WS) {
                     {
-                      {
-                        setState(30);
-                        match(WS);
-                      }
+                      setState(34);
+                      match(WS);
                     }
-                    setState(35);
-                    _errHandler.sync(this);
-                    _la = _input.LA(1);
                   }
-                  setState(36);
-                  match(T__0);
-                  setState(40);
-                  _errHandler.sync(this);
-                  _la = _input.LA(1);
-                  while (_la == WS) {
-                    {
-                      {
-                        setState(37);
-                        match(WS);
-                      }
-                    }
-                    setState(42);
-                    _errHandler.sync(this);
-                    _la = _input.LA(1);
-                  }
-                  setState(43);
+
+                  setState(37);
                   expr(4);
                 }
                 break;
               }
             }
           }
-          setState(48);
+          setState(42);
           _errHandler.sync(this);
-          _alt = getInterpreter().adaptivePredict(_input, 6, _ctx);
+          _alt = getInterpreter().adaptivePredict(_input, 8, _ctx);
         }
       }
     } catch (RecognitionException re) {
@@ -437,8 +451,16 @@ public class TagQueryLanguageParser extends Parser {
   }
 
   public static class GroupContext extends LitContext {
+    public TerminalNode LPAREN() {
+      return getToken(TagQueryLanguageParser.LPAREN, 0);
+    }
+
     public ExprContext expr() {
       return getRuleContext(ExprContext.class, 0);
+    }
+
+    public TerminalNode RPAREN() {
+      return getToken(TagQueryLanguageParser.RPAREN, 0);
     }
 
     public List<TerminalNode> WS() {
@@ -470,6 +492,10 @@ public class TagQueryLanguageParser extends Parser {
       return getToken(TagQueryLanguageParser.IDENT, i);
     }
 
+    public TerminalNode EQUAL() {
+      return getToken(TagQueryLanguageParser.EQUAL, 0);
+    }
+
     public TerminalNode REGEX() {
       return getToken(TagQueryLanguageParser.REGEX, 0);
     }
@@ -493,6 +519,10 @@ public class TagQueryLanguageParser extends Parser {
 
     public TerminalNode IDENT(int i) {
       return getToken(TagQueryLanguageParser.IDENT, i);
+    }
+
+    public TerminalNode EQUAL() {
+      return getToken(TagQueryLanguageParser.EQUAL, 0);
     }
 
     public TerminalNode STRING() {
@@ -533,68 +563,60 @@ public class TagQueryLanguageParser extends Parser {
     enterRule(_localctx, 4, RULE_lit);
     int _la;
     try {
-      setState(78);
+      setState(66);
       _errHandler.sync(this);
-      switch (getInterpreter().adaptivePredict(_input, 11, _ctx)) {
+      switch (getInterpreter().adaptivePredict(_input, 13, _ctx)) {
         case 1:
           _localctx = new GroupContext(_localctx);
           enterOuterAlt(_localctx, 1);
         {
-          setState(49);
-          match(T__2);
-          setState(53);
+          setState(43);
+          match(LPAREN);
+          setState(45);
           _errHandler.sync(this);
           _la = _input.LA(1);
-          while (_la == WS) {
+          if (_la == WS) {
             {
-              {
-                setState(50);
-                match(WS);
-              }
+              setState(44);
+              match(WS);
             }
-            setState(55);
-            _errHandler.sync(this);
-            _la = _input.LA(1);
           }
-          setState(56);
+
+          setState(47);
           expr(0);
-          setState(60);
+          setState(49);
           _errHandler.sync(this);
           _la = _input.LA(1);
-          while (_la == WS) {
+          if (_la == WS) {
             {
-              {
-                setState(57);
-                match(WS);
-              }
+              setState(48);
+              match(WS);
             }
-            setState(62);
-            _errHandler.sync(this);
-            _la = _input.LA(1);
           }
-          setState(63);
-          match(T__3);
+
+          setState(51);
+          match(RPAREN);
         }
         break;
         case 2:
           _localctx = new PseudoTagStringContext(_localctx);
           enterOuterAlt(_localctx, 2);
         {
-          setState(65);
+          setState(53);
           match(IDENT);
-          setState(66);
-          match(T__4);
-          setState(68);
+          setState(54);
+          match(EQUAL);
+          setState(56);
           _errHandler.sync(this);
           _la = _input.LA(1);
           if (_la == IDENT) {
             {
-              setState(67);
+              setState(55);
               match(IDENT);
             }
           }
 
-          setState(70);
+          setState(58);
           match(STRING);
         }
         break;
@@ -602,21 +624,21 @@ public class TagQueryLanguageParser extends Parser {
           _localctx = new PseudoTagRegexContext(_localctx);
           enterOuterAlt(_localctx, 3);
         {
-          setState(71);
+          setState(59);
           match(IDENT);
-          setState(72);
-          match(T__4);
-          setState(74);
+          setState(60);
+          match(EQUAL);
+          setState(62);
           _errHandler.sync(this);
           _la = _input.LA(1);
           if (_la == IDENT) {
             {
-              setState(73);
+              setState(61);
               match(IDENT);
             }
           }
 
-          setState(76);
+          setState(64);
           match(REGEX);
         }
         break;
@@ -624,7 +646,7 @@ public class TagQueryLanguageParser extends Parser {
           _localctx = new TagContext(_localctx);
           enterOuterAlt(_localctx, 4);
         {
-          setState(77);
+          setState(65);
           match(IDENT);
         }
         break;
@@ -658,29 +680,26 @@ public class TagQueryLanguageParser extends Parser {
   }
 
   public static final String _serializedATN =
-      "\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\13S\4\2\t\2\4\3\t" +
-      "\3\4\4\t\4\3\2\3\2\3\2\3\3\3\3\3\3\7\3\17\n\3\f\3\16\3\22\13\3\3\3\3\3" +
-      "\5\3\26\n\3\3\3\3\3\7\3\32\n\3\f\3\16\3\35\13\3\3\3\3\3\3\3\7\3\"\n\3" +
-      "\f\3\16\3%\13\3\3\3\3\3\7\3)\n\3\f\3\16\3,\13\3\3\3\7\3/\n\3\f\3\16\3" +
-      "\62\13\3\3\4\3\4\7\4\66\n\4\f\4\16\49\13\4\3\4\3\4\7\4=\n\4\f\4\16\4@" +
-      "\13\4\3\4\3\4\3\4\3\4\3\4\5\4G\n\4\3\4\3\4\3\4\3\4\5\4M\n\4\3\4\3\4\5" +
-      "\4Q\n\4\3\4\2\3\4\5\2\4\6\2\2\2]\2\b\3\2\2\2\4\25\3\2\2\2\6P\3\2\2\2\b" +
-      "\t\5\4\3\2\t\n\7\2\2\3\n\3\3\2\2\2\13\f\b\3\1\2\f\20\7\4\2\2\r\17\7\b" +
-      "\2\2\16\r\3\2\2\2\17\22\3\2\2\2\20\16\3\2\2\2\20\21\3\2\2\2\21\23\3\2" +
-      "\2\2\22\20\3\2\2\2\23\26\5\6\4\2\24\26\5\6\4\2\25\13\3\2\2\2\25\24\3\2" +
-      "\2\2\26\60\3\2\2\2\27\33\f\6\2\2\30\32\7\b\2\2\31\30\3\2\2\2\32\35\3\2" +
-      "\2\2\33\31\3\2\2\2\33\34\3\2\2\2\34\36\3\2\2\2\35\33\3\2\2\2\36/\5\4\3" +
-      "\7\37#\f\5\2\2 \"\7\b\2\2! \3\2\2\2\"%\3\2\2\2#!\3\2\2\2#$\3\2\2\2$&\3" +
-      "\2\2\2%#\3\2\2\2&*\7\3\2\2\')\7\b\2\2(\'\3\2\2\2),\3\2\2\2*(\3\2\2\2*" +
-      "+\3\2\2\2+-\3\2\2\2,*\3\2\2\2-/\5\4\3\6.\27\3\2\2\2.\37\3\2\2\2/\62\3" +
-      "\2\2\2\60.\3\2\2\2\60\61\3\2\2\2\61\5\3\2\2\2\62\60\3\2\2\2\63\67\7\5" +
-      "\2\2\64\66\7\b\2\2\65\64\3\2\2\2\669\3\2\2\2\67\65\3\2\2\2\678\3\2\2\2" +
-      "8:\3\2\2\29\67\3\2\2\2:>\5\4\3\2;=\7\b\2\2<;\3\2\2\2=@\3\2\2\2><\3\2\2" +
-      "\2>?\3\2\2\2?A\3\2\2\2@>\3\2\2\2AB\7\6\2\2BQ\3\2\2\2CD\7\t\2\2DF\7\7\2" +
-      "\2EG\7\t\2\2FE\3\2\2\2FG\3\2\2\2GH\3\2\2\2HQ\7\n\2\2IJ\7\t\2\2JL\7\7\2" +
-      "\2KM\7\t\2\2LK\3\2\2\2LM\3\2\2\2MN\3\2\2\2NQ\7\13\2\2OQ\7\t\2\2P\63\3" +
-      "\2\2\2PC\3\2\2\2PI\3\2\2\2PO\3\2\2\2Q\7\3\2\2\2\16\20\25\33#*.\60\67>" +
-      "FLP";
+      "\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\13G\4\2\t\2\4\3\t" +
+      "\3\4\4\t\4\3\2\5\2\n\n\2\3\2\3\2\5\2\16\n\2\3\2\3\2\3\3\3\3\3\3\5\3\25" +
+      "\n\3\3\3\3\3\5\3\31\n\3\3\3\3\3\5\3\35\n\3\3\3\3\3\3\3\5\3\"\n\3\3\3\3" +
+      "\3\5\3&\n\3\3\3\7\3)\n\3\f\3\16\3,\13\3\3\4\3\4\5\4\60\n\4\3\4\3\4\5\4" +
+      "\64\n\4\3\4\3\4\3\4\3\4\3\4\5\4;\n\4\3\4\3\4\3\4\3\4\5\4A\n\4\3\4\3\4" +
+      "\5\4E\n\4\3\4\2\3\4\5\2\4\6\2\2\2S\2\t\3\2\2\2\4\30\3\2\2\2\6D\3\2\2\2" +
+      "\b\n\7\3\2\2\t\b\3\2\2\2\t\n\3\2\2\2\n\13\3\2\2\2\13\r\5\4\3\2\f\16\7" +
+      "\3\2\2\r\f\3\2\2\2\r\16\3\2\2\2\16\17\3\2\2\2\17\20\7\2\2\3\20\3\3\2\2" +
+      "\2\21\22\b\3\1\2\22\24\7\b\2\2\23\25\7\3\2\2\24\23\3\2\2\2\24\25\3\2\2" +
+      "\2\25\26\3\2\2\2\26\31\5\6\4\2\27\31\5\6\4\2\30\21\3\2\2\2\30\27\3\2\2" +
+      "\2\31*\3\2\2\2\32\34\f\6\2\2\33\35\7\3\2\2\34\33\3\2\2\2\34\35\3\2\2\2" +
+      "\35\36\3\2\2\2\36)\5\4\3\7\37!\f\5\2\2 \"\7\3\2\2! \3\2\2\2!\"\3\2\2\2" +
+      "\"#\3\2\2\2#%\7\7\2\2$&\7\3\2\2%$\3\2\2\2%&\3\2\2\2&\'\3\2\2\2\')\5\4" +
+      "\3\6(\32\3\2\2\2(\37\3\2\2\2),\3\2\2\2*(\3\2\2\2*+\3\2\2\2+\5\3\2\2\2" +
+      ",*\3\2\2\2-/\7\t\2\2.\60\7\3\2\2/.\3\2\2\2/\60\3\2\2\2\60\61\3\2\2\2\61" +
+      "\63\5\4\3\2\62\64\7\3\2\2\63\62\3\2\2\2\63\64\3\2\2\2\64\65\3\2\2\2\65" +
+      "\66\7\n\2\2\66E\3\2\2\2\678\7\4\2\28:\7\13\2\29;\7\4\2\2:9\3\2\2\2:;\3" +
+      "\2\2\2;<\3\2\2\2<E\7\5\2\2=>\7\4\2\2>@\7\13\2\2?A\7\4\2\2@?\3\2\2\2@A" +
+      "\3\2\2\2AB\3\2\2\2BE\7\6\2\2CE\7\4\2\2D-\3\2\2\2D\67\3\2\2\2D=\3\2\2\2" +
+      "DC\3\2\2\2E\7\3\2\2\2\20\t\r\24\30\34!%(*/\63:@D";
   public static final ATN _ATN =
       new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 

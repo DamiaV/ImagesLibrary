@@ -14,18 +14,18 @@ import net.darmo_creations.imageslibrary.query_parser.*;
 import net.darmo_creations.imageslibrary.query_parser.ex.*;
 import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.ui.dialogs.*;
+import net.darmo_creations.imageslibrary.ui.syntax_highlighting.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.controlsfx.control.*;
 
+import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.stream.*;
 
 // TODO move case sensitive setting from dialog to toggle button next to search bar
-//  add toggle button to toggle preview sidebar
+// TODO add toggle button to toggle preview sidebar
 //  update and save config when any of these buttons is clicked
-// TODO add syntax highlighting to search field (with button to toggle it on/off)
-//  cf. JavaKeywordsDemo.java for example code
 public class ResultsView extends VBox implements ClickableListCellFactory.ClickListener<ResultsView.PictureEntry> {
   private final List<ImageClickListener> imageClickListeners = new ArrayList<>();
   private final List<ImageSelectionListener> imageSelectionListeners = new ArrayList<>();
@@ -63,7 +63,11 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.historyButton.setGraphic(theme.getIcon(Icon.SEARCH_HISTORY, Icon.Size.SMALL));
     this.historyButton.setDisable(true);
 
-    this.searchField = new AutoCompleteTextField<>(db.getAllTags(), Tag::label);
+    this.searchField = new AutoCompleteTextField<>(
+        db.getAllTags(),
+        Tag::label,
+        config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null
+    );
     this.searchField.setPromptText(new Text(language.translate("image_search_field.search")));
     this.searchField.setOnAction(e -> this.search());
     this.searchField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -77,12 +81,26 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.searchButton.setTooltip(new Tooltip(language.translate("image_search_field.go")));
 
     this.clearSearchButton.setOnAction(e -> {
-      this.searchField.setText(null);
+      this.searchField.setText("");
       this.searchField.requestFocus();
     });
     this.clearSearchButton.setGraphic(theme.getIcon(Icon.CLEAR_TEXT, Icon.Size.SMALL));
     this.clearSearchButton.setTooltip(new Tooltip(language.translate("search_field.erase_search")));
     this.clearSearchButton.setDisable(true);
+
+    final ToggleButton syntaxHighlightingButton = new ToggleButton();
+    syntaxHighlightingButton.setSelected(config.isQuerySyntaxHighlightingEnabled());
+    syntaxHighlightingButton.setOnAction(e -> {
+      config.setQuerySyntaxHighlightingEnabled(!config.isQuerySyntaxHighlightingEnabled());
+      try {
+        config.save();
+      } catch (IOException ex) {
+        App.LOGGER.error("Unable to save config", ex);
+      }
+      this.searchField.setSyntaxHighlighter(config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null);
+    });
+    syntaxHighlightingButton.setGraphic(theme.getIcon(Icon.SYNTAX_HIGHLIGHTING, Icon.Size.SMALL));
+    syntaxHighlightingButton.setTooltip(new Tooltip(language.translate("image_search_field.syntax_highlighting")));
 
     this.resultsLabel.setText(language.translate("images_view.suggestion"));
     this.resultsLabel.getStyleClass().add("results-label");
@@ -103,7 +121,8 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         this.historyButton,
         this.searchField,
         this.searchButton,
-        this.clearSearchButton
+        this.clearSearchButton,
+        syntaxHighlightingButton
     );
     searchBox.setPadding(new Insets(2, 2, 0, 2));
     final HBox resultsLabelBox = new HBox(this.resultsLabel);

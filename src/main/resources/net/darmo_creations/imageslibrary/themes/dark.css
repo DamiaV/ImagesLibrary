@@ -81,8 +81,39 @@ Text.hyperlink {
   -fx-stroke: -fx-light-text-color;
 }
 
-/* Custom */
+/* Tag query highlighting */
 
-.tree-cell.search-match {
-  -fx-background: #cc7a00;
+.highlight-tag-query .text {
+  -fx-fill: red;
+}
+
+.highlight-tag-query .ws {
+}
+
+.highlight-tag-query .tag {
+  -fx-fill: #ffbf26;
+}
+
+.highlight-tag-query .pseudo-tag {
+  -fx-fill: #a7ec21;
+}
+
+.highlight-tag-query .flags {
+  -fx-fill: #79abff;
+}
+
+.highlight-tag-query .not,
+.highlight-tag-query .or,
+.highlight-tag-query .paren,
+.highlight-tag-query .equal {
+  -fx-fill: #ff80ff;
+  -fx-font-weight: bold;
+}
+
+.highlight-tag-query .string {
+  -fx-fill: #e6db74;
+}
+
+.highlight-tag-query .regex {
+  -fx-fill: #d5335e;
 }

@@ -45,6 +45,7 @@ public class App extends Application {
    */
   private static Config config;
 
+  // TODO get rid of global object
   /**
    * Return the application’s configuration object.
    */
@@ -75,7 +76,7 @@ public class App extends Application {
    */
   public static void updateConfig(final Config localConfig) {
     config.setCaseSensitiveQueriesByDefault(localConfig.caseSensitiveQueriesByDefault());
-    config.setMaxImagesShown(localConfig.maxImagesShown());
+    config.setQuerySyntaxHighlightingEnabled(localConfig.isQuerySyntaxHighlightingEnabled());
     controller.onConfigUpdate();
   }
 

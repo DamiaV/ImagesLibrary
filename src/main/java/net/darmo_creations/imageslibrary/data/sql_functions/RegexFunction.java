@@ -18,6 +18,7 @@ public class RegexFunction extends org.sqlite.Function {
     final String pattern = this.value_text(1);
     @Nullable
     final String flag = this.value_text(2);
+    // TODO Make flags mandatory
     boolean caseSensitive = App.config() != null && App.config().caseSensitiveQueriesByDefault();
     if (flag != null) {
       for (int i = 0; i < flag.length(); i++) {

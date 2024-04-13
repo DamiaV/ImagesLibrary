@@ -5,7 +5,6 @@ import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.util.*;
-import javafx.util.converter.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.themes.*;
@@ -21,7 +20,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
   private final ComboBox<Language> languageCombo = new ComboBox<>();
   private final ComboBox<Theme> themeCombo = new ComboBox<>();
   private final TextField dbFileField = new TextField();
-  private final Spinner<Integer> maxImagesShown = new Spinner<>(0, Integer.MAX_VALUE, Config.DEFAULT_MAX_IMAGES);
   private final CheckBox caseSensitiveByDefaultCheckBox = new CheckBox();
 
   private Config initialConfig;
@@ -70,17 +68,12 @@ public class SettingsDialog extends DialogBase<ButtonType> {
     this.themeCombo.getItems().addAll(Theme.themes());
     this.themeCombo.getSelectionModel().selectedItemProperty()
         .addListener((observable, oldValue, newValue) -> this.onThemeSelect(newValue));
-    this.maxImagesShown.valueProperty()
-        .addListener((observable, oldValue, newValue) -> this.onMaxImagesShownUpdate(newValue));
-    this.maxImagesShown.setEditable(true);
-    this.maxImagesShown.getValueFactory().setConverter(new PermissibleIntegerStringConverter());
 
     //noinspection unchecked
     return this.getBorderPane(
         "dialog.settings.interface_box.title",
         new Pair<>("dialog.settings.interface_box.language.label", this.languageCombo),
-        new Pair<>("dialog.settings.interface_box.theme.label", this.themeCombo),
-        new Pair<>("dialog.settings.interface_box.max_images_shown.label", this.maxImagesShown)
+        new Pair<>("dialog.settings.interface_box.theme.label", this.themeCombo)
     );
   }
 
@@ -175,7 +168,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
     this.languageCombo.getSelectionModel().select(this.localConfig.language());
     this.themeCombo.getSelectionModel().select(this.localConfig.theme());
     this.dbFileField.setText(this.localConfig.databaseFile().toString());
-    this.maxImagesShown.getValueFactory().setValue(this.localConfig.maxImagesShown());
     this.caseSensitiveByDefaultCheckBox.setSelected(this.localConfig.caseSensitiveQueriesByDefault());
 
     this.updateState();
@@ -214,11 +206,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
 
   private void onDatabaseFileSelect(Path newValue) {
     this.localConfig = this.localConfig.withDatabaseFile(newValue);
-    this.updateState();
-  }
-
-  private void onMaxImagesShownUpdate(int newValue) {
-    this.localConfig.setMaxImagesShown(newValue);
     this.updateState();
   }
 
@@ -265,21 +252,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
      */
     public boolean needsRestart() {
       return this.needsRestart;
-    }
-  }
-
-  /**
-   * Integer string converter that returns 0 instead of throwing an exception
-   * when non-digit characters are fed to its {@link #fromString(String)} method.
-   */
-  private static class PermissibleIntegerStringConverter extends IntegerStringConverter {
-    @Override
-    public Integer fromString(String value) {
-      try {
-        return super.fromString(value);
-      } catch (NumberFormatException e) {
-        return 0;
-      }
     }
   }
 }
