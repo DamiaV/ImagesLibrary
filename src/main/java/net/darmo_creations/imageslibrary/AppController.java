@@ -546,16 +546,14 @@ public class AppController implements ResultsView.SearchListener {
    * Launch a search for images with no tags.
    */
   private void onShowImagesWithNoTags() {
-    // TODO
-    System.out.println("show images with no tags");
+    this.resultsView.searchImagesWithNoTags();
   }
 
   /**
    * Launch a search for images with no file.
    */
   private void onShowImagesWithNoFile() {
-    // TODO
-    System.out.println("show images with no file");
+    this.resultsView.searchImagesWithNoFile();
   }
 
   /**

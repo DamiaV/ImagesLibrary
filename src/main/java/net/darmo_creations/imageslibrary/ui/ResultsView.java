@@ -34,7 +34,6 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
 
   private final MenuButton historyButton = new MenuButton();
   private final AutoCompleteTextField<Tag> searchField;
-  private final Button searchButton = new Button();
   private final Button clearSearchButton = new Button();
   private final Label resultsLabel = new Label();
   private final ListView<PictureEntry> imagesList = new ListView<>();
@@ -78,9 +77,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       this.clearSearchButton.setDisable(StringUtils.stripNullable(newValue).isEmpty());
     });
 
-    this.searchButton.setOnAction(e -> this.search());
-    this.searchButton.setGraphic(theme.getIcon(Icon.SEARCH, Icon.Size.BIG));
-    this.searchButton.setTooltip(new Tooltip(language.translate("image_search_field.go")));
+    final Button searchButton = new Button();
+    searchButton.setOnAction(e -> this.search());
+    searchButton.setGraphic(theme.getIcon(Icon.SEARCH, Icon.Size.BIG));
+    searchButton.setTooltip(new Tooltip(language.translate("image_search_field.go")));
 
     this.clearSearchButton.setOnAction(e -> {
       this.searchField.setText("");
@@ -146,7 +146,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         5,
         this.historyButton,
         this.searchField,
-        this.searchButton,
+        searchButton,
         this.clearSearchButton,
         caseSensitivityButton,
         syntaxHighlightingButton
@@ -194,6 +194,20 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.searchListeners.add(Objects.requireNonNull(listener));
   }
 
+  /**
+   * Search for all images that are not associated to any tag.
+   */
+  public void searchImagesWithNoTags() {
+    this.performSearch(this.db::getImagesWithNoTags);
+  }
+
+  /**
+   * Search for all images whose file is missing.
+   */
+  public void searchImagesWithNoFile() {
+    // TODO
+  }
+
   private void search() {
     final var queryString = StringUtils.stripNullable(this.searchField.getText());
     if (queryString.isEmpty())
@@ -218,11 +232,6 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       return;
     }
 
-    this.imagesList.setDisable(true);
-    this.searchField.setDisable(true);
-    this.searchButton.setDisable(true);
-    this.clearSearchButton.setDisable(true);
-
     final var history = this.historyButton.getItems();
     final var matchingItem = history.stream().filter(t -> t.getText().equals(query)).findFirst();
     if (matchingItem.isEmpty()) {
@@ -240,11 +249,15 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       history.add(0, item);
     }
 
+    this.performSearch(() -> this.db.queryPictures(tagQuery));
+  }
+
+  private void performSearch(Search search) {
     this.searchListeners.forEach(SearchListener::onSearchStart);
     new Thread(() -> {
       final Set<Picture> pictures;
       try {
-        pictures = this.db.queryPictures(tagQuery);
+        pictures = search.run();
       } catch (DatabaseOperationException e) {
         Platform.runLater(() -> {
           Alerts.databaseError(this.config, e.errorCode());
@@ -254,6 +267,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       }
       Platform.runLater(() -> this.onSearchEnd(pictures));
     }).start();
+  }
+
+  private interface Search {
+    Set<Picture> run() throws DatabaseOperationException;
   }
 
   private void showPopup(String text) {
@@ -287,20 +304,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     }
     this.imagesList.getItems().sort(null);
     this.searchListeners.forEach(listener -> listener.onSearchEnd(count));
-    this.resetFieldsStates();
   }
 
   private void onSearchError() {
     this.searchListeners.forEach(SearchListener::onSearchFail);
-    this.resetFieldsStates();
-  }
-
-  private void resetFieldsStates() {
-    this.imagesList.setDisable(false);
-    this.searchField.setDisable(false);
-    this.searchField.requestFocus();
-    this.searchButton.setDisable(false);
-    this.clearSearchButton.setDisable(false);
   }
 
   @Override
