@@ -97,7 +97,7 @@ public final class DatabaseConnection implements AutoCloseable {
       this.injectCustomFunctions();
       this.connection.setAutoCommit(false);
       this.executeUpdateQuery("PRAGMA FOREIGN_KEYS = ON");
-      this.logger.info("Foreign keys enabled");
+      this.logger.info("Foreign keys enabled.");
       if (needToSetup) // If the DB file does not exist, create it
         this.setupDatabase();
       else
@@ -1188,13 +1188,14 @@ public final class DatabaseConnection implements AutoCloseable {
         query.append(line).append('\n');
     }
     this.executeUpdateQuery(query.toString());
-    this.logger.info("Done");
+    this.logger.info("Done.");
   }
 
   /**
    * Initalize the internal tag and tag type caches.
    */
   private void initCaches() throws IOException {
+    this.logger.info("Initializing caches…");
     try (final var statement = this.connection.prepareStatement("SELECT id, label, symbol, color FROM tag_types");
          final var resultSet = statement.executeQuery()) {
       while (resultSet.next()) {
@@ -1210,6 +1211,7 @@ public final class DatabaseConnection implements AutoCloseable {
     } catch (SQLException e) {
       throw this.logThrownError(new IOException(e));
     }
+    this.logger.info("Found {} tag type(s)", this.tagTypesCache.size());
 
     try (final var statement = this.connection.prepareStatement("SELECT id, label, type_id, definition FROM tags");
          final var resultSet = statement.executeQuery();
@@ -1235,6 +1237,8 @@ public final class DatabaseConnection implements AutoCloseable {
     } catch (SQLException e) {
       throw this.logThrownError(new IOException(e));
     }
+    this.logger.info("Found {} tag(s)", this.tagsCache.size());
+    this.logger.info("Done.");
   }
 
   /**
