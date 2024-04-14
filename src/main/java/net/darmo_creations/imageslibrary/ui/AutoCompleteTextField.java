@@ -121,7 +121,7 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
     final String wordBegining = beforeCaret.substring(beforeCaret.lastIndexOf(' ') + 1);
     final var suggestions = entries.stream()
         .map(stringConverter)
-        .filter(s -> s.startsWith(wordBegining))
+        .filter(s -> s.startsWith(wordBegining) && !s.equals(wordBegining))
         .sorted()
         .toList();
     if (!suggestions.isEmpty()) {
