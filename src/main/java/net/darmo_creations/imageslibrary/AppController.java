@@ -14,6 +14,7 @@ import net.darmo_creations.imageslibrary.ui.dialogs.*;
 import net.darmo_creations.imageslibrary.utils.*;
 
 import java.io.*;
+import java.nio.file.*;
 import java.util.*;
 
 public class AppController implements ResultsView.SearchListener {
@@ -445,23 +446,12 @@ public class AppController implements ResultsView.SearchListener {
 
   @Override
   public void onSearchStart() {
-    this.stage.getScene().getRoot().setDisable(true);
-
-    // Record the disable-state of all menu items and disable them
-    this.menuItemStates.replaceAll((menuItem, b) -> {
-      final boolean disabled = menuItem.isDisable();
-      menuItem.setDisable(true);
-      return disabled;
-    });
+    this.disableInteractions();
   }
 
   @Override
   public void onSearchEnd(int resultsCount) {
-    this.stage.getScene().getRoot().setDisable(false);
-
-    // Restore menu items’ states
-    this.menuItemStates.forEach(MenuItem::setDisable);
-
+    this.restoreInteractions();
     final boolean noResults = resultsCount == 0;
     this.slideshowMenuItem.setDisable(noResults);
     this.slideshowButton.setDisable(noResults);
@@ -475,6 +465,20 @@ public class AppController implements ResultsView.SearchListener {
 
   @Override
   public void onSearchFail() {
+    this.restoreInteractions();
+  }
+
+  private void disableInteractions() {
+    this.stage.getScene().getRoot().setDisable(true);
+    // Record the disable-state of all menu items and disable them
+    this.menuItemStates.replaceAll((menuItem, b) -> {
+      final boolean disabled = menuItem.isDisable();
+      menuItem.setDisable(true);
+      return disabled;
+    });
+  }
+
+  private void restoreInteractions() {
     this.stage.getScene().getRoot().setDisable(false);
     // Restore menu items’ states
     this.menuItemStates.forEach(MenuItem::setDisable);
@@ -569,8 +573,40 @@ public class AppController implements ResultsView.SearchListener {
    * Open the dialog to convert a Python database file.
    */
   private void onConvertPythonDbMenuItem() {
-    // TODO
-    System.out.println("convert python db");
+    final var path = FileChoosers.showDatabaseFileChooser(this.config, this.stage, null);
+    if (path.isEmpty())
+      return;
+    this.disableInteractions();
+    new Thread(() -> {
+      final Path newPath;
+      try {
+        newPath = DatabaseConnection.convertPythonDatabase(path.get());
+      } catch (DatabaseOperationException e) {
+        Platform.runLater(() -> {
+          App.logger().error("Unable to convert database file", e);
+          this.restoreInteractions();
+          Alerts.databaseError(this.config, e.errorCode());
+        });
+        return;
+      }
+      Platform.runLater(() -> {
+        this.restoreInteractions();
+        final boolean proceed = Alerts.confirmation(
+            this.config,
+            "alert.conversion_done.header",
+            "alert.conversion_done.content",
+            null,
+            new FormatArg("path", newPath)
+        );
+        if (proceed) {
+          try {
+            this.config.withDatabaseFile(newPath).save();
+          } catch (IOException e) {
+            Alerts.error(this.config, "dialog.settings.alert.save_error.header", null, null);
+          }
+        }
+      });
+    }).start();
   }
 
   /**
