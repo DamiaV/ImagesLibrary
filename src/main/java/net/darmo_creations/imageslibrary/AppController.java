@@ -602,6 +602,7 @@ public class AppController implements ResultsView.SearchListener {
           try {
             this.config.withDatabaseFile(newPath).save();
           } catch (IOException e) {
+            App.logger().error("Unable to save config", e);
             Alerts.error(this.config, "dialog.settings.alert.save_error.header", null, null);
           }
         }
