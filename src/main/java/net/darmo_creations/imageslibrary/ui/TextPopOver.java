@@ -7,11 +7,20 @@ import javafx.util.*;
 import net.darmo_creations.imageslibrary.config.*;
 import org.controlsfx.control.*;
 
+/**
+ * {@link PopOver} subclass that contains text.
+ */
 public class TextPopOver extends PopOver {
   private final Label label;
   private boolean initialized = false;
 
-  public TextPopOver(PopOver.ArrowLocation arrowLocation, Config config) {
+  /**
+   * Create a new text popover.
+   *
+   * @param arrowLocation The position of the arrow.
+   * @param config        The current config.
+   */
+  public TextPopOver(PopOver.ArrowLocation arrowLocation, final Config config) {
     this.label = new Label();
     this.label.setPadding(new Insets(5));
     this.setContentNode(this.label);
@@ -27,6 +36,11 @@ public class TextPopOver extends PopOver {
     });
   }
 
+  /**
+   * Set this popup’s text.
+   *
+   * @param text The new text.
+   */
   public void setText(String text) {
     this.label.setText(text);
   }
