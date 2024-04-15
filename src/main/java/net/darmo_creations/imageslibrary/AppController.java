@@ -410,8 +410,22 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void onDeleteTagType(TagType tagType) {
-    // TODO
-    System.out.println("delete tag type: " + tagType);
+    final boolean proceed = Alerts.confirmation(
+        this.config,
+        "alert.delete_tag_type.header",
+        null,
+        null,
+        new FormatArg("label", tagType.label())
+    );
+    if (!proceed)
+      return;
+    try {
+      this.db.deleteTagTypes(Set.of(tagType));
+    } catch (DatabaseOperationException e) {
+      Alerts.databaseError(this.config, e.errorCode());
+      return;
+    }
+    this.tagsView.refresh();
   }
 
   private void onImageClick(Picture picture) {
