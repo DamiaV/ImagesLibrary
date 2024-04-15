@@ -114,6 +114,35 @@ public final class Alerts {
   }
 
   /**
+   * Open an alert dialog to prompt the user for confirmation, featuring a checkbox.
+   *
+   * @param config      The current config.
+   * @param headerKey   Header text key.
+   * @param labelKey    Checkbox label text key.
+   * @param titleKey    Title key.
+   * @param checked     Whether the checkbox should be checked by default.
+   * @param contentArgs Format arguments to apply to the header and title.
+   * @return An {@link Optional} containing a boolean indicating whether the checkbox was checked;
+   * an empty {@link Optional} if the dialog was cancelled.
+   */
+  public static Optional<Boolean> confirmCheckbox(
+      final Config config,
+      String headerKey,
+      String labelKey,
+      @Nullable String titleKey,
+      boolean checked,
+      final FormatArg... contentArgs
+  ) {
+    final Alert alert = getAlert(config, Alert.AlertType.CONFIRMATION, headerKey, titleKey, contentArgs);
+    final CheckBox checkBox = new CheckBox();
+    checkBox.setSelected(checked);
+    final var buttonType = buildAndShow(config, labelKey, alert, checkBox, contentArgs);
+    if (buttonType.isPresent() && !buttonType.get().getButtonData().isCancelButton())
+      return Optional.of(checkBox.isSelected());
+    return Optional.empty();
+  }
+
+  /**
    * Open an alert dialog to ask the user to choose an option from a combobox.
    *
    * @param config      The current config.

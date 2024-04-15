@@ -218,6 +218,40 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.search();
   }
 
+  public void refresh() {
+    this.search();
+  }
+
+  /**
+   * Show the given images in the list view.
+   *
+   * @param pictures The images to show.
+   */
+  public void listImages(final Collection<Picture> pictures) {
+    final Language language = this.config.language();
+    final int count = pictures.size();
+
+    if (pictures.isEmpty())
+      this.resultsLabel.setText(language.translate("images_view.no_results"));
+    else
+      this.resultsLabel.setText(language.translate("images_view.results", count,
+          new FormatArg("count", language.formatNumber(count))));
+
+    final var listViewItems = this.imagesList.getItems();
+    listViewItems.clear();
+    for (final var picture : pictures) {
+      Set<Tag> imageTags;
+      try {
+        imageTags = this.db.getImageTags(picture);
+      } catch (DatabaseOperationException e) {
+        App.logger().error("Error getting tags for image {}", picture, e);
+        imageTags = Set.of();
+      }
+      listViewItems.add(new PictureEntry(picture, imageTags, this.config));
+    }
+    listViewItems.sort(null);
+  }
+
   private void search() {
     final var queryString = StringUtils.stripNullable(this.searchField.getText());
     if (queryString.isEmpty())
@@ -294,26 +328,8 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   private void onSearchEnd(final Set<Picture> pictures) {
-    final Language language = this.config.language();
-    final int count = pictures.size();
-    if (pictures.isEmpty())
-      this.resultsLabel.setText(language.translate("images_view.no_results"));
-    else
-      this.resultsLabel.setText(language.translate("images_view.results", count,
-          new FormatArg("count", language.formatNumber(count))));
-    this.imagesList.getItems().clear();
-    for (final var picture : pictures) {
-      Set<Tag> imageTags;
-      try {
-        imageTags = this.db.getImageTags(picture);
-      } catch (DatabaseOperationException e) {
-        App.logger().error("Error getting tags for image {}", picture, e);
-        imageTags = Set.of();
-      }
-      this.imagesList.getItems().add(new PictureEntry(picture, imageTags, this.config));
-    }
-    this.imagesList.getItems().sort(null);
-    this.searchListeners.forEach(listener -> listener.onSearchEnd(count));
+    this.listImages(pictures);
+    this.searchListeners.forEach(listener -> listener.onSearchEnd(pictures.size()));
     this.searchField.requestFocus();
   }
 

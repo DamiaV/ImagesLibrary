@@ -527,8 +527,33 @@ public class AppController implements ResultsView.SearchListener {
    * then delete them if the user confirms.
    */
   private void onDelete() {
-    // TODO
-    System.out.println("delete");
+    if (this.selectedPictures.isEmpty())
+      return;
+
+    final var fromDisk = Alerts.confirmCheckbox(
+        this.config,
+        "alert.delete_images.header",
+        "alert.delete_images.label",
+        null,
+        false,
+        new FormatArg("count", this.selectedPictures.size())
+    );
+    if (fromDisk.isEmpty())
+      return;
+
+    final List<Picture> notDeleted = new LinkedList<>();
+    for (final var picture : this.selectedPictures) {
+      try {
+        this.db.deletePicture(picture, fromDisk.get());
+      } catch (DatabaseOperationException e) {
+        notDeleted.add(picture);
+      }
+    }
+    if (!notDeleted.isEmpty()) {
+      Alerts.error(this.config, "alert.deletion_error.header", null, null);
+      this.resultsView.listImages(notDeleted);
+    } else
+      this.resultsView.refresh();
   }
 
   /**
