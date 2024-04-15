@@ -2,11 +2,9 @@ package net.darmo_creations.imageslibrary.ui;
 
 import javafx.application.*;
 import javafx.geometry.*;
-import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.*;
-import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
@@ -38,9 +36,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final Label resultsLabel = new Label();
   private final ListView<PictureEntry> imagesList = new ListView<>();
   private final ImagePreviewPane imagePreviewPane;
-  private final PopOver popup;
-
-  private boolean popupInitialized = false;
+  private final TextPopOver popup;
 
   public ResultsView(Config config, final DatabaseConnection db) {
     super(5);
@@ -52,12 +48,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
 
     this.imagePreviewPane = new ImagePreviewPane(config);
 
-    final Label content = new Label();
-    this.popup = new PopOver(content);
-    content.setPadding(new Insets(5));
-    this.popup.setArrowLocation(PopOver.ArrowLocation.RIGHT_CENTER);
-    this.popup.setFadeInDuration(new Duration(100));
-    this.popup.setFadeOutDuration(new Duration(100));
+    this.popup = new TextPopOver(PopOver.ArrowLocation.RIGHT_CENTER, config);
 
     this.historyButton.setTooltip(new Tooltip(language.translate("image_search_field.history")));
     this.historyButton.setGraphic(theme.getIcon(Icon.SEARCH_HISTORY, Icon.Size.BIG));
@@ -319,13 +310,8 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   private void showPopup(String text) {
-    ((Label) this.popup.getContentNode()).setText(text);
+    this.popup.setText(text);
     this.popup.show(this.searchField);
-    if (!this.popupInitialized) {
-      // From https://stackoverflow.com/a/36404968/3779986
-      this.config.theme().applyTo((Parent) this.popup.getSkin().getNode());
-      this.popupInitialized = true;
-    }
   }
 
   private void onSearchEnd(final Set<Picture> pictures) {
