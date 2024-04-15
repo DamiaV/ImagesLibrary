@@ -21,6 +21,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
   private final Set<TagSelectionListener> tagSelectionListeners = new HashSet<>();
   private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
   private final Set<DeleteTagTypeListener> deleteTagTypeListeners = new HashSet<>();
+  private final Set<CreateTagTypeListener> createTagTypeListeners = new HashSet<>();
 
   private final Config config;
   @Nullable
@@ -51,21 +52,27 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
       this.label.setStyle("-fx-text-fill: %s;".formatted(color));
     }
 
+    final Language language = config.language();
+    final Theme theme = config.theme();
+
     final HBox top = new HBox(5, this.label);
     top.setPadding(new Insets(5, 2, 5, 5));
     if (tagType != null) {
-      final Language language = config.language();
-      final Theme theme = config.theme();
       final Button editTagTypeButton = new Button(null, theme.getIcon(Icon.EDIT_TAG_TYPE, Icon.Size.SMALL));
       editTagTypeButton.setOnAction(e -> this.editTagTypeListeners.forEach(l -> l.onEditTagType(tagType)));
       editTagTypeButton.setTooltip(new Tooltip(language.translate("tags_tab.edit")));
       final Button deleteTagTypeButton = new Button(null, theme.getIcon(Icon.DELETE_TAG_TYPE, Icon.Size.SMALL));
       deleteTagTypeButton.setOnAction(e -> this.deleteTagTypeListeners.forEach(l -> l.onDeleteTagType(tagType)));
       deleteTagTypeButton.setTooltip(new Tooltip(language.translate("tags_tab.delete")));
-      final Pane spacer = new Pane();
-      HBox.setHgrow(spacer, Priority.ALWAYS);
-      top.getChildren().addAll(spacer, editTagTypeButton, deleteTagTypeButton);
+      top.getChildren().addAll(new HorizontalSpacer(), editTagTypeButton, deleteTagTypeButton);
     }
+
+    final Button createTagTypeButton = new Button(null, theme.getIcon(Icon.CREATE_TAG_TYPE, Icon.Size.SMALL));
+    createTagTypeButton.setOnAction(e -> this.createTagTypeListeners.forEach(CreateTagTypeListener::onCreateTagType));
+    createTagTypeButton.setTooltip(new Tooltip(language.translate("tags_tab.create")));
+    if (tagType == null)
+      top.getChildren().add(new HorizontalSpacer());
+    top.getChildren().add(createTagTypeButton);
 
     VBox.setVgrow(this.tagsList, Priority.ALWAYS);
     this.tagsList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -82,6 +89,10 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     });
 
     this.setContent(new VBox(top, this.tagsList));
+  }
+
+  public Optional<TagType> tagType() {
+    return Optional.ofNullable(this.tagType);
   }
 
   /**
@@ -131,6 +142,10 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
 
   public void addDeleteTagTypeListener(DeleteTagTypeListener listener) {
     this.deleteTagTypeListeners.add(Objects.requireNonNull(listener));
+  }
+
+  public void addCreateTagTypeListener(CreateTagTypeListener listener) {
+    this.createTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
   @Override

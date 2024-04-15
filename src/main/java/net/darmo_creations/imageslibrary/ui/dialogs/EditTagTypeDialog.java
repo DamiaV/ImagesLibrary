@@ -1,67 +1,42 @@
 package net.darmo_creations.imageslibrary.ui.dialogs;
 
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
-import javafx.scene.paint.*;
-import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
-import net.darmo_creations.imageslibrary.ui.*;
 import net.darmo_creations.imageslibrary.utils.*;
-import org.controlsfx.control.*;
 
 import java.util.*;
 
 /**
  * Dialog to edit a tag type.
  */
-public class EditTagTypeDialog extends DialogBase<ButtonType> {
-  private final TextPopOver labelErrorPopup;
-  private final TextField labelField = new TextField();
-  private final TextPopOver symbolErrorPopup;
-  private final TextField symbolField = new TextField();
-  private final ColorPicker colorField = new ColorPicker();
-
-  private boolean isLabelValid = false;
-  private boolean isSymbolValid = false;
-
-  private final DatabaseConnection db;
+public class EditTagTypeDialog extends EditTagTypeDialogBase {
   private TagType tagType;
 
   /**
    * Create a tag type editing dialog.
    *
    * @param config The app’s configuration.
+   * @param db     The database to update tag types from.
    */
   public EditTagTypeDialog(Config config, DatabaseConnection db) {
-    super("edit_tag_type", false, config, ButtonTypes.OK, ButtonTypes.CANCEL);
-    this.db = db;
-
-    this.labelErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
-    this.symbolErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
-
-    this.getDialogPane().setPrefWidth(350);
-    this.getDialogPane().setContent(this.createContent());
-    config.theme().getAppIcon().ifPresent(this::setIcon);
-
+    super("edit_tag_type", config, db);
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton()) {
         try {
           //noinspection OptionalGetWithoutIsPresent
-          db.updateTagTypes(Set.of(this.getTagTypeUpdate().get()));
+          final var update = this.getTagTypeUpdate().get();
+          db.updateTagTypes(Set.of(update));
+          return db.getAllTagTypes().stream()
+              .filter(tagType -> tagType.label().equals(update.label()))
+              .findFirst()
+              .orElseThrow(); // Should never happen
         } catch (DatabaseOperationException e) {
           App.logger().error("Exception caught while updating tag type", e);
-          Alerts.error(
-              config,
-              "dialog.edit_tag_type.alert.save_error.header",
-              "dialog.edit_tag_type.alert.save_error.content",
-              null,
-              new FormatArg("code", e.errorCode())
-          );
+          Alerts.databaseError(config, e.errorCode());
         }
       }
-      return buttonType;
+      return null;
     });
   }
 
@@ -74,82 +49,18 @@ public class EditTagTypeDialog extends DialogBase<ButtonType> {
     this.updateState();
   }
 
-  private Pane createContent() {
-    final Language language = this.config.language();
-
-    this.labelField.textProperty().addListener((observable, oldValue, newValue) -> {
-      final var styleClass = this.labelField.getStyleClass();
-      if (!TagTypeLike.isLabelValid(newValue)) {
-        this.labelErrorPopup.setText(language.translate("dialog.edit_tag_type.label.invalid"));
-        this.showLabelErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
-        this.isLabelValid = false;
-      } else if (this.isLabelAlreadyUsed(newValue)) {
-        this.labelErrorPopup.setText(language.translate("dialog.edit_tag_type.label.duplicate"));
-        this.showLabelErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
-        this.isLabelValid = false;
-      } else {
-        styleClass.remove("invalid");
-        this.labelErrorPopup.hide();
-        this.isLabelValid = true;
-      }
-      this.updateState();
-    });
-
-    this.symbolField.textProperty().addListener((observable, oldValue, newValue) -> {
-      final var styleClass = this.symbolField.getStyleClass();
-      if (newValue.length() != 1 || !TagTypeLike.isSymbolValid(newValue.charAt(0))) {
-        this.symbolErrorPopup.setText(language.translate("dialog.edit_tag_type.symbol.invalid"));
-        this.showSymbolErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
-        this.isSymbolValid = false;
-      } else if (this.isSymbolAlreadyUsed(newValue)) {
-        this.symbolErrorPopup.setText(language.translate("dialog.edit_tag_type.symbol.duplicate"));
-        this.showSymbolErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
-        this.isSymbolValid = false;
-      } else {
-        styleClass.remove("invalid");
-        this.symbolErrorPopup.hide();
-        this.isSymbolValid = true;
-      }
-      this.updateState();
-    });
-
-    this.colorField.valueProperty().addListener((observable, oldValue, newValue) -> this.updateState());
-
-    //noinspection unchecked
-    return JavaFxUtils.newBorderPane(
-        this.config,
-        null,
-        new Pair<>("dialog.edit_tag_type.label.label", this.labelField),
-        new Pair<>("dialog.edit_tag_type.symbol.label", this.symbolField),
-        new Pair<>("dialog.edit_tag_type.color.label", this.colorField)
-    );
-  }
-
-  private boolean isLabelAlreadyUsed(String newValue) {
+  @Override
+  protected boolean isLabelAlreadyUsed(String newValue) {
     return this.db.getAllTagTypes().stream().anyMatch(tt -> tt.id() != this.tagType.id() && tt.label().equals(newValue));
   }
 
-  private boolean isSymbolAlreadyUsed(String newValue) {
+  @Override
+  protected boolean isSymbolAlreadyUsed(String newValue) {
     return this.db.getAllTagTypes().stream().anyMatch(tt -> tt.id() != this.tagType.id() && tt.symbol() == newValue.charAt(0));
   }
 
-  private void showLabelErrorPopup() {
-    this.labelErrorPopup.show(this.labelField);
-  }
-
-  private void showSymbolErrorPopup() {
-    this.symbolErrorPopup.show(this.symbolField);
-  }
-
-  private Optional<TagTypeUpdate> getTagTypeUpdate() {
+  @Override
+  protected Optional<TagTypeUpdate> getTagTypeUpdate() {
     if (!this.isLabelValid || !this.isSymbolValid)
       return Optional.empty();
     return Optional.of(new TagTypeUpdate(
@@ -160,21 +71,11 @@ public class EditTagTypeDialog extends DialogBase<ButtonType> {
     ));
   }
 
-  private static Color colorFromInt(int color) {
-    return Color.rgb(color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff);
-  }
-
-  private static int colorToInt(Color color) {
-    final int r = (int) Math.round(color.getRed() * 255);
-    final int g = (int) Math.round(color.getGreen() * 255);
-    final int b = (int) Math.round(color.getBlue() * 255);
-    return r << 16 | g << 8 | b;
-  }
-
   /**
    * Update the state of this dialog’s buttons.
    */
-  private void updateState() {
+  @Override
+  protected void updateState() {
     final var update = this.getTagTypeUpdate();
     this.getDialogPane().lookupButton(ButtonTypes.OK).setDisable(
         update.isEmpty()

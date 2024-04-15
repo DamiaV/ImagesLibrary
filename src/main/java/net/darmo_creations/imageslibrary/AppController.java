@@ -26,6 +26,7 @@ public class AppController implements ResultsView.SearchListener {
   private final Stage stage;
   private final Config config;
 
+  private final CreateTagTypeDialog createTagTypeDialog;
   private final EditTagTypeDialog editTagTypeDialog;
   private final SettingsDialog settingsDialog;
   private final AboutDialog aboutDialog;
@@ -69,6 +70,7 @@ public class AppController implements ResultsView.SearchListener {
     stage.setTitle(App.NAME + (config.isDebug() ? " [DEBUG]" : ""));
     stage.setMaximized(true);
 
+    this.createTagTypeDialog = new CreateTagTypeDialog(config, db);
     this.editTagTypeDialog = new EditTagTypeDialog(config, db);
     this.settingsDialog = new SettingsDialog(config);
     this.aboutDialog = new AboutDialog(config);
@@ -338,6 +340,7 @@ public class AppController implements ResultsView.SearchListener {
     this.tagsView.addTagSelectionListener(this::onTagSelectionChange);
     this.tagsView.addEditTagTypeListener(this::onEditTagType);
     this.tagsView.addDeleteTagTypeListener(this::onDeleteTagType);
+    this.tagsView.addCreateTagTypeListener(this::onCreateTagType);
     splitPane.getItems().add(this.tagsView);
     this.resultsView.addImageClickListener(this::onImageClick);
     this.resultsView.addImageSelectionListener(this::onImageSelectionChange);
@@ -404,9 +407,10 @@ public class AppController implements ResultsView.SearchListener {
 
   private void onEditTagType(TagType tagType) {
     this.editTagTypeDialog.setTagType(tagType);
-    final var buttonType = this.editTagTypeDialog.showAndWait();
-    if (buttonType.isPresent() && !buttonType.get().getButtonData().isCancelButton())
+    this.editTagTypeDialog.showAndWait().ifPresent(type -> {
       this.tagsView.refresh();
+      this.tagsView.selectTagType(type);
+    });
   }
 
   private void onDeleteTagType(TagType tagType) {
@@ -426,6 +430,14 @@ public class AppController implements ResultsView.SearchListener {
       return;
     }
     this.tagsView.refresh();
+  }
+
+  private void onCreateTagType() {
+    this.createTagTypeDialog.reset();
+    this.createTagTypeDialog.showAndWait().ifPresent(type -> {
+      this.tagsView.refresh();
+      this.tagsView.selectTagType(type);
+    });
   }
 
   private void onImageClick(Picture picture) {

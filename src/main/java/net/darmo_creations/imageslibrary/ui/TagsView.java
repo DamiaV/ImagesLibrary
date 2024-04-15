@@ -16,6 +16,7 @@ public class TagsView extends VBox {
   private final Set<TagSelectionListener> tagSelectionListeners = new HashSet<>();
   private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
   private final Set<DeleteTagTypeListener> deleteTagTypeListeners = new HashSet<>();
+  private final Set<CreateTagTypeListener> createTagTypeListeners = new HashSet<>();
 
   private final Config config;
   private final Set<Tag> tags;
@@ -99,6 +100,7 @@ public class TagsView extends VBox {
       tab.addTagSelectionListener(this::onTagSelectionChange);
       tab.addEditTagTypeListener(this::onEditTagType);
       tab.addDeleteTagTypeListener(this::onDeleteTagType);
+      tab.addCreateTagTypeListener(this::onCreateTagType);
     };
 
     createTab.accept(null);
@@ -110,6 +112,18 @@ public class TagsView extends VBox {
       tabTags.get(tab).add(new TagsTab.TagEntry(tag, this.tagsCounts.get(tag.id()), this.config));
     });
     tabTags.forEach(TagsTab::setTags);
+  }
+
+  /**
+   * Select the tab that corresponds to the given tag type, based on its ID.
+   *
+   * @param tagType A tag type.
+   */
+  public void selectTagType(TagType tagType) {
+    this.tabPane.getTabs().stream()
+        .filter(tab -> ((TagsTab) tab).tagType().map(tt -> tt.id() == tagType.id()).orElse(false))
+        .findFirst()
+        .ifPresent(tab -> this.tabPane.getSelectionModel().select(tab));
   }
 
   public void addTagClickListener(TagClickListener listener) {
@@ -126,6 +140,10 @@ public class TagsView extends VBox {
 
   public void addDeleteTagTypeListener(DeleteTagTypeListener listener) {
     this.deleteTagTypeListeners.add(Objects.requireNonNull(listener));
+  }
+
+  public void addCreateTagTypeListener(CreateTagTypeListener listener) {
+    this.createTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
   /**
@@ -158,5 +176,9 @@ public class TagsView extends VBox {
 
   private void onDeleteTagType(TagType tagType) {
     this.deleteTagTypeListeners.forEach(listener -> listener.onDeleteTagType(tagType));
+  }
+
+  private void onCreateTagType() {
+    this.createTagTypeListeners.forEach(CreateTagTypeListener::onCreateTagType);
   }
 }
