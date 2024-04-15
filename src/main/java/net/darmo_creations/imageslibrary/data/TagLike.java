@@ -22,11 +22,10 @@ public interface TagLike extends DatabaseElement {
   Optional<String> definition();
 
   /**
-   * Raise an exception if the given tag or tag type label is invalid.
-   * A label is considered invalid if it contains a character that is not:
-   * <li>a Unicode letter;</li>
-   * <li>a Unicode number;</li>
-   * <li>an underscore '_'.</li>
+   * Raise an exception if the given tag label is invalid.
+   * A label is considered invalid if it contains a character
+   * that is not in any of the L or N Unicode General Categories
+   * or is not an underscore '_'.
    *
    * @param label The label to check.
    * @throws IllegalArgumentException If the label is invalid.

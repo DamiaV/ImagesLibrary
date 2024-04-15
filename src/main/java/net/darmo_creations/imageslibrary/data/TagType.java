@@ -17,6 +17,7 @@ public final class TagType extends DatabaseObject implements TagTypeLike {
    * @param label  The tag type’s label.
    * @param symbol The tag type’s symbol.
    * @param color  The tag type’s color.
+   * @throws IllegalArgumentException If the symbol is invalid.
    */
   TagType(int id, String label, char symbol, int color) {
     super(id);
@@ -40,7 +41,7 @@ public final class TagType extends DatabaseObject implements TagTypeLike {
    * @throws IllegalArgumentException If the label is invalid.
    */
   void setLabel(String label) {
-    TagLike.ensureValidLabel(label);
+    TagTypeLike.ensureValidLabel(label);
     this.label = label;
   }
 
@@ -56,8 +57,10 @@ public final class TagType extends DatabaseObject implements TagTypeLike {
    * Set this tag type’s symbol.
    *
    * @param symbol The new symbol.
+   * @throws IllegalArgumentException If the symbol is invalid.
    */
   void setSymbol(char symbol) {
+    TagTypeLike.ensureValidSymbol(symbol);
     this.symbol = symbol;
   }
 

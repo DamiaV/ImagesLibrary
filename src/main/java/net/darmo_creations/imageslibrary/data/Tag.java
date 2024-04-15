@@ -19,6 +19,7 @@ public final class Tag extends DatabaseObject implements TagLike {
    * @param label      The tag’s label.
    * @param type       The tag’s type. May be null.
    * @param definition The tag’s definition. May be null.
+   * @throws IllegalArgumentException If the label is invalid.
    */
   Tag(int id, String label, @Nullable TagType type, @Nullable String definition) {
     super(id);

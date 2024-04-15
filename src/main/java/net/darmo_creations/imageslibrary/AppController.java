@@ -26,6 +26,7 @@ public class AppController implements ResultsView.SearchListener {
   private final Stage stage;
   private final Config config;
 
+  private final EditTagTypeDialog editTagTypeDialog;
   private final SettingsDialog settingsDialog;
   private final AboutDialog aboutDialog;
 
@@ -68,8 +69,9 @@ public class AppController implements ResultsView.SearchListener {
     stage.setTitle(App.NAME + (config.isDebug() ? " [DEBUG]" : ""));
     stage.setMaximized(true);
 
-    this.aboutDialog = new AboutDialog(config);
+    this.editTagTypeDialog = new EditTagTypeDialog(config, db);
     this.settingsDialog = new SettingsDialog(config);
+    this.aboutDialog = new AboutDialog(config);
 
     this.tagsView = new TagsView(
         config,
@@ -401,8 +403,10 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void onEditTagType(TagType tagType) {
-    // TODO
-    System.out.println("edit tag type: " + tagType);
+    this.editTagTypeDialog.setTagType(tagType);
+    final var buttonType = this.editTagTypeDialog.showAndWait();
+    if (buttonType.isPresent() && !buttonType.get().getButtonData().isCancelButton())
+      this.tagsView.refresh();
   }
 
   private void onDeleteTagType(TagType tagType) {

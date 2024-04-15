@@ -1,13 +1,12 @@
 package net.darmo_creations.imageslibrary.ui.dialogs;
 
-import javafx.geometry.*;
-import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.themes.*;
+import net.darmo_creations.imageslibrary.ui.*;
 import net.darmo_creations.imageslibrary.utils.*;
 
 import java.io.*;
@@ -37,7 +36,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
         new Separator(),
         this.createDatabaseForm()
     );
-    content.setPrefWidth(550);
+    content.setPrefWidth(450);
     this.getDialogPane().setContent(content);
     config.theme().getAppIcon().ifPresent(this::setIcon);
 
@@ -68,7 +67,8 @@ public class SettingsDialog extends DialogBase<ButtonType> {
         .addListener((observable, oldValue, newValue) -> this.onThemeSelect(newValue));
 
     //noinspection unchecked
-    return this.getBorderPane(
+    return JavaFxUtils.newBorderPane(
+        this.config,
         "dialog.settings.interface_box.title",
         new Pair<>("dialog.settings.interface_box.language.label", this.languageCombo),
         new Pair<>("dialog.settings.interface_box.theme.label", this.themeCombo)
@@ -91,7 +91,8 @@ public class SettingsDialog extends DialogBase<ButtonType> {
         language.translate("dialog.settings.database_box.db_file.open_containing_directory_button.tooltip")));
 
     //noinspection unchecked
-    return this.getBorderPane(
+    return JavaFxUtils.newBorderPane(
+        this.config,
         "dialog.settings.database_box.title",
         new Pair<>("dialog.settings.database_box.db_file.label",
             new HBox(5, this.dbFileField, selectDbFileButton, goToDbFileButton))
@@ -109,39 +110,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
 
   private void onGoToDatabaseFile() {
     FileUtils.openInFileExplorer(this.dbFileField.getText());
-  }
-
-  @SuppressWarnings("unchecked")
-  private BorderPane getBorderPane(String title, final Pair<String, ? extends Node>... rows) {
-    final Label titleLabel = new Label(this.config.language().translate(title));
-    BorderPane.setAlignment(titleLabel, Pos.CENTER);
-
-    final GridPane gridPane = new GridPane();
-    gridPane.setHgap(10);
-    gridPane.setVgap(5);
-    gridPane.setPadding(new Insets(10, 0, 10, 0));
-    BorderPane.setAlignment(gridPane, Pos.CENTER);
-
-    for (int i = 0; i < rows.length; i++) {
-      final Label nodeLabel = new Label(this.config.language().translate(rows[i].getKey()));
-      nodeLabel.setWrapText(true);
-      GridPane.setHalignment(nodeLabel, HPos.RIGHT);
-      final Node node = rows[i].getValue();
-      GridPane.setHalignment(node, HPos.LEFT);
-      gridPane.addRow(i, nodeLabel, node);
-      final RowConstraints rc = new RowConstraints();
-      rc.setVgrow(Priority.SOMETIMES);
-      gridPane.getRowConstraints().add(rc);
-    }
-
-    final var cc1 = new ColumnConstraints();
-    cc1.setMaxWidth(400);
-    cc1.setHgrow(Priority.SOMETIMES);
-    final var cc2 = new ColumnConstraints();
-    cc2.setHgrow(Priority.SOMETIMES);
-    gridPane.getColumnConstraints().addAll(cc1, cc2);
-
-    return new BorderPane(gridPane, titleLabel, null, null, null);
   }
 
   /**

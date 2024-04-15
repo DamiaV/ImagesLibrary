@@ -119,3 +119,9 @@ Text.hyperlink {
 .highlight-tag-query .regex {
   -fx-fill: #d5335e;
 }
+
+/* Custom */
+
+.text-field.invalid {
+  -fx-background-color: #ae0000;
+}

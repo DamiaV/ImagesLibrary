@@ -14,6 +14,7 @@ import java.util.*;
  * @param <T> Type of returned values.
  */
 public abstract class DialogBase<T> extends Dialog<T> {
+  private final String name;
   protected final Config config;
 
   /**
@@ -36,13 +37,18 @@ public abstract class DialogBase<T> extends Dialog<T> {
    * @param buttonTypes The dialog’s button types.
    */
   public DialogBase(String name, boolean resizable, boolean modal, Config config, final ButtonType... buttonTypes) {
+    this.name = name;
     this.config = config;
     config.theme().applyTo(this.stage().getScene());
     this.initModality(modal ? Modality.APPLICATION_MODAL : Modality.NONE);
     this.setResizable(resizable);
-    this.setTitle(config.language().translate("dialog.%s.title".formatted(name),
-        this.getTitleFormatArgs().toArray(FormatArg[]::new)));
+    this.refreshTitle();
     this.getDialogPane().getButtonTypes().addAll(buttonTypes);
+  }
+
+  protected void refreshTitle() {
+    this.setTitle(this.config.language().translate("dialog.%s.title".formatted(this.name),
+        this.getTitleFormatArgs().toArray(FormatArg[]::new)));
   }
 
   /**

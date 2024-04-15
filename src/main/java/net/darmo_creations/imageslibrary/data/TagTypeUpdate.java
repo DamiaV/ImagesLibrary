@@ -15,6 +15,7 @@ public record TagTypeUpdate(
     int color
 ) implements TagTypeLike {
   public TagTypeUpdate {
-    TagLike.ensureValidLabel(label);
+    TagTypeLike.ensureValidLabel(label);
+    TagTypeLike.ensureValidSymbol(symbol);
   }
 }
