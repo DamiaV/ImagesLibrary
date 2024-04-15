@@ -557,9 +557,13 @@ public class AppController implements ResultsView.SearchListener {
    * then delete them if the user confirms.
    */
   private void onDelete() {
-    if (this.selectedPictures.isEmpty())
-      return;
+    if (!this.selectedPictures.isEmpty())
+      this.deleteSelectedPictures();
+    else if (!this.selectedTags.isEmpty())
+      this.deleteSelectedTags();
+  }
 
+  private void deleteSelectedPictures() {
     final var fromDisk = Alerts.confirmCheckbox(
         this.config,
         "alert.delete_images.header",
@@ -584,6 +588,11 @@ public class AppController implements ResultsView.SearchListener {
       this.resultsView.listImages(notDeleted);
     } else
       this.resultsView.refresh();
+  }
+
+  private void deleteSelectedTags() {
+    // TODO
+    System.out.println("delete tags");
   }
 
   /**

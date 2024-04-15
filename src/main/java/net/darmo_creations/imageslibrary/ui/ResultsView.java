@@ -47,6 +47,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     final Theme theme = config.theme();
 
     this.imagePreviewPane = new ImagePreviewPane(config);
+    this.imagePreviewPane.addEditTagsListener(picture -> this.onItemDoubleClick(new PictureEntry(picture, Set.of(), config)));
 
     this.popup = new TextPopOver(PopOver.ArrowLocation.RIGHT_CENTER, config);
 

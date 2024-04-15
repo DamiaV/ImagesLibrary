@@ -17,13 +17,16 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
+// TODO allow tag removal/insertion from the list directly
 public class ImagePreviewPane extends VBox implements ClickableListCellFactory.ClickListener<ImagePreviewPane.TagEntry> {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
+  private final List<EditTagsListener> editTagsListeners = new ArrayList<>();
 
   private final Button openInExplorerButton = new Button();
   private final Label fileNameLabel = new Label();
   private final Label fileMetadataLabel = new Label();
   private final ImageView imageView = new ImageView();
+  private final Button editTagsButton = new Button();
   private final ListView<TagEntry> tagsList = new ListView<>();
 
   private final Config config;
@@ -61,14 +64,20 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     tagsLabelBox.getStyleClass().add("section-title");
     tagsLabelBox.setAlignment(Pos.CENTER);
 
+    this.editTagsButton.setOnAction(e -> this.editTagsListeners.forEach(listener -> listener.onEditTags(this.picture)));
+    this.editTagsButton.setTooltip(new Tooltip(language.translate("image_preview.section.tags.edit_tags_button")));
+    this.editTagsButton.setGraphic(theme.getIcon(Icon.EDIT_TAGS, Icon.Size.SMALL));
+    this.editTagsButton.setDisable(true);
+
     this.tagsList.setPrefHeight(150);
     this.tagsList.setCellFactory(ignored -> ClickableListCellFactory.forListener(this));
 
+    HBox.setHgrow(tagsLabelBox, Priority.ALWAYS);
     this.getChildren().addAll(controlsBox,
         fileNameBox,
         metadataBox,
         imageViewBox,
-        tagsLabelBox,
+        new HBox(tagsLabelBox, this.editTagsButton),
         this.tagsList
     );
     this.setImage(null, null);
@@ -106,6 +115,7 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     this.fileNameLabel.setText(null);
     this.fileMetadataLabel.setText(null);
     this.fileMetadataLabel.setTooltip(null);
+    this.editTagsButton.setDisable(picture == null);
     this.tagsList.getItems().clear();
 
     if (picture != null) {
@@ -135,6 +145,10 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
 
   public void addTagClickListener(TagClickListener listener) {
     this.tagClickListeners.add(Objects.requireNonNull(listener));
+  }
+
+  public void addEditTagsListener(EditTagsListener listener) {
+    this.editTagsListeners.add(Objects.requireNonNull(listener));
   }
 
   private void displayMetadata(Path path, Image image) {
@@ -187,5 +201,9 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     public Tag tag() {
       return this.tag;
     }
+  }
+
+  public interface EditTagsListener {
+    void onEditTags(Picture picture);
   }
 }
