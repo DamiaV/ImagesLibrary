@@ -280,6 +280,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     final var matchingItem = history.stream().filter(t -> t.getText().equals(query)).findFirst();
     if (matchingItem.isEmpty()) {
       final MenuItem menuItem = new MenuItem(query);
+      menuItem.setMnemonicParsing(false);
       menuItem.setOnAction(e -> {
         this.searchField.setText(query);
         this.searchField.requestFocus();
