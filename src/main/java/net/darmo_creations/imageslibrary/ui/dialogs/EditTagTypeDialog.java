@@ -112,14 +112,14 @@ public class EditTagTypeDialog extends DialogBase<ButtonType> {
   }
 
   private static Color colorFromInt(int color) {
-    return Color.rgb(color >> 24 & 0xff, color >> 16 & 0xff, color >> 8 & 0xff);
+    return Color.rgb(color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff);
   }
 
   private static int colorToInt(Color color) {
     final int r = (int) Math.round(color.getRed() * 255);
     final int g = (int) Math.round(color.getGreen() * 255);
     final int b = (int) Math.round(color.getBlue() * 255);
-    return r << 24 | g << 16 | b << 8;
+    return r << 16 | g << 8 | b;
   }
 
   /**
