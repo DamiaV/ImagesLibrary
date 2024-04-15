@@ -45,7 +45,7 @@ public interface TagTypeLike extends DatabaseElement {
    * Raise an exception if the given tag type symbol is invalid.
    * A symbol is considered invalid if it is an underscore '_' or
    * is not in any of the following Unicode General Categories:
-   * Pc, Pd, Ps, Pe, Pf, Po, Sm, Sc, So.
+   * Pc, Pd, Ps, Pe, Pi, Pf, Po, Sm, Sc, So.
    * <p>
    * Cf. https://www.unicode.org/versions/Unicode15.1.0/ch04.pdf#G124142
    *
@@ -64,6 +64,6 @@ public interface TagTypeLike extends DatabaseElement {
    * @return True if the symbol is valid, false otherwise.
    */
   static boolean isSymbolValid(char symbol) {
-    return symbol != '_' && String.valueOf(symbol).matches("[\\p{IsPc}\\p{IsPd}\\p{IsPs}\\p{IsPe}\\p{IsPf}\\p{IsPo}\\p{IsSm}\\p{IsSc}\\p{IsSo}]");
+    return symbol != '_' && String.valueOf(symbol).matches("[\\p{IsPc}\\p{IsPd}\\p{IsPs}\\p{IsPe}\\p{IsPi}\\p{IsPf}\\p{IsPo}\\p{IsSm}\\p{IsSc}\\p{IsSo}]");
   }
 }
