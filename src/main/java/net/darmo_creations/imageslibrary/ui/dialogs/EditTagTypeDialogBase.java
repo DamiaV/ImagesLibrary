@@ -33,7 +33,7 @@ public abstract class EditTagTypeDialogBase extends DialogBase<TagType> {
     this.labelErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
     this.symbolErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
 
-    this.getDialogPane().setPrefWidth(350);
+    this.getDialogPane().setPrefWidth(400);
     this.getDialogPane().setContent(this.createContent());
     config.theme().getAppIcon().ifPresent(this::setIcon);
   }

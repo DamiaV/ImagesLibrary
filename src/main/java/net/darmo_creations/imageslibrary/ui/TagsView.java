@@ -7,6 +7,7 @@ import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.utils.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 import java.util.function.*;
@@ -117,11 +118,11 @@ public class TagsView extends VBox {
   /**
    * Select the tab that corresponds to the given tag type, based on its ID.
    *
-   * @param tagType A tag type.
+   * @param tagType A tag type. May be null.
    */
-  public void selectTagType(TagType tagType) {
+  public void selectTagType(@Nullable TagType tagType) {
     this.tabPane.getTabs().stream()
-        .filter(tab -> ((TagsTab) tab).tagType().map(tt -> tt.id() == tagType.id()).orElse(false))
+        .filter(tab -> ((TagsTab) tab).tagType().map(tt -> tagType != null && tt.id() == tagType.id()).orElse(tagType == null))
         .findFirst()
         .ifPresent(tab -> this.tabPane.getSelectionModel().select(tab));
   }

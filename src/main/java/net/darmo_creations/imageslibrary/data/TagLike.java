@@ -31,7 +31,17 @@ public interface TagLike extends DatabaseElement {
    * @throws IllegalArgumentException If the label is invalid.
    */
   static void ensureValidLabel(String label) {
-    if (!label.matches("[\\p{IsL}\\p{IsN}_]+"))
+    if (!isLabelValid(label))
       throw new IllegalArgumentException("Invalid label: " + label);
+  }
+
+  /**
+   * Check whether the given tag label is valid.
+   *
+   * @param label The label to check.
+   * @return True if the label is valid, false otherwise.
+   */
+  static boolean isLabelValid(String label) {
+    return label.matches("[\\p{IsL}\\p{IsN}_]+");
   }
 }

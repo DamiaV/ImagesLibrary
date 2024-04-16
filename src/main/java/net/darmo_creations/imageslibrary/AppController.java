@@ -28,6 +28,7 @@ public class AppController implements ResultsView.SearchListener {
 
   private final CreateTagTypeDialog createTagTypeDialog;
   private final EditTagTypeDialog editTagTypeDialog;
+  private final EditTagDialog editTagDialog;
   private final SettingsDialog settingsDialog;
   private final AboutDialog aboutDialog;
 
@@ -72,6 +73,7 @@ public class AppController implements ResultsView.SearchListener {
 
     this.createTagTypeDialog = new CreateTagTypeDialog(config, db);
     this.editTagTypeDialog = new EditTagTypeDialog(config, db);
+    this.editTagDialog = new EditTagDialog(config, db);
     this.settingsDialog = new SettingsDialog(config);
     this.aboutDialog = new AboutDialog(config);
 
@@ -548,8 +550,22 @@ public class AppController implements ResultsView.SearchListener {
    * Open the dialog to edit selected tags/images.
    */
   private void onEdit() {
+    if (!this.selectedPictures.isEmpty())
+      this.editSelectedPictures();
+    else if (this.selectedTags.size() == 1)
+      this.editTag(this.selectedTags.get(0));
+  }
+
+  private void editSelectedPictures() {
     // TODO
-    System.out.println("edit");
+  }
+
+  private void editTag(Tag tag) {
+    this.editTagDialog.setTag(tag);
+    this.editTagDialog.showAndWait().ifPresent(t -> {
+      this.tagsView.refresh();
+      this.tagsView.selectTagType(t.type().orElse(null));
+    });
   }
 
   /**

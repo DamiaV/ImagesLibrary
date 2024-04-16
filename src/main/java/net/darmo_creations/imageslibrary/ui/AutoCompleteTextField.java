@@ -106,6 +106,13 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
     this.highlight();
   }
 
+  @Override
+  public void setText(String text) {
+    if (text.equals(this.getText()))
+      super.setText(""); // Force update to properly refresh highlighting within dialogs
+    super.setText(text);
+  }
+
   private void showSuggestions() {
     if (!this.entriesPopup.getItems().isEmpty())
       this.entriesPopup.show(this.getScene().getWindow());
