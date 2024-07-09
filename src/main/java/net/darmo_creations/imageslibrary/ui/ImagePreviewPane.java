@@ -50,14 +50,16 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
 
     final HBox fileNameBox = new HBox(this.fileNameLabel);
     fileNameBox.setAlignment(Pos.CENTER);
+    fileNameBox.setPadding(new Insets(0, 5, 0, 5));
 
     final HBox metadataBox = new HBox(this.fileMetadataLabel);
     metadataBox.setAlignment(Pos.CENTER);
+    metadataBox.setPadding(new Insets(0, 5, 0, 5));
 
     final HBox imageViewBox = new HBox(this.imageView);
     imageViewBox.setAlignment(Pos.TOP_CENTER);
     this.imageView.setPreserveRatio(true);
-    this.imageView.fitHeightProperty().bind(imageViewBox.heightProperty().subtract(5));
+    this.imageView.fitHeightProperty().bind(imageViewBox.heightProperty().subtract(10));
     VBox.setVgrow(imageViewBox, Priority.ALWAYS);
 
     final HBox tagsLabelBox = new HBox(new Label(language.translate("image_preview.section.tags.title")));
@@ -74,11 +76,13 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     this.tagsList.setCellFactory(ignored -> ClickableListCellFactory.forListener(this));
 
     HBox.setHgrow(tagsLabelBox, Priority.ALWAYS);
+    final HBox tagsTitleBox = new HBox(5, tagsLabelBox, this.editTagsButton);
+    tagsTitleBox.setPadding(new Insets(0, 5, 0, 5));
     this.getChildren().addAll(controlsBox,
         fileNameBox,
         metadataBox,
         imageViewBox,
-        new HBox(tagsLabelBox, this.editTagsButton),
+        tagsTitleBox,
         this.tagsList
     );
     this.setImage(null, null);
@@ -114,6 +118,7 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     boolean noPicture = true;
     this.imageView.setImage(null);
     this.fileNameLabel.setText(null);
+    this.fileNameLabel.setTooltip(null);
     this.fileMetadataLabel.setText(null);
     this.fileMetadataLabel.setTooltip(null);
     this.editTagsButton.setDisable(picture == null);
@@ -122,11 +127,13 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     if (picture != null) {
       final Language language = this.config.language();
       final Path path = picture.path();
-      this.fileNameLabel.setText(path.getFileName().toString());
-      this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
+      final String fileName = path.getFileName().toString();
+      this.fileNameLabel.setText(fileName);
+      this.fileNameLabel.setTooltip(new Tooltip(fileName));
       if (!Files.exists(path)) {
         this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
       } else {
+        this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
         final Image image = new Image("file://" + path, true);
         image.progressProperty().addListener((observable, oldValue, newValue) -> {
           if (newValue.doubleValue() >= 1) // Image is done loading, lookup its metadata
@@ -156,20 +163,22 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     long size = -1;
     try {
       size = Files.size(path);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       App.logger().error("Unable to get size of file {}", path, e);
     }
 
     final Language language = this.config.language();
     final var formattedSize = size >= 0 ? FileUtils.formatBytesSize(size, language) : new Pair<>("?", "");
-    this.fileMetadataLabel.setText(language.translate(
+    final String text = language.translate(
         "image_preview.file_metadata.label",
         new FormatArg("width", (int) image.getWidth()),
         new FormatArg("height", (int) image.getHeight()),
         new FormatArg("abbr_bytes", formattedSize.getKey()),
         new FormatArg("unit", formattedSize.getValue()),
-        new FormatArg("full_bytes", language.formatNumber(size)))
+        new FormatArg("full_bytes", language.formatNumber(size))
     );
+    this.fileMetadataLabel.setText(text);
+    this.fileMetadataLabel.setTooltip(new Tooltip(text));
   }
 
   private void onOpenFile() {
