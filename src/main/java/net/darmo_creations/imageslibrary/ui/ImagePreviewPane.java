@@ -115,7 +115,7 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
       Objects.requireNonNull(tags);
     this.picture = picture;
 
-    this.openInExplorerButton.setDisable(false);
+    this.openInExplorerButton.setDisable(true);
     this.imageView.setImage(null);
     this.fileNameLabel.setText(null);
     this.fileNameLabel.setTooltip(null);
