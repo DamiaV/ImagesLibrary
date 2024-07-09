@@ -9,6 +9,9 @@ module net.darmo_creations.imageslibrary {
   requires org.fxmisc.flowless;
   requires reactfx;
 
+  // ImageIO
+  requires javafx.swing;
+
   // Database
   requires org.xerial.sqlitejdbc;
 

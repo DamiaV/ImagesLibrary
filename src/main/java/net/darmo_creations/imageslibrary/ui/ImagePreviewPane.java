@@ -115,7 +115,7 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
       Objects.requireNonNull(tags);
     this.picture = picture;
 
-    boolean noPicture = true;
+    this.openInExplorerButton.setDisable(false);
     this.imageView.setImage(null);
     this.fileNameLabel.setText(null);
     this.fileNameLabel.setTooltip(null);
@@ -134,13 +134,14 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
         this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
       } else {
         this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
-        final Image image = new Image("file://" + path, true);
-        image.progressProperty().addListener((observable, oldValue, newValue) -> {
-          if (newValue.doubleValue() >= 1) // Image is done loading, lookup its metadata
-            this.displayMetadata(path, image);
+        FileUtils.loadImage(path, image -> {
+          this.imageView.setImage(image);
+          this.displayMetadata(path, image);
+          this.openInExplorerButton.setDisable(false);
+        }, error -> {
+          this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
+          this.openInExplorerButton.setDisable(true);
         });
-        this.imageView.setImage(image);
-        noPicture = false;
       }
       final var tagsEntries = tags.stream()
           .sorted(Comparator.comparing(Tag::label))
@@ -148,7 +149,6 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
           .toList();
       this.tagsList.getItems().addAll(tagsEntries);
     }
-    this.openInExplorerButton.setDisable(noPicture);
   }
 
   public void addTagClickListener(@NotNull TagClickListener listener) {

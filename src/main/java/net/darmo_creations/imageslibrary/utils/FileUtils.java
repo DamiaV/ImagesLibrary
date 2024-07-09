@@ -1,13 +1,19 @@
 package net.darmo_creations.imageslibrary.utils;
 
+import javafx.application.*;
+import javafx.embed.swing.*;
+import javafx.scene.image.*;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import org.jetbrains.annotations.*;
 
+import javax.imageio.*;
+import java.awt.image.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.function.*;
 
 /**
  * Class providing methods to handle files.
@@ -82,4 +88,61 @@ public class FileUtils {
       new Pair<>(1048576.0, "Mi"), // 1024²
       new Pair<>(1024.0, "Ki")
   );
+
+  /**
+   * Load the given image. If the file’s format is not supported by JavaFX,
+   * but is in the {@link App#VALID_IMAGE_EXTENSIONS} list, the image will be converted in-memory
+   * into a format that JavaFX supports.
+   *
+   * @param path            The path to the image file.
+   * @param successCallback Callback called when the image is done loading.
+   *                        It takes the {@link Image} as its argument.
+   * @param errorCallback   Callback called when an I/O error occurs.
+   *                        It takes the {@link Exception} object as its argument.
+   * @throws IllegalArgumentException If the file’s extension in not in {@link App#VALID_IMAGE_EXTENSIONS}.
+   */
+  public static void loadImage(
+      @NotNull Path path,
+      @NotNull Consumer<Image> successCallback,
+      @NotNull Consumer<Exception> errorCallback
+  ) {
+    final String ext = getExtension(path);
+
+    if (ext.isEmpty())
+      throw new IllegalArgumentException("Unsupported image format");
+    else if (!App.VALID_IMAGE_EXTENSIONS.contains(ext.toLowerCase()))
+      throw new IllegalArgumentException("Unsupported image format: " + ext);
+
+    if (JAVAFX_FILE_EXTENSIONS.contains(ext.toLowerCase())) {
+      final Image image = new Image("file://" + path, true);
+      image.progressProperty().addListener((observable, oldValue, newValue) -> {
+        if (newValue.doubleValue() >= 1) {
+          if (image.isError())
+            errorCallback.accept(image.getException());
+          else
+            successCallback.accept(image);
+        }
+      });
+    } else {
+      new Thread(() -> {
+        // Load with ImageIO then convert to Image
+        try {
+          final BufferedImage image = ImageIO.read(path.toFile());
+          final WritableImage fxImage = SwingFXUtils.toFXImage(image, null);
+          Platform.runLater(() -> successCallback.accept(fxImage));
+        } catch (final IOException e) {
+          Platform.runLater(() -> errorCallback.accept(e));
+        }
+      }).start();
+    }
+  }
+
+  /**
+   * The list of image formats supported by JavaFX.
+   * <p>
+   * BMP format is excluded as BMP images with an alpha channel are not rendered by {@link ImageView},
+   * see <a href="https://bugs.openjdk.org/browse/JDK-8149621">this JDK bug report</a>.
+   */
+  @Unmodifiable
+  private static final List<String> JAVAFX_FILE_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif");
 }

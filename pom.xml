@@ -45,6 +45,11 @@
       <version>${javafx.version}</version>
       <classifier>mac</classifier>
     </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-swing</artifactId>
+      <version>${javafx.version}</version>
+    </dependency>
 
     <!-- JavaFX third-party libraries -->
     <dependency>
@@ -57,6 +62,14 @@
       <groupId>org.fxmisc.richtext</groupId>
       <artifactId>richtextfx</artifactId>
       <version>0.11.2</version>
+    </dependency>
+
+    <!-- ImageIO -->
+    <!-- https://mvnrepository.com/artifact/org.sejda.webp-imageio/webp-imageio-sejda -->
+    <dependency>
+      <groupId>org.sejda.webp-imageio</groupId>
+      <artifactId>webp-imageio-sejda</artifactId>
+      <version>0.1.0</version>
     </dependency>
 
     <!-- Database -->
