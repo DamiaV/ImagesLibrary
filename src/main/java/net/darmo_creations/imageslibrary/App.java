@@ -2,6 +2,7 @@ package net.darmo_creations.imageslibrary;
 
 import javafx.application.*;
 import javafx.stage.*;
+import javafx.util.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.ui.dialogs.*;
@@ -62,11 +63,24 @@ public class App extends Application {
     return resourceBundle;
   }
 
+  private static HostServices hostServices;
+
+  /**
+   * Open a URL in the user’s default web browser.
+   *
+   * @param url URL to open.
+   */
+  public static void openURL(@NotNull String url) {
+    hostServices.showDocument(url);
+  }
+
   @Override
   public void start(Stage stage) {
     LOGGER.info("Running %s (v%s)".formatted(NAME, VERSION));
     if (config.isDebug())
       LOGGER.info("Debug mode is ON");
+
+    hostServices = this.getHostServices();
 
     final var splash = new Splash(config);
     splash.show();
@@ -191,17 +205,26 @@ public class App extends Application {
    * Return a list of some system properties.
    */
   public static String getSystemProperties() {
-    final var systemProperties = new StringJoiner("\n");
+    final StringJoiner systemProperties = new StringJoiner("\n");
+    final String userHome = System.getProperty("user.home");
+    final String userName = System.getProperty("user.name");
     System.getProperties().entrySet().stream()
         .filter(entry -> {
           final String key = entry.getKey().toString();
-          return !key.startsWith("user.")
-                 && !key.startsWith("file.")
-                 && !key.startsWith("jdk.")
-                 && !key.contains(".path")
-                 && !key.contains("path.")
-                 && !key.equals("line.separator")
-                 && !key.equals("java.home");
+          return !key.equals("user.home") && !key.equals("user.name");
+        })
+        .map(entry -> {
+          final Object key = entry.getKey();
+          String value = entry.getValue().toString();
+          if (value.contains(userHome))
+            value = value.replace(userHome, "~");
+          if (value.contains(userName))
+            value = value.replace(userName, "*USERNAME*");
+          if (value.contains("\n"))
+            value = value.replace("\n", "\\n");
+          if (value.contains("\r"))
+            value = value.replace("\n", "\\r");
+          return new Pair<>(key, value);
         })
         .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
         .forEach(property -> systemProperties.add("%s: %s".formatted(property.getKey(), property.getValue())));

@@ -39,6 +39,8 @@ public enum Icon {
 
   COMPOUND_TAG("three_tags"),
 
+  COPY_TO_CLIPBOARD("clipboard_invoice"),
+
   OPEN_DB_FILE("folder_database"),
   OPEN_FILE_IN_EXPLORER("folder_go"),
   ;
