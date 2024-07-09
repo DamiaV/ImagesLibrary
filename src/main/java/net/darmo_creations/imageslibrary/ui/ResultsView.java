@@ -63,7 +63,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     );
     this.searchField.setPromptText(new Text(language.translate("image_search_field.search")));
     this.searchField.setStyle("-fx-font-size: 2em");
-    this.searchField.setOnAction(e -> this.search());
+    this.searchField.setOnAction(e -> this.search(null));
     this.searchField.textProperty().addListener((observable, oldValue, newValue) -> {
       if (this.popup.isShowing())
         this.popup.hide();
@@ -71,7 +71,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     });
 
     final Button searchButton = new Button();
-    searchButton.setOnAction(e -> this.search());
+    searchButton.setOnAction(e -> this.search(null));
     searchButton.setGraphic(theme.getIcon(Icon.SEARCH, Icon.Size.BIG));
     searchButton.setTooltip(new Tooltip(language.translate("image_search_field.go")));
 
@@ -106,7 +106,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     config.caseSensitiveQueriesByDefaultProperty().addListener((observable, oldValue, enabled) -> {
       caseSensitivityButton.setTooltip(new Tooltip(language.translate(
           "image_search_field.case_sensitivity." + enabled)));
-      this.search();
+      this.search(null);
     });
     caseSensitivityButton.setSelected(config.caseSensitiveQueriesByDefault());
     caseSensitivityButton.setTooltip(new Tooltip(language.translate(
@@ -128,10 +128,6 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.imagesList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
     this.imagesList.getSelectionModel().selectedItemProperty().addListener(
         (observable, oldValue, newValue) -> this.onSelectionChange());
-    this.imagesList.focusedProperty().addListener((observable, oldValue, newValue) -> {
-      if (newValue)
-        this.onSelectionChange();
-    });
     this.imagesList.setCellFactory(item -> ClickableListCellFactory.forListener(this));
 
     HBox.setHgrow(this.searchField, Priority.ALWAYS);
@@ -170,7 +166,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   public void searchTag(@NotNull Tag tag) {
     this.searchField.setText(tag.label());
     this.searchField.requestFocus();
-    this.search();
+    this.search(null);
   }
 
   /**
@@ -199,7 +195,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    */
   public void searchImagesWithNoTags() {
     this.searchField.setText("#no_tags");
-    this.search();
+    this.search(null);
   }
 
   /**
@@ -208,11 +204,31 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   public void searchImagesWithNoFile() {
     this.searchField.setText("#no_file");
     this.searchField.requestFocus();
-    this.search();
+    this.search(null);
   }
 
+  /**
+   * Refresh this view by re-running the current tag query.
+   */
   public void refresh() {
-    this.search();
+    final var selection = this.imagesList.getSelectionModel().getSelectedItems();
+    final PictureEntry entry = !selection.isEmpty() ? selection.get(0) : null;
+    this.search(() -> {
+      if (entry != null) {
+        final Picture picture = entry.picture();
+        try {
+          if (this.imagesList.getItems().contains(entry))
+            this.imagesList.getSelectionModel().select(entry);
+          else if (this.db.pictureExists(picture.id()))
+            this.imagePreviewPane.setImage(picture, this.db.getImageTags(picture));
+          else
+            this.imagePreviewPane.setImage(null, null);
+        } catch (final DatabaseOperationException e) {
+          Alerts.databaseError(this.config, e.errorCode());
+        }
+        this.imagesList.requestFocus();
+      }
+    });
   }
 
   /**
@@ -245,7 +261,12 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     listViewItems.sort(null);
   }
 
-  private void search() {
+  /**
+   * Search for all images that match the current tag query.
+   *
+   * @param onSuccess An optional callback to run when the search succeeds.
+   */
+  private void search(Runnable onSuccess) {
     final var queryString = StringUtils.stripNullable(this.searchField.getText());
     if (queryString.isEmpty())
       return;
@@ -287,10 +308,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       history.add(0, item);
     }
 
-    this.performSearch(() -> this.db.queryPictures(tagQuery));
+    this.performSearch(() -> this.db.queryPictures(tagQuery), onSuccess);
   }
 
-  private void performSearch(@NotNull Search search) {
+  private void performSearch(@NotNull Search search, Runnable onSuccess) {
     this.searchListeners.forEach(SearchListener::onSearchStart);
     new Thread(() -> {
       final Set<Picture> pictures;
@@ -303,7 +324,11 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         });
         return;
       }
-      Platform.runLater(() -> this.onSearchEnd(pictures));
+      Platform.runLater(() -> {
+        this.onSearchEnd(pictures);
+        if (onSuccess != null)
+          onSuccess.run();
+      });
     }).start();
   }
 
@@ -342,7 +367,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         .map(PictureEntry::picture)
         .toList();
     if (selection.size() == 1)
-      this.imagePreviewPane.setImage(selection.get(0), selectedItems.get(0).tags());
+      this.imagePreviewPane.setImage(selectedItems.get(0).picture(), selectedItems.get(0).tags());
     this.imageSelectionListeners.forEach(listener -> listener.onSelectionChange(selection));
   }
 
@@ -380,6 +405,21 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     @Override
     public int compareTo(ResultsView.PictureEntry o) {
       return this.picture.path().compareTo(o.picture().path());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o)
+        return true;
+      if (o == null || this.getClass() != o.getClass())
+        return false;
+      final PictureEntry that = (PictureEntry) o;
+      return Objects.equals(this.picture, that.picture);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(this.picture);
     }
 
     @Override

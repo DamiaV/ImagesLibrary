@@ -699,6 +699,32 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
+  private static final String PICTURE_ID_EXISTS_QUERY = """
+      SELECT COUNT(*)
+      FROM images
+      WHERE id = ?1
+      """;
+
+  /**
+   * Check whether the given picture ID exists.
+   *
+   * @param pictureId A picture ID.
+   * @return True if it exists in the database, false otherwise.
+   * @throws DatabaseOperationException If any database error occurs.
+   */
+  public boolean pictureExists(int pictureId) throws DatabaseOperationException {
+    try (final var statement = this.connection.prepareStatement(PICTURE_ID_EXISTS_QUERY)) {
+      statement.setInt(1, pictureId);
+      try (final var resultSet = statement.executeQuery()) {
+        resultSet.next();
+        return resultSet.getInt(1) != 0;
+      }
+    } catch (final SQLException e) {
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
+    }
+  }
+
+  @SQLite
   private static final String SELECT_SIMILAR_IMAGES_QUERY = """
       SELECT id, path, hash, "SIMILARITY_CONFIDENCE"(hash, ?1) AS confidence
       FROM images
