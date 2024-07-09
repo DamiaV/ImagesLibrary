@@ -217,9 +217,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       if (entry != null) {
         final Picture picture = entry.picture();
         try {
-          if (this.imagesList.getItems().contains(entry))
+          if (this.imagesList.getItems().contains(entry)) {
             this.imagesList.getSelectionModel().select(entry);
-          else if (this.db.pictureExists(picture.id()))
+            this.imagesList.requestFocus();
+          } else if (this.db.pictureExists(picture.id()))
             this.imagePreviewPane.setImage(picture, this.db.getImageTags(picture));
           else
             this.imagePreviewPane.setImage(null, null);
