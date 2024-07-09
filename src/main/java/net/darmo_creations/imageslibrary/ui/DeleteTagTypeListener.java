@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.ui;
 
 import net.darmo_creations.imageslibrary.data.*;
+import org.jetbrains.annotations.*;
 
 @FunctionalInterface
 public interface DeleteTagTypeListener {
@@ -9,5 +10,5 @@ public interface DeleteTagTypeListener {
    *
    * @param tagType The tag type to delete.
    */
-  void onDeleteTagType(TagType tagType);
+  void onDeleteTagType(@NotNull TagType tagType);
 }

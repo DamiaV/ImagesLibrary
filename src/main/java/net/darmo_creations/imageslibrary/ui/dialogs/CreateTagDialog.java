@@ -3,6 +3,7 @@ package net.darmo_creations.imageslibrary.ui.dialogs;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -17,7 +18,7 @@ public class CreateTagDialog extends EditTagDialogBase {
    * @param config The app’s configuration.
    * @param db     The database to insert new tags into.
    */
-  public CreateTagDialog(Config config, DatabaseConnection db) {
+  public CreateTagDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
     super("create_tag", config, db);
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton()) {

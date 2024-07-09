@@ -19,7 +19,11 @@ public final class JavaFxUtils {
    */
   @SuppressWarnings("unchecked")
   @Contract(value = "_, _, _ -> new")
-  public static BorderPane newBorderPane(Config config, @Nullable String title, final Pair<String, ? extends Node>... rows) {
+  public static BorderPane newBorderPane(
+      @NotNull Config config,
+      String title,
+      final @NotNull Pair<String, ? extends Node>... rows
+  ) {
     final GridPane gridPane = new GridPane();
     gridPane.setHgap(10);
     gridPane.setVgap(5);

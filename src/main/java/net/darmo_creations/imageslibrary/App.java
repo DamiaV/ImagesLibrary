@@ -75,7 +75,7 @@ public class App extends Application {
   }
 
   @Override
-  public void start(Stage stage) {
+  public void start(@NotNull Stage stage) {
     LOGGER.info("Running %s (v%s)".formatted(NAME, VERSION));
     if (config.isDebug())
       LOGGER.info("Debug mode is ON");
@@ -117,7 +117,7 @@ public class App extends Application {
     }, "Database Loader Thread").start();
   }
 
-  public static void main(String[] args) {
+  public static void main(@NotNull String[] args) {
     final Args parsedArgs;
     try {
       parsedArgs = parseArgs(args);
@@ -145,7 +145,7 @@ public class App extends Application {
    * @return An object containing parsed arguments.
    * @throws ParseException If arguments could not be parsed.
    */
-  private static Args parseArgs(final String[] args) throws ParseException {
+  private static Args parseArgs(final @NotNull String[] args) throws ParseException {
     final CommandLineParser parser = new DefaultParser();
     final Options options = new Options();
     options.addOption(Option.builder("d")
@@ -161,7 +161,7 @@ public class App extends Application {
    *
    * @param e The throwable object that caused the unrecoverable crash.
    */
-  public static void generateCrashReport(Throwable e) {
+  public static void generateCrashReport(@NotNull Throwable e) {
     final var date = LocalDateTime.now();
     final var stackTrace = new StringWriter();
     try (final var writer = new PrintWriter(stackTrace)) {

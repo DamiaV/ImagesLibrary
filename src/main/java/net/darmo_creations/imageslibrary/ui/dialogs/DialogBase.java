@@ -5,6 +5,7 @@ import javafx.scene.image.*;
 import javafx.stage.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.utils.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -24,7 +25,12 @@ public abstract class DialogBase<T> extends Dialog<T> {
    * @param resizable   Whether the dialog should be resizable.
    * @param buttonTypes The dialog’s button types.
    */
-  public DialogBase(String name, boolean resizable, Config config, final ButtonType... buttonTypes) {
+  public DialogBase(
+      @NotNull String name,
+      boolean resizable,
+      @NotNull Config config,
+      final @NotNull ButtonType... buttonTypes
+  ) {
     this(name, resizable, true, config, buttonTypes);
   }
 
@@ -36,7 +42,13 @@ public abstract class DialogBase<T> extends Dialog<T> {
    * @param modal       Whether this dialog should be modal.
    * @param buttonTypes The dialog’s button types.
    */
-  public DialogBase(String name, boolean resizable, boolean modal, Config config, final ButtonType... buttonTypes) {
+  public DialogBase(
+      @NotNull String name,
+      boolean resizable,
+      boolean modal,
+      @NotNull Config config,
+      final @NotNull ButtonType... buttonTypes
+  ) {
     this.name = name;
     this.config = config;
     config.theme().applyTo(this.stage().getScene());

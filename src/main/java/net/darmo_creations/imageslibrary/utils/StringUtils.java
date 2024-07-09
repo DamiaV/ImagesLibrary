@@ -16,7 +16,7 @@ public final class StringUtils {
    * @return The same string stripped of all leading and trailing whitespace or an empty optional
    * if it was null, empty, or all whitespace.
    */
-  public static Optional<String> stripNullable(@Nullable String s) {
+  public static Optional<String> stripNullable(String s) {
     return s == null || s.isBlank() ? Optional.empty() : Optional.of(s.strip());
   }
 
@@ -31,7 +31,7 @@ public final class StringUtils {
    * @return The formatted string.
    * @throws IllegalArgumentException If two or more format arguments share the same name.
    */
-  public static String format(String pattern, final FormatArg... args) {
+  public static String format(@NotNull String pattern, final @NotNull FormatArg... args) {
     final Set<String> argNames = new HashSet<>();
     for (final var arg : args) {
       final String name = arg.name();

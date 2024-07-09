@@ -29,10 +29,10 @@ public final class TagQueryParser {
    */
   @Contract("_, _, _, _ -> new")
   public static TagQuery parse(
-      String query,
-      final Map<String, String> tagDefinitions,
-      final Map<String, PseudoTag> pseudoTags,
-      final Config config
+      @NotNull String query,
+      final @NotNull Map<String, String> tagDefinitions,
+      final @NotNull Map<String, PseudoTag> pseudoTags,
+      final @NotNull Config config
   ) throws InvalidPseudoTagException {
     return new TagQuery(parse(query, tagDefinitions, 0, new FormulaFactory()), pseudoTags, config);
   }
@@ -48,10 +48,10 @@ public final class TagQueryParser {
    */
   @Contract("_, _, _, _ -> new")
   static Formula parse(
-      String query,
-      final Map<String, String> tagDefinitions,
+      @NotNull String query,
+      final @NotNull Map<String, String> tagDefinitions,
       int depth,
-      FormulaFactory formulaFactory
+      @NotNull FormulaFactory formulaFactory
   ) {
     final var errorListener = new ErrorListener();
     final var lexer = new TagQueryLanguageLexer(CharStreams.fromString(query));
@@ -70,7 +70,7 @@ public final class TagQueryParser {
    * @return A list of {@link Span} objects, one for each valid token.
    */
   @Contract("_ -> new")
-  public static List<Span> parse(String query) {
+  public static List<Span> parse(@NotNull String query) {
     final var lexer = new TagQueryLanguageLexer(CharStreams.fromString(query));
     lexer.removeErrorListeners(); // Remove default listener that prints to STDOUT
     final var parser = new TagQueryLanguageParser(new CommonTokenStream(lexer));

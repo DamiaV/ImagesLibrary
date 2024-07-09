@@ -21,7 +21,7 @@ public final class Tag extends DatabaseObject implements TagLike {
    * @param definition The tag’s definition. May be null.
    * @throws IllegalArgumentException If the label is invalid.
    */
-  Tag(int id, String label, @Nullable TagType type, @Nullable String definition) {
+  Tag(int id, @NotNull String label, TagType type, String definition) {
     super(id);
     this.setLabel(label);
     this.setType(type);
@@ -42,7 +42,7 @@ public final class Tag extends DatabaseObject implements TagLike {
    * @param label The new label.
    * @throws IllegalArgumentException If the label is invalid.
    */
-  void setLabel(String label) {
+  void setLabel(@NotNull String label) {
     TagLike.ensureValidLabel(label);
     this.label = label;
   }
@@ -60,7 +60,7 @@ public final class Tag extends DatabaseObject implements TagLike {
    *
    * @param type The new type. May be null.
    */
-  void setType(@Nullable TagType type) {
+  void setType(TagType type) {
     this.type = type;
   }
 
@@ -78,7 +78,7 @@ public final class Tag extends DatabaseObject implements TagLike {
    *
    * @param definition The new definition. May be null.
    */
-  void setDefinition(@Nullable String definition) {
+  void setDefinition(String definition) {
     this.definition = definition;
   }
 

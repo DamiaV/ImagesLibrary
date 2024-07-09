@@ -1,5 +1,7 @@
 package net.darmo_creations.imageslibrary.data;
 
+import org.jetbrains.annotations.*;
+
 /**
  * This enum lists all available database error codes.
  */
@@ -137,7 +139,7 @@ public enum DatabaseErrorCode {
    * @param code A SQLite error code.
    * @return The corresponding {@link DatabaseErrorCode}.
    */
-  public static DatabaseErrorCode forSQLiteCode(org.sqlite.SQLiteErrorCode code) {
+  public static DatabaseErrorCode forSQLiteCode(@NotNull org.sqlite.SQLiteErrorCode code) {
     for (final var entry : values())
       if (entry.name().equals(code.name()))
         return entry;

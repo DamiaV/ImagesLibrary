@@ -7,12 +7,13 @@ import javafx.scene.layout.*;
 import javafx.stage.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
+import org.jetbrains.annotations.*;
 
 /**
  * Undecorated dialog that displays a splash image.
  */
 public class Splash extends DialogBase<ButtonType> {
-  public Splash(final Config config) {
+  public Splash(final @NotNull Config config) {
     super("splash", false, config, ButtonTypes.OK);
     this.stage().initStyle(StageStyle.UNDECORATED);
     final DialogPane dialogPane = this.getDialogPane();

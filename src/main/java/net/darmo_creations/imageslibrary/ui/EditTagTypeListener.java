@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.ui;
 
 import net.darmo_creations.imageslibrary.data.*;
+import org.jetbrains.annotations.*;
 
 @FunctionalInterface
 public interface EditTagTypeListener {
@@ -9,5 +10,5 @@ public interface EditTagTypeListener {
    *
    * @param tagType The tag type to edit.
    */
-  void onEditTagType(TagType tagType);
+  void onEditTagType(@NotNull TagType tagType);
 }

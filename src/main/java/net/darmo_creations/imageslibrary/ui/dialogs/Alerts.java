@@ -23,8 +23,8 @@ public final class Alerts {
    * @param code   The error code.
    */
   public static void databaseError(
-      final Config config,
-      DatabaseErrorCode code
+      final @NotNull Config config,
+      @NotNull DatabaseErrorCode code
   ) {
     error(
         config,
@@ -45,11 +45,11 @@ public final class Alerts {
    * @param contentArgs Format arguments to apply to the header, content and title.
    */
   public static void info(
-      final Config config,
-      String headerKey,
-      @Nullable String contentKey,
-      @Nullable String titleKey,
-      final FormatArg... contentArgs
+      final @NotNull Config config,
+      @NotNull String headerKey,
+      String contentKey,
+      String titleKey,
+      final @NotNull FormatArg... contentArgs
   ) {
     alert(config, Alert.AlertType.INFORMATION, headerKey, contentKey, titleKey, contentArgs);
   }
@@ -64,11 +64,11 @@ public final class Alerts {
    * @param contentArgs Format arguments to apply to the header, content and title.
    */
   public static void warning(
-      final Config config,
-      String headerKey,
-      @Nullable String contentKey,
-      @Nullable String titleKey,
-      final FormatArg... contentArgs
+      final @NotNull Config config,
+      @NotNull String headerKey,
+      String contentKey,
+      String titleKey,
+      final @NotNull FormatArg... contentArgs
   ) {
     alert(config, Alert.AlertType.WARNING, headerKey, contentKey, titleKey, contentArgs);
   }
@@ -83,11 +83,11 @@ public final class Alerts {
    * @param contentArgs Format arguments to apply to the header, content and title.
    */
   public static void error(
-      final Config config,
-      String headerKey,
-      @Nullable String contentKey,
-      @Nullable String titleKey,
-      final FormatArg... contentArgs
+      final @NotNull Config config,
+      @NotNull String headerKey,
+      String contentKey,
+      String titleKey,
+      final @NotNull FormatArg... contentArgs
   ) {
     alert(config, Alert.AlertType.ERROR, headerKey, contentKey, titleKey, contentArgs);
   }
@@ -103,11 +103,11 @@ public final class Alerts {
    * @return True if the user clicked OK, false if they clicked CANCEL or dismissed the dialog.
    */
   public static boolean confirmation(
-      final Config config,
-      String headerKey,
-      @Nullable String contentKey,
-      @Nullable String titleKey,
-      final FormatArg... contentArgs
+      final @NotNull Config config,
+      @NotNull String headerKey,
+      String contentKey,
+      String titleKey,
+      final @NotNull FormatArg... contentArgs
   ) {
     final var result = alert(config, Alert.AlertType.CONFIRMATION, headerKey, contentKey, titleKey, contentArgs);
     return result.isPresent() && !result.get().getButtonData().isCancelButton();
@@ -126,12 +126,12 @@ public final class Alerts {
    * an empty {@link Optional} if the dialog was cancelled.
    */
   public static Optional<Boolean> confirmCheckbox(
-      final Config config,
-      String headerKey,
-      String labelKey,
-      @Nullable String titleKey,
+      final @NotNull Config config,
+      @NotNull String headerKey,
+      @NotNull String labelKey,
+      String titleKey,
       boolean checked,
-      final FormatArg... contentArgs
+      final @NotNull FormatArg... contentArgs
   ) {
     final Alert alert = getAlert(config, Alert.AlertType.CONFIRMATION, headerKey, titleKey, contentArgs);
     final CheckBox checkBox = new CheckBox();
@@ -154,12 +154,12 @@ public final class Alerts {
    * @return The selected item.
    */
   public static <T> Optional<T> chooser(
-      final Config config,
-      String headerKey,
-      String labelKey,
-      @Nullable String titleKey,
-      final Collection<T> choices,
-      final FormatArg... contentArgs
+      final @NotNull Config config,
+      @NotNull String headerKey,
+      @NotNull String labelKey,
+      String titleKey,
+      final @NotNull Collection<T> choices,
+      final @NotNull FormatArg... contentArgs
   ) {
     if (choices.isEmpty())
       throw new IllegalArgumentException("empty choices");
@@ -185,12 +185,12 @@ public final class Alerts {
    * @return The selected item.
    */
   public static Optional<String> textInput(
-      final Config config,
-      String headerKey,
-      String labelKey,
-      @Nullable String titleKey,
-      @Nullable String defaultText,
-      final FormatArg... contentArgs
+      final @NotNull Config config,
+      @NotNull String headerKey,
+      @NotNull String labelKey,
+      String titleKey,
+      String defaultText,
+      final @NotNull FormatArg... contentArgs
   ) {
     final Alert alert = getAlert(config, Alert.AlertType.CONFIRMATION, headerKey, titleKey, contentArgs);
     final TextField textField = new TextField();
@@ -204,11 +204,11 @@ public final class Alerts {
   }
 
   private static Optional<ButtonType> buildAndShow(
-      final Config config,
-      String labelKey,
-      Alert alert,
-      Control choicesCombo,
-      final FormatArg... contentArgs
+      final @NotNull Config config,
+      @NotNull String labelKey,
+      @NotNull Alert alert,
+      @NotNull Control choicesCombo,
+      final @NotNull FormatArg... contentArgs
   ) {
     final HBox hBox = new HBox(4);
     final Label label = new Label(config.language().translate(labelKey, contentArgs));
@@ -223,12 +223,12 @@ public final class Alerts {
   }
 
   private static Optional<ButtonType> alert(
-      final Config config,
-      Alert.AlertType type,
-      String headerKey,
-      @Nullable String contentKey,
-      @Nullable String titleKey,
-      final FormatArg... contentArgs
+      final @NotNull Config config,
+      @NotNull Alert.AlertType type,
+      @NotNull String headerKey,
+      String contentKey,
+      String titleKey,
+      final @NotNull FormatArg... contentArgs
   ) {
     final Alert alert = getAlert(config, type, headerKey, titleKey, contentArgs);
     if (contentKey != null)
@@ -247,11 +247,11 @@ public final class Alerts {
    * @return The alert dialog.
    */
   private static Alert getAlert(
-      final Config config,
-      Alert.AlertType type,
-      String headerKey,
-      @Nullable String titleKey,
-      final FormatArg... contentArgs
+      final @NotNull Config config,
+      @NotNull Alert.AlertType type,
+      @NotNull String headerKey,
+      String titleKey,
+      final @NotNull FormatArg... contentArgs
   ) {
     if (type == Alert.AlertType.NONE)
       throw new IllegalArgumentException(type.name());

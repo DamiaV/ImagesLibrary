@@ -30,7 +30,7 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
 
   protected final DatabaseConnection db;
 
-  protected EditTagDialogBase(String name, Config config, DatabaseConnection db) {
+  protected EditTagDialogBase(@NotNull String name, @NotNull Config config, @NotNull DatabaseConnection db) {
     super(name, false, config, ButtonTypes.OK, ButtonTypes.CANCEL);
     this.db = db;
 
@@ -124,7 +124,7 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
     this.tagTypeComboBox.getSelectionModel().select(0);
   }
 
-  protected boolean isLabelAlreadyUsed(String newValue) {
+  protected boolean isLabelAlreadyUsed(@NotNull String newValue) {
     return this.db.getAllTags().stream().anyMatch(tt -> tt.label().equals(newValue));
   }
 
@@ -155,9 +155,9 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
   }
 
   protected static class TagTypeEntry {
-    private final @Nullable TagType tagType;
+    private final TagType tagType;
 
-    protected TagTypeEntry(@Nullable TagType tagType) {
+    protected TagTypeEntry(TagType tagType) {
       this.tagType = tagType;
     }
 

@@ -1,5 +1,7 @@
 package net.darmo_creations.imageslibrary.data;
 
+import org.jetbrains.annotations.*;
+
 /**
  * This class indicates how to update a tag type in the database.
  *
@@ -10,7 +12,7 @@ package net.darmo_creations.imageslibrary.data;
  */
 public record TagTypeUpdate(
     int id,
-    String label,
+    @NotNull String label,
     char symbol,
     int color
 ) implements TagTypeLike {

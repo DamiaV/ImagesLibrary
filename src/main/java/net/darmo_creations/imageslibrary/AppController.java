@@ -12,6 +12,7 @@ import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.ui.*;
 import net.darmo_creations.imageslibrary.ui.dialogs.*;
 import net.darmo_creations.imageslibrary.utils.*;
+import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.nio.file.*;
@@ -60,7 +61,8 @@ public class AppController implements ResultsView.SearchListener {
    * @param db     The database.
    * @throws DatabaseOperationException If any database initialization error occurs.
    */
-  public AppController(Stage stage, Config config, DatabaseConnection db) throws DatabaseOperationException {
+  public AppController(@NotNull Stage stage, @NotNull Config config, @NotNull DatabaseConnection db)
+      throws DatabaseOperationException {
     this.stage = Objects.requireNonNull(stage);
     this.config = config;
     this.db = db;
@@ -106,7 +108,7 @@ public class AppController implements ResultsView.SearchListener {
     });
   }
 
-  private boolean isDragAndDropValid(final Dragboard dragboard) {
+  private boolean isDragAndDropValid(final @NotNull Dragboard dragboard) {
     return dragboard.hasFiles() && dragboard.getFiles().stream().allMatch(
         // Accept directories and files with valid extensions
         file -> file.isDirectory() || App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(file.toPath()).toLowerCase()));
@@ -366,7 +368,7 @@ public class AppController implements ResultsView.SearchListener {
     });
   }
 
-  private void loadFiles(final List<File> filesOrDirs) {
+  private void loadFiles(final @NotNull List<File> filesOrDirs) {
     // TODO
   }
 
@@ -374,7 +376,7 @@ public class AppController implements ResultsView.SearchListener {
     this.resultsView.searchTag(tag);
   }
 
-  private void onTagSelectionChange(final List<Tag> tags) {
+  private void onTagSelectionChange(final @NotNull List<Tag> tags) {
     this.selectedPictures.clear();
     this.selectedTags.clear();
     this.selectedTags.addAll(tags);
@@ -447,7 +449,7 @@ public class AppController implements ResultsView.SearchListener {
     System.out.println("image clicked: " + picture.path());
   }
 
-  private void onImageSelectionChange(final List<Picture> pictures) {
+  private void onImageSelectionChange(final @NotNull List<Picture> pictures) {
     this.selectedTags.clear();
     this.selectedPictures.clear();
     this.selectedPictures.addAll(pictures);

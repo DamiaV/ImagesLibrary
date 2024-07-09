@@ -37,7 +37,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
    *
    * @param tagType A tag type. May be null.
    */
-  public TagsTab(final Config config, @Nullable TagType tagType) {
+  public TagsTab(final @NotNull Config config, TagType tagType) {
     super(getTitle(tagType, 0, config.language()));
     this.config = config;
     this.tagType = tagType;
@@ -100,7 +100,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
    *
    * @param tags The tag entries to display.
    */
-  public void setTags(final Set<TagEntry> tags) {
+  public void setTags(final @NotNull Set<TagEntry> tags) {
     this.tagEntries.clear();
     this.tagEntries.addAll(tags);
     this.tagEntries.sort(Comparator.comparing(e -> e.tag().label()));
@@ -114,7 +114,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
    *
    * @param filter A filter.
    */
-  public void setFilter(@Nullable String filter) {
+  public void setFilter(String filter) {
     this.filteredList.setPredicate(item ->
         StringUtils.stripNullable(filter)
             .map(s -> item.tag().label().contains(s.toLowerCase()))
@@ -128,32 +128,32 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     this.tagsList.getSelectionModel().clearSelection();
   }
 
-  public void addTagClickListener(TagClickListener listener) {
+  public void addTagClickListener(@NotNull TagClickListener listener) {
     this.tagClickListeners.add(Objects.requireNonNull(listener));
   }
 
-  public void addTagSelectionListener(TagSelectionListener listener) {
+  public void addTagSelectionListener(@NotNull TagSelectionListener listener) {
     this.tagSelectionListeners.add(Objects.requireNonNull(listener));
   }
 
-  public void addEditTagTypeListener(EditTagTypeListener listener) {
+  public void addEditTagTypeListener(@NotNull EditTagTypeListener listener) {
     this.editTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
-  public void addDeleteTagTypeListener(DeleteTagTypeListener listener) {
+  public void addDeleteTagTypeListener(@NotNull DeleteTagTypeListener listener) {
     this.deleteTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
-  public void addCreateTagTypeListener(CreateTagTypeListener listener) {
+  public void addCreateTagTypeListener(@NotNull CreateTagTypeListener listener) {
     this.createTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
   @Override
-  public void onItemClick(TagEntry item) {
+  public void onItemClick(@NotNull TagEntry item) {
   }
 
   @Override
-  public void onItemDoubleClick(TagEntry tagEntry) {
+  public void onItemDoubleClick(@NotNull TagEntry tagEntry) {
     this.tagClickListeners.forEach(listener -> listener.onTagClick(tagEntry.tag()));
   }
 
@@ -166,7 +166,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     this.tagSelectionListeners.forEach(listener -> listener.onSelectionChanged(tags));
   }
 
-  private static String getTitle(@Nullable TagType tagType, int tagsCount, final Language language) {
+  private static String getTitle(TagType tagType, int tagsCount, final @NotNull Language language) {
     final String title;
     if (tagType == null)
       title = language.translate("tags_tab.no_type");
@@ -178,7 +178,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
   public static final class TagEntry extends HBox {
     private final Tag tag;
 
-    public TagEntry(Tag tag, int useCount, final Config config) {
+    public TagEntry(@NotNull Tag tag, int useCount, final @NotNull Config config) {
       this.tag = tag;
       final Label label = new Label();
       if (this.tag.definition().isPresent()) {

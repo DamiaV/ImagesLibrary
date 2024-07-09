@@ -1,5 +1,7 @@
 package net.darmo_creations.imageslibrary.themes;
 
+import org.jetbrains.annotations.*;
+
 import java.util.*;
 
 /**
@@ -47,7 +49,7 @@ public enum Icon {
 
   private final String baseName;
 
-  Icon(String baseName) {
+  Icon(@NotNull String baseName) {
     this.baseName = Objects.requireNonNull(baseName);
   }
 

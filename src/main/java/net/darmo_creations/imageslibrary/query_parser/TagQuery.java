@@ -29,8 +29,11 @@ public final class TagQuery {
    * @throws InvalidPseudoTagException If the formula contains a pseudo-tag
    *                                   that is not present in the {@code pseudoTags} map.
    */
-  public TagQuery(final Formula formula, final Map<String, PseudoTag> pseudoTags, final @Nullable Config config)
-      throws InvalidPseudoTagException {
+  public TagQuery(
+      final @NotNull Formula formula,
+      final @NotNull Map<String, PseudoTag> pseudoTags,
+      final Config config
+  ) throws InvalidPseudoTagException {
     this.config = config;
     this.formula = new FactorOutSimplifier().apply(formula, false);
     this.sql = this.toSql(this.formula, pseudoTags);
@@ -62,7 +65,7 @@ public final class TagQuery {
    * @param pseudoTags A map containing pseudo-tag definitions.
    * @return The SQL query for the given formula or null if the formula is false.
    */
-  private @Nullable String toSql(final Formula formula, final Map<String, PseudoTag> pseudoTags)
+  private @Nullable String toSql(final @NotNull Formula formula, final @NotNull Map<String, PseudoTag> pseudoTags)
       throws InvalidPseudoTagException {
     // Checking for CTrue and CFalse only here as the simplified formula should contain neither in any branch
     if (formula instanceof CTrue)
@@ -82,7 +85,7 @@ public final class TagQuery {
    * @param pseudoTags A map containing pseudo-tag definitions.
    * @return The SQL query for the given formula or null if the formula is false.
    */
-  private String toSql_(final Formula formula, final Map<String, PseudoTag> pseudoTags)
+  private String toSql_(final @NotNull Formula formula, final @NotNull Map<String, PseudoTag> pseudoTags)
       throws InvalidPseudoTagException {
     Objects.requireNonNull(formula);
 
@@ -138,7 +141,7 @@ public final class TagQuery {
    * @param pseudoTags A map containing pseudo-tag definitions.
    * @return The SQL query for the pseudo-tag.
    */
-  private String pseudoTagToSql(String text, final Map<String, PseudoTag> pseudoTags)
+  private String pseudoTagToSql(@NotNull String text, final @NotNull Map<String, PseudoTag> pseudoTags)
       throws InvalidPseudoTagException {
     final var parts = text.split(":", 4);
     if (parts.length == 2)
@@ -147,8 +150,8 @@ public final class TagQuery {
   }
 
   private String parseBooleanPseudoTag(
-      final Map<String, PseudoTag> pseudoTags,
-      String tagName
+      final @NotNull Map<String, PseudoTag> pseudoTags,
+      @NotNull String tagName
   ) throws InvalidPseudoTagException {
     final PseudoTag t = pseudoTags.get(tagName);
     if (t == null)
@@ -159,18 +162,18 @@ public final class TagQuery {
   }
 
   private String parsePseudoTag(
-      final Map<String, PseudoTag> pseudoTags,
-      String tagName,
-      String tagFlags,
-      String tagPattern,
-      String tagType
+      final @NotNull Map<String, PseudoTag> pseudoTags,
+      @NotNull String tagName,
+      @NotNull String tagFlags,
+      @NotNull String tagPattern,
+      @NotNull String tagType
   ) throws InvalidPseudoTagException {
     final PseudoTag t = pseudoTags.get(tagName);
     if (t == null)
       throw new InvalidPseudoTagException(tagName, tagName);
     if (!(t instanceof PatternPseudoTag tag))
       throw new InvalidPseudoTagException(tagName, tagName);
-    if (!"".equals(tagFlags) && !tag.acceptsRegex())
+    if (!tagFlags.isEmpty() && !tag.acceptsRegex())
       throw new InvalidPseudoTagException("Pseudo-tag %s does not accept flags".formatted(tagName), tagName);
     checkPseudoTagFlags(tagName, tagFlags);
 
@@ -209,7 +212,8 @@ public final class TagQuery {
         : tag.sqlTemplate().formatted(escaped);
   }
 
-  private static void checkPseudoTagFlags(String pseudoTag, String flags) throws InvalidPseudoTagException {
+  private static void checkPseudoTagFlags(@NotNull String pseudoTag, @NotNull String flags)
+      throws InvalidPseudoTagException {
     for (int i = 0; i < flags.length(); i++) {
       final char flag = flags.charAt(i);
       if (!PatternPseudoTag.FLAGS.contains(flag))
@@ -226,10 +230,10 @@ public final class TagQuery {
    * @return The constructed SQL query.
    */
   private String joinOperands(
-      final NAryOperator operator,
-      final Map<String, PseudoTag> pseudoTags,
+      final @NotNull NAryOperator operator,
+      final @NotNull Map<String, PseudoTag> pseudoTags,
       @Language(value = "sqlite", prefix = "(SELECT * FROM table) ", suffix = " (SELECT * FROM table)")
-      String joinerKeyword
+      @NotNull String joinerKeyword
   ) throws InvalidPseudoTagException {
     final var query = new StringJoiner(
         "\n%s\n".formatted(joinerKeyword),

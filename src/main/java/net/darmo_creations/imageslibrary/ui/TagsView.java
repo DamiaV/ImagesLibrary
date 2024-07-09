@@ -37,10 +37,10 @@ public class TagsView extends VBox {
    * @param tagTypes   A view to the available tag types.
    */
   public TagsView(
-      final Config config,
-      final Set<Tag> tags,
-      final Map<Integer, Integer> tagsCounts,
-      final Set<TagType> tagTypes
+      final @NotNull Config config,
+      final @NotNull Set<Tag> tags,
+      final @NotNull Map<Integer, Integer> tagsCounts,
+      final @NotNull Set<TagType> tagTypes
   ) {
     this.config = config;
     this.tags = Objects.requireNonNull(tags);
@@ -120,30 +120,30 @@ public class TagsView extends VBox {
    *
    * @param tagType A tag type. May be null.
    */
-  public void selectTagType(@Nullable TagType tagType) {
+  public void selectTagType(TagType tagType) {
     this.tabPane.getTabs().stream()
         .filter(tab -> ((TagsTab) tab).tagType().map(tt -> tagType != null && tt.id() == tagType.id()).orElse(tagType == null))
         .findFirst()
         .ifPresent(tab -> this.tabPane.getSelectionModel().select(tab));
   }
 
-  public void addTagClickListener(TagClickListener listener) {
+  public void addTagClickListener(@NotNull TagClickListener listener) {
     this.tagClickListeners.add(Objects.requireNonNull(listener));
   }
 
-  public void addTagSelectionListener(TagSelectionListener listener) {
+  public void addTagSelectionListener(@NotNull TagSelectionListener listener) {
     this.tagSelectionListeners.add(Objects.requireNonNull(listener));
   }
 
-  public void addEditTagTypeListener(EditTagTypeListener listener) {
+  public void addEditTagTypeListener(@NotNull EditTagTypeListener listener) {
     this.editTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
-  public void addDeleteTagTypeListener(DeleteTagTypeListener listener) {
+  public void addDeleteTagTypeListener(@NotNull DeleteTagTypeListener listener) {
     this.deleteTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
-  public void addCreateTagTypeListener(CreateTagTypeListener listener) {
+  public void addCreateTagTypeListener(@NotNull CreateTagTypeListener listener) {
     this.createTagTypeListeners.add(Objects.requireNonNull(listener));
   }
 
@@ -152,7 +152,7 @@ public class TagsView extends VBox {
    *
    * @param text The filter text.
    */
-  private void onSearchFilterChange(String text) {
+  private void onSearchFilterChange(@NotNull String text) {
     final var filter = StringUtils.stripNullable(text);
     this.clearSearchButton.setDisable(filter.isEmpty());
     this.tabPane.getTabs()
@@ -163,19 +163,19 @@ public class TagsView extends VBox {
     this.tabPane.getTabs().forEach(tab -> ((TagsTab) tab).deselectAll());
   }
 
-  private void onTagClick(Tag tag) {
+  private void onTagClick(@NotNull Tag tag) {
     this.tagClickListeners.forEach(listener -> listener.onTagClick(tag));
   }
 
-  private void onTagSelectionChange(final List<Tag> tags) {
+  private void onTagSelectionChange(final @NotNull List<Tag> tags) {
     this.tagSelectionListeners.forEach(listener -> listener.onSelectionChanged(tags));
   }
 
-  private void onEditTagType(TagType tagType) {
+  private void onEditTagType(@NotNull TagType tagType) {
     this.editTagTypeListeners.forEach(listener -> listener.onEditTagType(tagType));
   }
 
-  private void onDeleteTagType(TagType tagType) {
+  private void onDeleteTagType(@NotNull TagType tagType) {
     this.deleteTagTypeListeners.forEach(listener -> listener.onDeleteTagType(tagType));
   }
 

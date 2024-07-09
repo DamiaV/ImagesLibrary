@@ -4,6 +4,7 @@ import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.utils.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -19,7 +20,7 @@ public class EditTagTypeDialog extends EditTagTypeDialogBase {
    * @param config The app’s configuration.
    * @param db     The database to update tag types from.
    */
-  public EditTagTypeDialog(Config config, DatabaseConnection db) {
+  public EditTagTypeDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
     super("edit_tag_type", config, db);
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton()) {
@@ -40,7 +41,7 @@ public class EditTagTypeDialog extends EditTagTypeDialogBase {
     });
   }
 
-  public void setTagType(TagType tagType) {
+  public void setTagType(@NotNull TagType tagType) {
     this.tagType = tagType;
     this.labelField.setText(tagType.label());
     this.symbolField.setText(String.valueOf(tagType.symbol()));
@@ -50,12 +51,12 @@ public class EditTagTypeDialog extends EditTagTypeDialogBase {
   }
 
   @Override
-  protected boolean isLabelAlreadyUsed(String newValue) {
+  protected boolean isLabelAlreadyUsed(@NotNull String newValue) {
     return this.db.getAllTagTypes().stream().anyMatch(tt -> tt.id() != this.tagType.id() && tt.label().equals(newValue));
   }
 
   @Override
-  protected boolean isSymbolAlreadyUsed(String newValue) {
+  protected boolean isSymbolAlreadyUsed(@NotNull String newValue) {
     return this.db.getAllTagTypes().stream().anyMatch(tt -> tt.id() != this.tagType.id() && tt.symbol() == newValue.charAt(0));
   }
 

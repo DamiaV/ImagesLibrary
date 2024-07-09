@@ -1,5 +1,7 @@
 package net.darmo_creations.imageslibrary.data;
 
+import org.jetbrains.annotations.*;
+
 import java.util.*;
 
 /**
@@ -19,7 +21,7 @@ public final class TagType extends DatabaseObject implements TagTypeLike {
    * @param color  The tag type’s color.
    * @throws IllegalArgumentException If the symbol is invalid.
    */
-  TagType(int id, String label, char symbol, int color) {
+  TagType(int id, @NotNull String label, char symbol, int color) {
     super(id);
     this.setLabel(label);
     this.setSymbol(symbol);
@@ -40,7 +42,7 @@ public final class TagType extends DatabaseObject implements TagTypeLike {
    * @param label The new label.
    * @throws IllegalArgumentException If the label is invalid.
    */
-  void setLabel(String label) {
+  void setLabel(@NotNull String label) {
     TagTypeLike.ensureValidLabel(label);
     this.label = label;
   }

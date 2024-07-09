@@ -1,5 +1,7 @@
 package net.darmo_creations.imageslibrary.data;
 
+import org.jetbrains.annotations.*;
+
 import java.util.*;
 
 /**
@@ -12,7 +14,7 @@ import java.util.*;
  *                     otherwise, this pseudo-tag may only accept string literals.
  */
 public record PatternPseudoTag(
-    @SQLite String sqlTemplate,
+    @SQLite @NotNull String sqlTemplate,
     boolean acceptsRegex
 ) implements PseudoTag {
   public static final char CASE_SENSITIVE_FLAG = 's';

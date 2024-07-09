@@ -17,17 +17,17 @@ import java.util.*;
  */
 public record PictureUpdate(
     int id,
-    Path path,
-    Hash hash,
-    Set<Pair<@Nullable TagType, String>> tagsToAdd,
-    Set<Tag> tagsToRemove
+    @NotNull Path path,
+    @NotNull Hash hash,
+    @NotNull Set<Pair<@Nullable TagType, String>> tagsToAdd,
+    @NotNull Set<Tag> tagsToRemove
 ) implements PictureLike {
   public PictureUpdate(
       int id,
-      Path path,
-      Hash hash,
-      Set<Pair<@Nullable TagType, String>> tagsToAdd,
-      Set<Tag> tagsToRemove
+      @NotNull Path path,
+      @NotNull Hash hash,
+      @NotNull Set<Pair<@Nullable TagType, String>> tagsToAdd,
+      @NotNull Set<Tag> tagsToRemove
   ) {
     this.id = id;
     this.path = path.toAbsolutePath();

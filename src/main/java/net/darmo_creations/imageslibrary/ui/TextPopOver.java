@@ -6,6 +6,7 @@ import javafx.scene.control.*;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.config.*;
 import org.controlsfx.control.*;
+import org.jetbrains.annotations.*;
 
 /**
  * {@link PopOver} subclass that contains text.
@@ -20,7 +21,7 @@ public class TextPopOver extends PopOver {
    * @param arrowLocation The position of the arrow.
    * @param config        The current config.
    */
-  public TextPopOver(PopOver.ArrowLocation arrowLocation, final Config config) {
+  public TextPopOver(@NotNull PopOver.ArrowLocation arrowLocation, final @NotNull Config config) {
     this.label = new Label();
     this.label.setPadding(new Insets(5));
     this.setContentNode(this.label);

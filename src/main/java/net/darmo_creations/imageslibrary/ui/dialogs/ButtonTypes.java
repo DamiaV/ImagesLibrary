@@ -66,6 +66,12 @@ public final class ButtonTypes {
   public static final ButtonType PREVIOUS = new ButtonType(
       RES.getString("dialog.previous.button"), ButtonType.PREVIOUS.getButtonData());
 
+  /**
+   * Localized “Skip” button.
+   */
+  public static final ButtonType SKIP = new ButtonType(
+      RES.getString("dialog.skip.button"), ButtonBar.ButtonData.NEXT_FORWARD);
+
   private ButtonTypes() {
   }
 }

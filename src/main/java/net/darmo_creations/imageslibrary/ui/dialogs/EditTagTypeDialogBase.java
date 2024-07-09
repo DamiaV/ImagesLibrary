@@ -8,6 +8,7 @@ import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.ui.*;
 import org.controlsfx.control.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -26,7 +27,7 @@ public abstract class EditTagTypeDialogBase extends DialogBase<TagType> {
 
   protected final DatabaseConnection db;
 
-  protected EditTagTypeDialogBase(String name, Config config, DatabaseConnection db) {
+  protected EditTagTypeDialogBase(@NotNull String name, @NotNull Config config, @NotNull DatabaseConnection db) {
     super(name, false, config, ButtonTypes.OK, ButtonTypes.CANCEL);
     this.db = db;
 
@@ -97,11 +98,11 @@ public abstract class EditTagTypeDialogBase extends DialogBase<TagType> {
     );
   }
 
-  protected boolean isLabelAlreadyUsed(String newValue) {
+  protected boolean isLabelAlreadyUsed(@NotNull String newValue) {
     return this.db.getAllTagTypes().stream().anyMatch(tt -> tt.label().equals(newValue));
   }
 
-  protected boolean isSymbolAlreadyUsed(String newValue) {
+  protected boolean isSymbolAlreadyUsed(@NotNull String newValue) {
     return this.db.getAllTagTypes().stream().anyMatch(tt -> tt.symbol() == newValue.charAt(0));
   }
 
@@ -128,7 +129,7 @@ public abstract class EditTagTypeDialogBase extends DialogBase<TagType> {
     return Color.rgb(color >> 16 & 0xff, color >> 8 & 0xff, color & 0xff);
   }
 
-  protected static int colorToInt(Color color) {
+  protected static int colorToInt(@NotNull Color color) {
     final int r = (int) Math.round(color.getRed() * 255);
     final int g = (int) Math.round(color.getGreen() * 255);
     final int b = (int) Math.round(color.getBlue() * 255);

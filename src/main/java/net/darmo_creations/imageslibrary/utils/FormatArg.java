@@ -12,7 +12,7 @@ import java.util.*;
  * @param name  Argument’s name.
  * @param value Argument’s value.
  */
-public record FormatArg(String name, @Nullable Object value) {
+public record FormatArg(@NotNull String name, Object value) {
   public FormatArg {
     Objects.requireNonNull(name);
   }

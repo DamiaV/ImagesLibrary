@@ -15,6 +15,7 @@ import net.darmo_creations.imageslibrary.ui.dialogs.*;
 import net.darmo_creations.imageslibrary.ui.syntax_highlighting.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.controlsfx.control.*;
+import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.nio.file.*;
@@ -38,7 +39,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final ImagePreviewPane imagePreviewPane;
   private final TextPopOver popup;
 
-  public ResultsView(Config config, final DatabaseConnection db) {
+  public ResultsView(@NotNull Config config, final @NotNull DatabaseConnection db) {
     super(5);
     this.config = config;
     this.db = db;
@@ -166,7 +167,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    *
    * @param tag The tag to insert.
    */
-  public void searchTag(Tag tag) {
+  public void searchTag(@NotNull Tag tag) {
     this.searchField.setText(tag.label());
     this.searchField.requestFocus();
     this.search();
@@ -175,21 +176,21 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   /**
    * Add a listener that will be notified whenever an image item is double-clicked.
    */
-  public void addImageClickListener(ImageClickListener listener) {
+  public void addImageClickListener(@NotNull ImageClickListener listener) {
     this.imageClickListeners.add(Objects.requireNonNull(listener));
   }
 
   /**
    * Add a listener that will be notified whenever the list’s selection changes.
    */
-  public void addImageSelectionListener(ImageSelectionListener listener) {
+  public void addImageSelectionListener(@NotNull ImageSelectionListener listener) {
     this.imageSelectionListeners.add(Objects.requireNonNull(listener));
   }
 
   /**
    * Add a listener that will be notified whenever a tag search starts, ends or fails.
    */
-  public void addSearchListener(SearchListener listener) {
+  public void addSearchListener(@NotNull SearchListener listener) {
     this.searchListeners.add(Objects.requireNonNull(listener));
   }
 
@@ -219,7 +220,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    *
    * @param pictures The images to show.
    */
-  public void listImages(final Collection<Picture> pictures) {
+  public void listImages(final @NotNull Collection<Picture> pictures) {
     final Language language = this.config.language();
     final int count = pictures.size();
 
@@ -289,7 +290,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.performSearch(() -> this.db.queryPictures(tagQuery));
   }
 
-  private void performSearch(Search search) {
+  private void performSearch(@NotNull Search search) {
     this.searchListeners.forEach(SearchListener::onSearchStart);
     new Thread(() -> {
       final Set<Picture> pictures;
@@ -310,12 +311,12 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     Set<Picture> run() throws DatabaseOperationException;
   }
 
-  private void showPopup(String text) {
+  private void showPopup(@NotNull String text) {
     this.popup.setText(text);
     this.popup.show(this.searchField);
   }
 
-  private void onSearchEnd(final Set<Picture> pictures) {
+  private void onSearchEnd(final @NotNull Set<Picture> pictures) {
     this.listImages(pictures);
     this.searchListeners.forEach(listener -> listener.onSearchEnd(pictures.size()));
     this.searchField.requestFocus();
@@ -327,11 +328,11 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   @Override
-  public void onItemClick(PictureEntry item) {
+  public void onItemClick(@NotNull PictureEntry item) {
   }
 
   @Override
-  public void onItemDoubleClick(PictureEntry pictureEntry) {
+  public void onItemDoubleClick(@NotNull PictureEntry pictureEntry) {
     this.imageClickListeners.forEach(listener -> listener.onImageClick(pictureEntry.picture()));
   }
 
@@ -349,7 +350,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     private final Picture picture;
     private final Set<Tag> tags;
 
-    public PictureEntry(Picture picture, final Set<Tag> tags, final Config config) {
+    public PictureEntry(@NotNull Picture picture, final @NotNull Set<Tag> tags, final @NotNull Config config) {
       super(5);
       this.picture = picture;
       this.tags = tags;
@@ -394,7 +395,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
      *
      * @param picture The clicked image.
      */
-    void onImageClick(Picture picture);
+    void onImageClick(@NotNull Picture picture);
   }
 
   @FunctionalInterface
@@ -404,7 +405,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
      *
      * @param pictures The selected pictures.
      */
-    void onSelectionChange(List<Picture> pictures);
+    void onSelectionChange(@NotNull List<Picture> pictures);
   }
 
   public interface SearchListener {

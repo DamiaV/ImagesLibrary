@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.ui.syntax_highlighting;
 
 import net.darmo_creations.imageslibrary.ui.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -19,5 +20,5 @@ public interface SyntaxHighlighter {
    * @param text The text to parse.
    * @return A list of {@link Span} objects.
    */
-  Collection<Span> highlight(String text);
+  Collection<Span> highlight(@NotNull String text);
 }

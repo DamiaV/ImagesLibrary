@@ -33,7 +33,7 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
   @Nullable
   private Picture picture;
 
-  public ImagePreviewPane(final Config config) {
+  public ImagePreviewPane(final @NotNull Config config) {
     super(5);
     this.config = config;
     this.setMinWidth(300);
@@ -64,7 +64,8 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     tagsLabelBox.getStyleClass().add("section-title");
     tagsLabelBox.setAlignment(Pos.CENTER);
 
-    this.editTagsButton.setOnAction(e -> this.editTagsListeners.forEach(listener -> listener.onEditTags(this.picture)));
+    this.editTagsButton.setOnAction(e -> this.editTagsListeners.forEach(
+        listener -> listener.onEditTags(Objects.requireNonNull(this.picture))));
     this.editTagsButton.setTooltip(new Tooltip(language.translate("image_preview.section.tags.edit_tags_button")));
     this.editTagsButton.setGraphic(theme.getIcon(Icon.EDIT_TAGS, Icon.Size.SMALL));
     this.editTagsButton.setDisable(true);
@@ -90,7 +91,7 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
    * @param left      Whether this component is to the left (true) or right (false) of the splitpane’s divider.
    */
   @SuppressWarnings("SameParameterValue")
-  public void setSplitPane(SplitPane splitPane, boolean left) {
+  public void setSplitPane(@NotNull SplitPane splitPane, boolean left) {
     // Cf. https://stackoverflow.com/a/47226681/3779986
     DoubleExpression posProp = splitPane.getDividers().get(0).positionProperty();
     if (!left) // Compute 1 - pos
@@ -105,7 +106,7 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
    * @param tags    The tags for the image.
    */
   @Contract("!null, null -> fail")
-  public void setImage(@Nullable Picture picture, @Nullable Set<Tag> tags) {
+  public void setImage(Picture picture, Set<Tag> tags) {
     if (picture != null)
       Objects.requireNonNull(tags);
     this.picture = picture;
@@ -143,15 +144,15 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     this.openInExplorerButton.setDisable(noPicture);
   }
 
-  public void addTagClickListener(TagClickListener listener) {
+  public void addTagClickListener(@NotNull TagClickListener listener) {
     this.tagClickListeners.add(Objects.requireNonNull(listener));
   }
 
-  public void addEditTagsListener(EditTagsListener listener) {
+  public void addEditTagsListener(@NotNull EditTagsListener listener) {
     this.editTagsListeners.add(Objects.requireNonNull(listener));
   }
 
-  private void displayMetadata(Path path, Image image) {
+  private void displayMetadata(@NotNull Path path, @NotNull Image image) {
     long size = -1;
     try {
       size = Files.size(path);
@@ -177,18 +178,18 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
   }
 
   @Override
-  public void onItemClick(TagEntry item) {
+  public void onItemClick(@NotNull TagEntry item) {
   }
 
   @Override
-  public void onItemDoubleClick(TagEntry item) {
+  public void onItemDoubleClick(@NotNull TagEntry item) {
     this.tagClickListeners.forEach(listener -> listener.onTagClick(item.tag()));
   }
 
   static class TagEntry extends HBox {
     private final Tag tag;
 
-    private TagEntry(Tag tag) {
+    private TagEntry(@NotNull Tag tag) {
       this.tag = Objects.requireNonNull(tag);
       final Label label = new Label(tag.label());
       tag.type().ifPresent(tagType -> {
@@ -204,6 +205,6 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
   }
 
   public interface EditTagsListener {
-    void onEditTags(Picture picture);
+    void onEditTags(@NotNull Picture picture);
   }
 }

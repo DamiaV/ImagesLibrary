@@ -8,6 +8,7 @@ import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.ui.*;
 import net.darmo_creations.imageslibrary.utils.*;
+import org.jetbrains.annotations.*;
 
 import java.io.*;
 import java.nio.file.*;
@@ -28,7 +29,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
    *
    * @param config The app’s configuration.
    */
-  public SettingsDialog(Config config) {
+  public SettingsDialog(@NotNull Config config) {
     super("settings", false, config, ButtonTypes.OK, ButtonTypes.CANCEL);
 
     final VBox content = new VBox(
@@ -147,17 +148,17 @@ public class SettingsDialog extends DialogBase<ButtonType> {
     return !this.localConfig.equals(this.initialConfig) ? ChangeType.NO_RESTART_NEEDED : ChangeType.NONE;
   }
 
-  private void onLanguageSelect(Language newValue) {
+  private void onLanguageSelect(@NotNull Language newValue) {
     this.localConfig = this.localConfig.withLanguage(newValue);
     this.updateState();
   }
 
-  private void onThemeSelect(Theme newValue) {
+  private void onThemeSelect(@NotNull Theme newValue) {
     this.localConfig = this.localConfig.withTheme(newValue);
     this.updateState();
   }
 
-  private void onDatabaseFileSelect(Path newValue) {
+  private void onDatabaseFileSelect(@NotNull Path newValue) {
     this.localConfig = this.localConfig.withDatabaseFile(newValue);
     this.updateState();
   }

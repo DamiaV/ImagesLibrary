@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.ui;
 
 import net.darmo_creations.imageslibrary.data.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -11,5 +12,5 @@ public interface TagSelectionListener {
    *
    * @param tags The selected tags.
    */
-  void onSelectionChanged(List<Tag> tags);
+  void onSelectionChanged(@NotNull List<Tag> tags);
 }

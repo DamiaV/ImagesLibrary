@@ -39,7 +39,7 @@ public record Hash(long bytes) {
    * @return A {@link Similarity} object that contains the computed Hamming distance and confidence index.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Similarity computeSimilarity(Hash other) {
+  public Similarity computeSimilarity(@NotNull Hash other) {
     final long dist = this.hammingDistance(other);
     final float confidence;
     if (dist <= SIM_DIST_THRESHOLD)
@@ -56,7 +56,7 @@ public record Hash(long bytes) {
    * @return The Hamming distance.
    */
   @Contract(pure = true)
-  private int hammingDistance(Hash other) {
+  private int hammingDistance(@NotNull Hash other) {
     final String thisBin = to64BitsString(this);
     final String thatBin = to64BitsString(other);
     int distCounter = 0;
@@ -74,7 +74,7 @@ public record Hash(long bytes) {
    * @return The 64-bit binary string representation of the hash.
    */
   @Contract(pure = true, value = "_ -> new")
-  private static String to64BitsString(Hash hash) {
+  private static String to64BitsString(@NotNull Hash hash) {
     return "%64s".formatted(Long.toBinaryString(hash.bytes())).replace(' ', '0');
   }
 
@@ -88,7 +88,7 @@ public record Hash(long bytes) {
    * @throws IOException If any file error occurs.
    */
   @Contract(pure = true, value = "_ -> new")
-  public static Hash computeForFile(final Path file) throws IOException {
+  public static Hash computeForFile(final @NotNull Path file) throws IOException {
     @Nullable
     final var image = ImageIO.read(file.toFile());
     if (image == null)
@@ -105,7 +105,7 @@ public record Hash(long bytes) {
    * @return A new grayscale image version of the given image.
    */
   @Contract(pure = true, value = "_ -> new")
-  private static BufferedImage toGrayscale(final BufferedImage image) {
+  private static BufferedImage toGrayscale(final @NotNull BufferedImage image) {
     final int width = image.getWidth();
     final int height = image.getHeight();
     final var grayscale = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
@@ -126,7 +126,7 @@ public record Hash(long bytes) {
    * @return A new image.
    */
   @Contract(pure = true, value = "_ -> new")
-  private static BufferedImage resizeTo9By8(final BufferedImage image) {
+  private static BufferedImage resizeTo9By8(final @NotNull BufferedImage image) {
     final int w = 9, h = 8;
     final var resizedImage = new BufferedImage(w, h, image.getType());
     resizedImage.getGraphics().drawImage(image.getScaledInstance(w, h, Image.SCALE_DEFAULT), 0, 0, null);
@@ -140,7 +140,7 @@ public record Hash(long bytes) {
    * @return The dHash for the image.
    */
   @Contract(pure = true)
-  private static long computeDifferenceHash(final BufferedImage image) {
+  private static long computeDifferenceHash(final @NotNull BufferedImage image) {
     final int width = image.getWidth();
     final int height = image.getHeight();
     if (width != 9 || height != 8)

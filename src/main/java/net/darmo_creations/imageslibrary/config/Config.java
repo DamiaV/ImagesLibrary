@@ -121,7 +121,7 @@ public final class Config implements Cloneable {
    * @param locale A locale.
    * @return The locale’s resources.
    */
-  private static ResourceBundle getResourceBundle(Locale locale) {
+  private static ResourceBundle getResourceBundle(@NotNull Locale locale) {
     return ResourceBundle.getBundle(
         App.RESOURCES_ROOT.substring(1).replace('/', '.') + "translations.ui",
         locale
@@ -157,9 +157,9 @@ public final class Config implements Cloneable {
    * @param debug                         Whether to run the app in debug mode.
    */
   public Config(
-      Language language,
-      Theme theme,
-      Path databaseFile,
+      @NotNull Language language,
+      @NotNull Theme theme,
+      @NotNull Path databaseFile,
       boolean caseSensitiveQueriesByDefault,
       boolean querySyntaxHighlighting,
       boolean debug
@@ -247,7 +247,7 @@ public final class Config implements Cloneable {
    * @return A new configuration object.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Config withLanguage(Language language) {
+  public Config withLanguage(@NotNull Language language) {
     return new Config(
         language,
         this.theme,
@@ -265,7 +265,7 @@ public final class Config implements Cloneable {
    * @return A new configuration object.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Config withTheme(Theme theme) {
+  public Config withTheme(@NotNull Theme theme) {
     return new Config(
         this.language,
         theme,
@@ -283,7 +283,7 @@ public final class Config implements Cloneable {
    * @return A new configuration object.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Config withDatabaseFile(Path path) {
+  public Config withDatabaseFile(@NotNull Path path) {
     return new Config(
         this.language,
         this.theme,

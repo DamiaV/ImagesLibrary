@@ -42,9 +42,9 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
    * @param syntaxHighlighter An optional syntax highlighter that will color the text.
    */
   public AutoCompleteTextField(
-      final Set<T> entries,
-      Function<T, String> stringConverter,
-      @Nullable SyntaxHighlighter syntaxHighlighter
+      final @NotNull Set<T> entries,
+      @NotNull Function<T, String> stringConverter,
+      SyntaxHighlighter syntaxHighlighter
   ) {
     this.setSyntaxHighlighter(syntaxHighlighter);
     EventStreams.nonNullValuesOf(this.caretBoundsProperty()).subscribe(opt -> {
@@ -95,7 +95,7 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
           .forEach(span -> this.setStyleClass(span.start(), span.end() + 1, span.cssClass()));
   }
 
-  public void setSyntaxHighlighter(@Nullable SyntaxHighlighter syntaxHighlighter) {
+  public void setSyntaxHighlighter(SyntaxHighlighter syntaxHighlighter) {
     this.syntaxHighlighter = syntaxHighlighter;
     if (this.previousHighlightClass != null)
       this.getStyleClass().remove(this.previousHighlightClass);
@@ -107,7 +107,7 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
   }
 
   @Override
-  public void setText(String text) {
+  public void setText(@NotNull String text) {
     if (text.equals(this.getText()))
       super.setText(""); // Force update to properly refresh highlighting within dialogs
     super.setText(text);
@@ -122,7 +122,11 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
     this.entriesPopup.hide();
   }
 
-  private void fillAndShowSuggestions(final Set<T> entries, Function<T, String> stringConverter, int caretIndex) {
+  private void fillAndShowSuggestions(
+      final @NotNull Set<T> entries,
+      @NotNull Function<T, String> stringConverter,
+      int caretIndex
+  ) {
     final String text = this.getText();
     final String beforeCaret = text.substring(0, caretIndex);
     final String wordBegining = beforeCaret.substring(beforeCaret.lastIndexOf(' ') + 1);
@@ -146,7 +150,7 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
    *
    * @param suggestions The set of suggestions.
    */
-  private void populatePopup(final List<String> suggestions) {
+  private void populatePopup(final @NotNull List<String> suggestions) {
     this.entriesPopup.getItems().clear();
     suggestions.stream()
         .limit(MAX_SHOWN_SUGGESTIONS)
@@ -154,7 +158,7 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
         .forEach(this.entriesPopup.getItems()::add);
   }
 
-  private MenuItem newMenuItem(String suggestion) {
+  private MenuItem newMenuItem(@NotNull String suggestion) {
     final CustomMenuItem item = new CustomMenuItem(new Label(suggestion), true);
     item.setOnAction(actionEvent -> {
       final String text = this.getText();

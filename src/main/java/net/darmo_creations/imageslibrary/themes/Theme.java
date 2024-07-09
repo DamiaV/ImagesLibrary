@@ -62,7 +62,7 @@ public final class Theme {
    * @param id ID of the theme to fetch.
    * @return The theme.
    */
-  public static Optional<Theme> getTheme(String id) {
+  public static Optional<Theme> getTheme(@NotNull String id) {
     return Optional.ofNullable(THEMES.get(id));
   }
 
@@ -84,7 +84,7 @@ public final class Theme {
    * @param id   Theme’s ID.
    * @param name Theme’s name.
    */
-  private Theme(String id, String name) {
+  private Theme(@NotNull String id, @NotNull String name) {
     this.id = Objects.requireNonNull(id);
     this.name = Objects.requireNonNull(name);
   }
@@ -110,7 +110,7 @@ public final class Theme {
    * @param size Icon’s size.
    * @return An {@link ImageView} object or null if the icon could not be loaded.
    */
-  public @Nullable ImageView getIcon(Icon icon, Icon.Size size) {
+  public @Nullable ImageView getIcon(@NotNull Icon icon, @NotNull Icon.Size size) {
     final Image image = this.getIconImage(icon, size);
     return image != null ? new ImageView(image) : null;
   }
@@ -122,7 +122,7 @@ public final class Theme {
    * @param size Icon’s size.
    * @return An {@link Image} object or null if the icon could not be loaded.
    */
-  public @Nullable Image getIconImage(Icon icon, Icon.Size size) {
+  public @Nullable Image getIconImage(@NotNull Icon icon, @NotNull Icon.Size size) {
     final String path = "%s%s_%d.png".formatted(ICONS_PATH, icon.baseName(), size.pixels());
     try (final var stream = this.getClass().getResourceAsStream(path)) {
       if (stream == null) {
@@ -156,7 +156,7 @@ public final class Theme {
    *
    * @param scene The scene to apply this theme to.
    */
-  public void applyTo(Scene scene) {
+  public void applyTo(@NotNull Scene scene) {
     this.getStyleSheets().forEach(path -> scene.getStylesheets().add(path.toExternalForm()));
   }
 
@@ -165,7 +165,7 @@ public final class Theme {
    *
    * @param parent The {@link Parent} object to apply this theme to.
    */
-  public void applyTo(Parent parent) {
+  public void applyTo(@NotNull Parent parent) {
     this.getStyleSheets().forEach(path -> parent.getStylesheets().add(path.toExternalForm()));
   }
 
@@ -185,7 +185,7 @@ public final class Theme {
    * @param name Stylesheet’s name.
    * @return The URL.
    */
-  private Optional<URL> getStyleSheet(String name) {
+  private Optional<URL> getStyleSheet(@NotNull String name) {
     final String path = "%s%s.css".formatted(THEMES_PATH, name);
     return Optional.ofNullable(this.getClass().getResource(path));
   }

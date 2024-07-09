@@ -105,7 +105,7 @@ public final class DatabaseConnection implements AutoCloseable {
    *             If null, the database will be loaded in-memory only.
    * @throws DatabaseOperationException If the file exists but is not a database file or is incompatible.
    */
-  public DatabaseConnection(@Nullable Path file) throws DatabaseOperationException {
+  public DatabaseConnection(Path file) throws DatabaseOperationException {
     final String fileName = file == null ? ":memory:" : file.toString();
     this.logger = LoggerFactory.getLogger("DB (%s)".formatted(fileName));
     this.logger.info("Connecting to database file at {}", fileName);
@@ -254,7 +254,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param tagTypeUpdates The list of tag types to insert.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public void insertTagTypes(final Set<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationException {
+  public void insertTagTypes(final @NotNull Set<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationException {
     final List<Pair<Integer, TagTypeUpdate>> generatedIds = new LinkedList<>();
 
     try (final var statement = this.connection.prepareStatement(INSERT_TAG_TYPES_QUERY, Statement.RETURN_GENERATED_KEYS)) {
@@ -308,7 +308,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param tagTypeUpdates The list of tag type updates to perform.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public void updateTagTypes(final Set<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationException {
+  public void updateTagTypes(final @NotNull Set<TagTypeUpdate> tagTypeUpdates) throws DatabaseOperationException {
     try (final var statement = this.connection.prepareStatement(UPDATE_TAG_TYPES_QUERY)) {
       int i = 1;
       for (final var tagTypeUpdate : tagTypeUpdates) {
@@ -346,7 +346,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param tagTypes The set of tag types to delete.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public void deleteTagTypes(final Set<TagType> tagTypes) throws DatabaseOperationException {
+  public void deleteTagTypes(final @NotNull Set<TagType> tagTypes) throws DatabaseOperationException {
     this.deleteObjects(tagTypes, "tag_types");
     // Update caches
     for (final var tagType : tagTypes) {
@@ -396,7 +396,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param tagUpdates The list of tags to insert.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public void insertTags(final Set<TagUpdate> tagUpdates) throws DatabaseOperationException {
+  public void insertTags(final @NotNull Set<TagUpdate> tagUpdates) throws DatabaseOperationException {
     final List<Integer> generatedIds;
     final List<TagUpdate> updates = new ArrayList<>(tagUpdates);
     try {
@@ -431,7 +431,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @return The list of generated IDs for each {@link TagUpdate} object, in the same order.
    * @throws SQLException If a tag with the same label already exists in the database, or any database error occurs.
    */
-  private List<Integer> insertTagsNoCommit(final List<TagUpdate> tagUpdates) throws SQLException {
+  private List<Integer> insertTagsNoCommit(final @NotNull List<TagUpdate> tagUpdates) throws SQLException {
     final List<Integer> generatedIds = new LinkedList<>();
     try (final var statement = this.connection.prepareStatement(INSERT_TAGS_QUERY, Statement.RETURN_GENERATED_KEYS)) {
       for (final var tagUpdate : tagUpdates) {
@@ -458,7 +458,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param tagUpdates The list of tag updates to perform. Updates are performed in the order of the list.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public void updateTags(final Set<TagUpdate> tagUpdates) throws DatabaseOperationException {
+  public void updateTags(final @NotNull Set<TagUpdate> tagUpdates) throws DatabaseOperationException {
     try {
       this.updateTagsNoCommit(new ArrayList<>(tagUpdates));
     } catch (SQLException e) {
@@ -511,7 +511,8 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws SQLException               If any database error occurs.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  private void updateTagsNoCommit(final List<TagUpdate> tagUpdates) throws SQLException, DatabaseOperationException {
+  private void updateTagsNoCommit(final @NotNull List<TagUpdate> tagUpdates)
+      throws SQLException, DatabaseOperationException {
     int i = 1;
     try (final var statement = this.connection.prepareStatement(UPDATE_TAGS_QUERY)) {
       for (final var tagUpdate : tagUpdates) {
@@ -551,7 +552,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @return True if the tag is associated to at least one picture, false otherwise.
    * @throws SQLException If any database error occurs.
    */
-  private boolean isTagUsed(final TagLike tag) throws SQLException {
+  private boolean isTagUsed(final @NotNull TagLike tag) throws SQLException {
     try (final var statement = this.connection.prepareStatement(SELECT_PICTURES_FOR_TAG_QUERY)) {
       statement.setInt(1, tag.id());
       try (final var resultSet = statement.executeQuery()) {
@@ -567,7 +568,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param tags The set of tags to delete.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public void deleteTags(final Set<Tag> tags) throws DatabaseOperationException {
+  public void deleteTags(final @NotNull Set<Tag> tags) throws DatabaseOperationException {
     this.deleteObjects(tags, "tags");
     // Update caches
     for (final var tagUpdate : tags) {
@@ -587,9 +588,9 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationException If any database error occurs.
    */
   private <T extends DatabaseObject> void deleteObjects(
-      final Set<T> objects,
+      final @NotNull Set<T> objects,
       @Language(value = "sqlite", prefix = "DELETE FROM ", suffix = " WHERE 1")
-      String tableName
+      @NotNull String tableName
   ) throws DatabaseOperationException {
     try (final var statement = this.connection.prepareStatement("DELETE FROM %s WHERE id = ?".formatted(tableName))) {
       for (final T o : objects) {
@@ -615,14 +616,14 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Set<Picture> queryPictures(final TagQuery query) throws DatabaseOperationException {
+  public Set<Picture> queryPictures(final @NotNull TagQuery query) throws DatabaseOperationException {
     final var sql = query.asSQL();
     if (sql.isEmpty())
       return Set.of();
     return this.getPictures(sql.get());
   }
 
-  private Set<Picture> getPictures(@SQLite String query) throws DatabaseOperationException {
+  private Set<Picture> getPictures(@SQLite @NotNull String query) throws DatabaseOperationException {
     final Set<Picture> pictures = new HashSet<>();
     try (final var statement = this.connection.prepareStatement(query);
          final var resultSet = statement.executeQuery()) {
@@ -655,7 +656,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Set<Tag> getImageTags(Picture picture) throws DatabaseOperationException {
+  public Set<Tag> getImageTags(@NotNull Picture picture) throws DatabaseOperationException {
     final Set<Tag> tags = new HashSet<>();
     try (final var statement = this.connection.prepareStatement(SELECT_IMAGE_TAGS_QUERY)) {
       statement.setInt(1, picture.id());
@@ -686,7 +687,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true)
-  public boolean isFileRegistered(Path path) throws DatabaseOperationException {
+  public boolean isFileRegistered(@NotNull Path path) throws DatabaseOperationException {
     try (final var statement = this.connection.prepareStatement(IMAGES_WITH_PATH_QUERY)) {
       statement.setString(1, path.toAbsolutePath().toString());
       try (final var resultSet = statement.executeQuery()) {
@@ -717,7 +718,8 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "_, _ -> new")
-  public List<Pair<Picture, Float>> getSimilarImages(Hash hash, @Nullable Picture exclude) throws DatabaseOperationException {
+  public List<Pair<Picture, Float>> getSimilarImages(@NotNull Hash hash, Picture exclude)
+      throws DatabaseOperationException {
     final List<Pair<Picture, Float>> pictures = new LinkedList<>();
     try (final var statement = this.connection.prepareStatement(SELECT_SIMILAR_IMAGES_QUERY)) {
       statement.setLong(1, hash.bytes());
@@ -752,7 +754,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationException If any data base error occurs.
    * @throws IllegalArgumentException   If the {@code tagsToRemove} property is not empty.
    */
-  public void insertPicture(PictureUpdate pictureUpdate) throws DatabaseOperationException {
+  public void insertPicture(@NotNull PictureUpdate pictureUpdate) throws DatabaseOperationException {
     if (!pictureUpdate.tagsToRemove().isEmpty())
       throw this.logThrownError(new IllegalArgumentException("Cannot remove tags from a picture that is not yet registered"));
 
@@ -793,7 +795,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param pictureUpdate The picture to update.
    * @throws DatabaseOperationException If any data base error occurs.
    */
-  public void updatePicture(PictureUpdate pictureUpdate) throws DatabaseOperationException {
+  public void updatePicture(@NotNull PictureUpdate pictureUpdate) throws DatabaseOperationException {
     this.ensureInDatabase(pictureUpdate);
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
     try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_HASH_QUERY)) {
@@ -826,7 +828,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param newName The picture’s new name.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  public void renamePicture(Picture picture, String newName) throws DatabaseOperationException {
+  public void renamePicture(@NotNull Picture picture, @NotNull String newName) throws DatabaseOperationException {
     this.ensureInDatabase(picture);
     this.moveOrRenamePicture(picture, picture.path().getParent().resolve(newName));
   }
@@ -838,7 +840,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param destDir The picture’s new name.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  public void movePicture(Picture picture, Path destDir) throws DatabaseOperationException {
+  public void movePicture(@NotNull Picture picture, @NotNull Path destDir) throws DatabaseOperationException {
     this.ensureInDatabase(picture);
     if (picture.path().getParent().equals(destDir.toAbsolutePath()))
       throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_IN_DEST_DIR));
@@ -856,7 +858,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param newPath The destination/new name.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  private void moveOrRenamePicture(Picture picture, Path newPath) throws DatabaseOperationException {
+  private void moveOrRenamePicture(@NotNull Picture picture, @NotNull Path newPath) throws DatabaseOperationException {
     try {
       Files.move(picture.path(), newPath);
     } catch (NoSuchFileException ignored) {
@@ -885,7 +887,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationException If any database error occurs.
    * @throws IllegalArgumentException   If the two pictures have the same ID and/or path.
    */
-  public void mergePictures(Picture picture1, Picture picture2, boolean deleteFromDisk)
+  public void mergePictures(@NotNull Picture picture1, @NotNull Picture picture2, boolean deleteFromDisk)
       throws DatabaseOperationException {
     this.ensureInDatabase(picture1);
     this.ensureInDatabase(picture2);
@@ -918,7 +920,7 @@ public final class DatabaseConnection implements AutoCloseable {
    *                    false indicates that it already existed.
    * @param removedTags The set of tags that were removed from an image.
    */
-  private void updateTagsCache(final Set<Pair<Tag, Boolean>> addedTags, final Set<Tag> removedTags) {
+  private void updateTagsCache(final @NotNull Set<Pair<Tag, Boolean>> addedTags, final @NotNull Set<Tag> removedTags) {
     for (final var addedTag : addedTags) {
       final Tag tag = addedTag.getKey();
       final int tagId = tag.id();
@@ -960,7 +962,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws SQLException               If any database error occurs.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  private Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> updatePictureTagsNoCommit(PictureUpdate pictureUpdate)
+  private Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> updatePictureTagsNoCommit(@NotNull PictureUpdate pictureUpdate)
       throws SQLException, DatabaseOperationException {
     // Insert tags
     final Set<Pair<Tag, Boolean>> addedTags = new HashSet<>();
@@ -1039,7 +1041,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @return An {@link Optional} containing the tag for the label if found, an empty {@link Optional} otherwise.
    * @throws SQLException If any database error occurs.
    */
-  private Optional<Tag> getTagForLabel(String label) throws SQLException {
+  private Optional<Tag> getTagForLabel(@NotNull String label) throws SQLException {
     try (final var statement = this.connection.prepareStatement(SELECT_TAG_FROM_LABEL_QUERY)) {
       statement.setString(1, label);
       try (final var resultSet = statement.executeQuery()) {
@@ -1091,7 +1093,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param fromDisk If true, the associated files will be deleted from the disk.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  public void deletePicture(final Picture picture, boolean fromDisk) throws DatabaseOperationException {
+  public void deletePicture(final @NotNull Picture picture, boolean fromDisk) throws DatabaseOperationException {
     this.ensureInDatabase(picture);
     if (fromDisk) {
       try {
@@ -1130,7 +1132,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param element The object to check.
    * @throws DatabaseOperationException If the object is not in the database or any database error occurs.
    */
-  private void ensureInDatabase(final DatabaseElement element) throws DatabaseOperationException {
+  private void ensureInDatabase(final @NotNull DatabaseElement element) throws DatabaseOperationException {
     @Language(value = "sqlite", prefix = "SELECT * FROM ", suffix = " WHERE 1")
     final String tableName;
     if (element instanceof TagTypeLike)
@@ -1236,7 +1238,7 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param query The SQL query to execute, may contain several statements.
    */
-  private void executeUpdateQuery(@SQLite String query) throws SQLException {
+  private void executeUpdateQuery(@SQLite @NotNull String query) throws SQLException {
     try (final var statement = this.connection.createStatement()) {
       statement.executeUpdate(query);
     } catch (SQLException e) {
@@ -1279,7 +1281,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @return The passed exception.
    */
   @Contract("_ -> param1")
-  private <E extends Exception> E logThrownError(final E e) {
+  private <E extends Exception> E logThrownError(final @NotNull E e) {
     final var out = new StringWriter();
     try (final var writer = new PrintWriter(out)) {
       e.printStackTrace(writer);
@@ -1293,7 +1295,7 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param e The exception to log.
    */
-  private void logCaughtError(final Exception e) {
+  private void logCaughtError(final @NotNull Exception e) {
     final var stackTrack = new StringWriter();
     try (final var writer = new PrintWriter(stackTrack)) {
       e.printStackTrace(writer);
@@ -1307,7 +1309,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param e The exception to get a code for.
    * @return The code for that exception.
    */
-  private static DatabaseErrorCode getErrorCode(final SQLException e) {
+  private static DatabaseErrorCode getErrorCode(final @NotNull SQLException e) {
     if (e instanceof org.sqlite.SQLiteException ex)
       return DatabaseErrorCode.forSQLiteCode(ex.getResultCode());
     return DatabaseErrorCode.UNKNOWN_ERROR;
@@ -1319,7 +1321,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param e The exception to get a code for.
    * @return The code for that exception.
    */
-  private static DatabaseErrorCode getErrorCode(final IOException e) {
+  private static DatabaseErrorCode getErrorCode(final @NotNull IOException e) {
     if (e instanceof FileAlreadyExistsException)
       return DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR;
     if (e instanceof FileNotFoundException)
@@ -1334,7 +1336,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @return An {@link Optional} containing the first key generated by the statement
    * or an empty {@link Optional} if the statement did not generate any key.
    */
-  private static Optional<Integer> getFirstGeneratedId(Statement statement) throws SQLException {
+  private static Optional<Integer> getFirstGeneratedId(@NotNull Statement statement) throws SQLException {
     try (final var generatedKeys = statement.getGeneratedKeys()) {
       if (!generatedKeys.next())
         return Optional.empty();
@@ -1349,7 +1351,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param file The path to the file to convert.
    * @return The converted file.
    */
-  public static Path convertPythonDatabase(final Path file) throws DatabaseOperationException {
+  public static Path convertPythonDatabase(final @NotNull Path file) throws DatabaseOperationException {
     final Path outputPath = file.toAbsolutePath().getParent().resolve("converted-" + file.getFileName());
 
     if (Files.exists(outputPath)) {

@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.ui.syntax_highlighting;
 
 import net.darmo_creations.imageslibrary.query_parser.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -16,7 +17,7 @@ public class TagQuerySyntaxHighlighter implements SyntaxHighlighter {
   }
 
   @Override
-  public Collection<Span> highlight(String text) {
+  public Collection<Span> highlight(@NotNull String text) {
     return TagQueryParser.parse(text);
   }
 }

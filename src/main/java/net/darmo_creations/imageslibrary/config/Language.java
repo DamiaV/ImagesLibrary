@@ -36,10 +36,10 @@ public final class Language {
    * @param resources Language’s resources, i.e. translations.
    */
   public Language(
-      String code,
-      String name,
-      Locale locale,
-      final ResourceBundle resources
+      @NotNull String code,
+      @NotNull String name,
+      @NotNull Locale locale,
+      final @NotNull ResourceBundle resources
   ) {
     this.code = Objects.requireNonNull(code);
     this.name = Objects.requireNonNull(name);
@@ -106,7 +106,7 @@ public final class Language {
    * @param formatArgs Format arguments to use to format the translated text.
    * @return The translated and formatted text.
    */
-  public String translate(String key, final FormatArg... formatArgs) {
+  public String translate(@NotNull String key, final @NotNull FormatArg... formatArgs) {
     return this.translate(key, null, formatArgs);
   }
 
@@ -118,7 +118,7 @@ public final class Language {
    * @param formatArgs Format arguments to use to format the translated text.
    * @return The translated and formatted text.
    */
-  public String translate(String key, @Nullable Integer count, final FormatArg... formatArgs) {
+  public String translate(@NotNull String key, Integer count, final @NotNull FormatArg... formatArgs) {
     String text = null;
     if (count != null && count > 1) {
       final var p = this.plurals.get(key);
@@ -168,7 +168,7 @@ public final class Language {
    * @param key The key to check.
    * @return True if the key exists, false otherwise.
    */
-  public boolean hasKey(String key) {
+  public boolean hasKey(@NotNull String key) {
     return this.resources.containsKey(key);
   }
 

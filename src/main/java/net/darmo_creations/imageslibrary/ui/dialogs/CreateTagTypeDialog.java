@@ -4,6 +4,7 @@ import javafx.scene.paint.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -18,7 +19,7 @@ public class CreateTagTypeDialog extends EditTagTypeDialogBase {
    * @param config The app’s configuration.
    * @param db     The database to insert new tag types into.
    */
-  public CreateTagTypeDialog(Config config, DatabaseConnection db) {
+  public CreateTagTypeDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
     super("create_tag_type", config, db);
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton()) {

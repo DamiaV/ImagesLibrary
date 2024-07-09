@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.ui.syntax_highlighting;
 
 import net.darmo_creations.imageslibrary.ui.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -11,7 +12,7 @@ import java.util.*;
  * @param start    The start text position.
  * @param end      The end text position (included).
  */
-public record Span(String cssClass, int start, int end) {
+public record Span(@NotNull String cssClass, int start, int end) {
   public Span {
     Objects.requireNonNull(cssClass);
   }

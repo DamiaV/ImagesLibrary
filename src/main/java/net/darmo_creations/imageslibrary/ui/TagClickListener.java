@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.ui;
 
 import net.darmo_creations.imageslibrary.data.*;
+import org.jetbrains.annotations.*;
 
 @FunctionalInterface
 public interface TagClickListener {
@@ -9,5 +10,5 @@ public interface TagClickListener {
    *
    * @param tag The clicked tag.
    */
-  void onTagClick(Tag tag);
+  void onTagClick(@NotNull Tag tag);
 }

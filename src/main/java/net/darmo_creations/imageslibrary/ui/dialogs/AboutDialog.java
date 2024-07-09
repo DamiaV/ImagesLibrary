@@ -12,6 +12,7 @@ import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.utils.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -24,7 +25,7 @@ public class AboutDialog extends DialogBase<ButtonType> {
    *
    * @param config The app’s configuration.
    */
-  public AboutDialog(final Config config) {
+  public AboutDialog(final @NotNull Config config) {
     super("about", true, config, ButtonTypes.CLOSE);
     final Label titleLabel = new Label();
     titleLabel.setText(App.NAME);
@@ -87,7 +88,7 @@ public class AboutDialog extends DialogBase<ButtonType> {
     return textFlow;
   }
 
-  private static Text createLink(String text, String url) {
+  private static Text createLink(@NotNull String text, @NotNull String url) {
     Text link = new Text(text);
     link.getStyleClass().add("hyperlink"); // Add built-in JavaFX CSS class to format link
     link.setOnMouseClicked(event -> App.openURL(url));

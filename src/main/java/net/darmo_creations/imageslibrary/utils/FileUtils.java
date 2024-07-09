@@ -19,7 +19,7 @@ public class FileUtils {
    * @param file A file.
    * @return The extension, without the dot, or an empty string if the file has no extension.
    */
-  public static String getExtension(final Path file) {
+  public static String getExtension(final @NotNull Path file) {
     final String fileName = file.getFileName().toString();
     if (!fileName.contains("."))
       return "";
@@ -31,7 +31,7 @@ public class FileUtils {
    *
    * @param path The path to open.
    */
-  public static void openInFileExplorer(String path) {
+  public static void openInFileExplorer(@NotNull String path) {
     // Cannot use Desktop.getDesktop().open(File) as it does not work properly outside of Windows
     // Possible values: https://runmodule.com/2020/10/12/possible-values-of-os-dependent-java-system-properties/
     final String osName = System.getProperty("os.name").toLowerCase();
@@ -65,7 +65,7 @@ public class FileUtils {
    * The latter may thus be an empty string if size is less than 1024 bytes.
    * @throws IllegalArgumentException If the size is negative.
    */
-  public static Pair<String, String> formatBytesSize(long sizeInBytes, Language language) {
+  public static Pair<String, String> formatBytesSize(long sizeInBytes, @NotNull Language language) {
     if (sizeInBytes < 0)
       throw new IllegalArgumentException("Size cannot be negative");
     for (final var unit : BYTE_UNITS)

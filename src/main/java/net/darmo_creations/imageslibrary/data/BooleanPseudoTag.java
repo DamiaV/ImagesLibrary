@@ -1,5 +1,7 @@
 package net.darmo_creations.imageslibrary.data;
 
+import org.jetbrains.annotations.*;
+
 import java.util.*;
 
 /**
@@ -7,7 +9,7 @@ import java.util.*;
  *
  * @param sqlTemplate The SQL query template for this pseudo-tag.
  */
-public record BooleanPseudoTag(@SQLite String sqlTemplate) implements PseudoTag {
+public record BooleanPseudoTag(@SQLite @NotNull String sqlTemplate) implements PseudoTag {
   public BooleanPseudoTag {
     Objects.requireNonNull(sqlTemplate);
   }

@@ -23,9 +23,9 @@ public final class FileChoosers {
    * @return The selected file.
    */
   public static Optional<Path> showDatabaseFileChooser(
-      final Config config,
-      final Window stage,
-      @Nullable String defaultName
+      final @NotNull Config config,
+      final @NotNull Window stage,
+      String defaultName
   ) {
     return openFileChooser(
         config,
@@ -46,9 +46,9 @@ public final class FileChoosers {
    */
   @Unmodifiable
   public static List<Path> showImagesFileChooser(
-      final Config config,
-      final Window stage,
-      @Nullable String defaultName
+      final @NotNull Config config,
+      final @NotNull Window stage,
+      String defaultName
   ) {
     return openMultipleFilesChooser(
         config,
@@ -70,11 +70,11 @@ public final class FileChoosers {
    * @return The selected file.
    */
   private static Optional<Path> openFileChooser(
-      final Config config,
-      Window stage,
-      String dialogName,
-      @Nullable String defaultName,
-      final List<String> extensions
+      final @NotNull Config config,
+      @NotNull Window stage,
+      @NotNull String dialogName,
+      String defaultName,
+      final @NotNull List<String> extensions
   ) {
     final File file = buildFileChooser(config, dialogName, defaultName, extensions).showOpenDialog(stage);
     if (file == null)
@@ -97,11 +97,11 @@ public final class FileChoosers {
    */
   @Unmodifiable
   private static List<Path> openMultipleFilesChooser(
-      final Config config,
-      Window stage,
-      String dialogName,
-      @Nullable String defaultName,
-      final List<String> extensions
+      final @NotNull Config config,
+      @NotNull Window stage,
+      @NotNull String dialogName,
+      String defaultName,
+      final @NotNull List<String> extensions
   ) {
     final List<File> file = buildFileChooser(config, dialogName, defaultName, extensions).showOpenMultipleDialog(stage);
     if (file == null)
@@ -123,11 +123,11 @@ public final class FileChoosers {
    * @return The selected file.
    */
   private static Optional<Path> openSaveFileChooser(
-      final Config config,
-      Window stage,
-      String dialogName,
-      @Nullable String defaultName,
-      final List<String> extensions
+      final @NotNull Config config,
+      @NotNull Window stage,
+      @NotNull String dialogName,
+      String defaultName,
+      final @NotNull List<String> extensions
   ) {
     final File file = buildFileChooser(config, dialogName, defaultName, extensions).showSaveDialog(stage);
     if (file == null)
@@ -139,10 +139,10 @@ public final class FileChoosers {
   }
 
   private static FileChooser buildFileChooser(
-      final Config config,
-      String dialogName,
-      @Nullable String defaultName,
-      final List<String> extensions
+      final @NotNull Config config,
+      @NotNull String dialogName,
+      String defaultName,
+      final @NotNull List<String> extensions
   ) {
     final var fileChooser = new FileChooser();
     fileChooser.setTitle(config.language().translate("dialog.%s.title".formatted(dialogName)));

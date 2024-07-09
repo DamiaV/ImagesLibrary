@@ -1,5 +1,7 @@
 package net.darmo_creations.imageslibrary.data;
 
+import org.jetbrains.annotations.*;
+
 /**
  * Base interface for classes representing tag types.
  */
@@ -26,7 +28,7 @@ public interface TagTypeLike extends DatabaseElement {
    * @param label The label to check.
    * @throws IllegalArgumentException If the label is invalid.
    */
-  static void ensureValidLabel(String label) {
+  static void ensureValidLabel(@NotNull String label) {
     if (!isLabelValid(label))
       throw new IllegalArgumentException("Invalid label: " + label);
   }
@@ -37,7 +39,7 @@ public interface TagTypeLike extends DatabaseElement {
    * @param label The label to check.
    * @return True if the label is valid, false otherwise.
    */
-  static boolean isLabelValid(String label) {
+  static boolean isLabelValid(@NotNull String label) {
     return !label.isBlank();
   }
 

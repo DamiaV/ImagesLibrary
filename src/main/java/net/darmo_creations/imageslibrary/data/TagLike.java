@@ -1,5 +1,8 @@
 package net.darmo_creations.imageslibrary.data;
 
+import javafx.util.*;
+import org.jetbrains.annotations.*;
+
 import java.util.*;
 
 /**
@@ -30,7 +33,7 @@ public interface TagLike extends DatabaseElement {
    * @param label The label to check.
    * @throws IllegalArgumentException If the label is invalid.
    */
-  static void ensureValidLabel(String label) {
+  static void ensureValidLabel(@NotNull String label) {
     if (!isLabelValid(label))
       throw new IllegalArgumentException("Invalid label: " + label);
   }
@@ -41,7 +44,7 @@ public interface TagLike extends DatabaseElement {
    * @param label The label to check.
    * @return True if the label is valid, false otherwise.
    */
-  static boolean isLabelValid(String label) {
+  static boolean isLabelValid(@NotNull String label) {
     return label.matches("[\\p{IsL}\\p{IsN}_]+");
   }
 }

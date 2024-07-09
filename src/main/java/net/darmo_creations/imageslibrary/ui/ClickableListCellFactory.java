@@ -13,7 +13,7 @@ public final class ClickableListCellFactory {
    * @return A new {@link ListCell} subclass.
    */
   @Contract(pure = true, value = "_ -> new")
-  public static <T> ListCell<T> forListener(ClickListener<T> listener) {
+  public static <T> ListCell<T> forListener(@NotNull ClickListener<T> listener) {
     return new ListCell<>() {
       // Adapted from javafx.scene.control.skin.ListViewSkin.createDefaultCellImpl()
       @Override
@@ -58,13 +58,13 @@ public final class ClickableListCellFactory {
      *
      * @param item The clicked item.
      */
-    void onItemClick(T item);
+    void onItemClick(@NotNull T item);
 
     /**
      * Called when an item is double-clicked.
      *
      * @param item The double-clicked item.
      */
-    void onItemDoubleClick(T item);
+    void onItemDoubleClick(@NotNull T item);
   }
 }

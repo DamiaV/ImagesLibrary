@@ -1,5 +1,7 @@
 package net.darmo_creations.imageslibrary.utils;
 
+import org.jetbrains.annotations.*;
+
 import java.util.*;
 
 /**
@@ -16,7 +18,7 @@ public class MapValuesSetView<T> implements Set<T> {
    * @param map The map to create a values-view for.
    * @throws IllegalArgumentException If the map’s values contain duplicates.
    */
-  public MapValuesSetView(final Map<?, T> map) {
+  public MapValuesSetView(final @NotNull Map<?, T> map) {
     this.values = map.values();
     if (new HashSet<>(this.values).size() != map.size())
       throw new IllegalArgumentException("Map values are not unique");
@@ -48,41 +50,47 @@ public class MapValuesSetView<T> implements Set<T> {
   }
 
   @Override
-  public <T1> T1[] toArray(T1[] a) {
+  public <T1> T1[] toArray(@NotNull T1[] a) {
     return this.values.toArray(a);
   }
 
   @Override
+  @Contract("_ -> fail")
   public boolean add(T t) {
     throw new UnsupportedOperationException();
   }
 
   @Override
+  @Contract("_ -> fail")
   public boolean remove(Object o) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public boolean containsAll(Collection<?> c) {
+  public boolean containsAll(@NotNull Collection<?> c) {
     return this.values.containsAll(c);
   }
 
   @Override
+  @Contract("_ -> fail")
   public boolean addAll(Collection<? extends T> c) {
     throw new UnsupportedOperationException();
   }
 
   @Override
+  @Contract("_ -> fail")
   public boolean retainAll(Collection<?> c) {
     throw new UnsupportedOperationException();
   }
 
   @Override
+  @Contract("_ -> fail")
   public boolean removeAll(Collection<?> c) {
     throw new UnsupportedOperationException();
   }
 
   @Override
+  @Contract("-> fail")
   public void clear() {
     throw new UnsupportedOperationException();
   }

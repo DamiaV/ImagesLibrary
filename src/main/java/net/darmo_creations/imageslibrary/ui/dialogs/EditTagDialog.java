@@ -4,6 +4,7 @@ import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.utils.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -19,7 +20,7 @@ public class EditTagDialog extends EditTagDialogBase {
    * @param config The app’s configuration.
    * @param db     The database to update tags from.
    */
-  public EditTagDialog(Config config, DatabaseConnection db) {
+  public EditTagDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
     super("edit_tag", config, db);
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton()) {
@@ -40,7 +41,7 @@ public class EditTagDialog extends EditTagDialogBase {
     });
   }
 
-  public void setTag(Tag tag) {
+  public void setTag(@NotNull Tag tag) {
     this.tag = tag;
     this.labelField.setText(tag.label());
     this.refreshTypesCombo();
@@ -56,7 +57,7 @@ public class EditTagDialog extends EditTagDialogBase {
   }
 
   @Override
-  protected boolean isLabelAlreadyUsed(String newValue) {
+  protected boolean isLabelAlreadyUsed(@NotNull String newValue) {
     return this.db.getAllTagTypes().stream().anyMatch(tt -> tt.id() != this.tag.id() && tt.label().equals(newValue));
   }
 

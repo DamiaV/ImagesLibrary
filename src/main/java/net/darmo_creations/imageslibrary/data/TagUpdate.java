@@ -15,7 +15,7 @@ public final class TagUpdate implements TagLike {
   @Nullable
   private final String definition;
 
-  public TagUpdate(int id, String label, @Nullable TagType type, @Nullable String definition) {
+  public TagUpdate(int id, @NotNull String label, TagType type, String definition) {
     this.id = id;
     TagLike.ensureValidLabel(label);
     this.label = label;
