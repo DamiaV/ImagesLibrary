@@ -142,67 +142,6 @@ public final class Alerts {
     return Optional.empty();
   }
 
-  /**
-   * Open an alert dialog to ask the user to choose an option from a combobox.
-   *
-   * @param config      The current config.
-   * @param headerKey   Header text key.
-   * @param labelKey    Combobox label text key.
-   * @param titleKey    Title key.
-   * @param choices     The choices for the combobox.
-   * @param contentArgs Format arguments to apply to the header and title.
-   * @return The selected item.
-   */
-  public static <T> Optional<T> chooser(
-      final @NotNull Config config,
-      @NotNull String headerKey,
-      @NotNull String labelKey,
-      String titleKey,
-      final @NotNull Collection<T> choices,
-      final @NotNull FormatArg... contentArgs
-  ) {
-    if (choices.isEmpty())
-      throw new IllegalArgumentException("empty choices");
-    final Alert alert = getAlert(config, Alert.AlertType.CONFIRMATION, headerKey, titleKey, contentArgs);
-    final ComboBox<T> choicesCombo = new ComboBox<>();
-    choicesCombo.getItems().addAll(choices);
-    choicesCombo.getSelectionModel().select(0);
-    final var buttonType = buildAndShow(config, labelKey, alert, choicesCombo, contentArgs);
-    if (buttonType.isPresent() && !buttonType.get().getButtonData().isCancelButton())
-      return Optional.of(choicesCombo.getSelectionModel().getSelectedItem());
-    return Optional.empty();
-  }
-
-  /**
-   * Open an alert dialog to prompt the use to input some text.
-   *
-   * @param config      The current config.
-   * @param headerKey   Header text key.
-   * @param labelKey    Text field label text key.
-   * @param titleKey    Title key.
-   * @param defaultText Text to put into the text field.
-   * @param contentArgs Format arguments to apply to the header, label and title.
-   * @return The selected item.
-   */
-  public static Optional<String> textInput(
-      final @NotNull Config config,
-      @NotNull String headerKey,
-      @NotNull String labelKey,
-      String titleKey,
-      String defaultText,
-      final @NotNull FormatArg... contentArgs
-  ) {
-    final Alert alert = getAlert(config, Alert.AlertType.CONFIRMATION, headerKey, titleKey, contentArgs);
-    final TextField textField = new TextField();
-    textField.textProperty().addListener((observable, oldValue, newValue) ->
-        alert.getDialogPane().lookupButton(ButtonTypes.OK).setDisable(StringUtils.stripNullable(newValue).isEmpty()));
-    textField.setText(defaultText);
-    final var buttonType = buildAndShow(config, labelKey, alert, textField, contentArgs);
-    if (buttonType.isPresent() && !buttonType.get().getButtonData().isCancelButton())
-      return StringUtils.stripNullable(textField.getText());
-    return Optional.empty();
-  }
-
   private static Optional<ButtonType> buildAndShow(
       final @NotNull Config config,
       @NotNull String labelKey,
