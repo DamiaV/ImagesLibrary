@@ -21,7 +21,7 @@ public class EditTagTypeDialog extends EditTagTypeDialogBase {
    * @param db     The database to update tag types from.
    */
   public EditTagTypeDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
-    super("edit_tag_type", config, db);
+    super(config, "edit_tag_type", db);
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton()) {
         try {

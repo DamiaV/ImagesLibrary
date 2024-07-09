@@ -19,7 +19,7 @@ public class CreateTagDialog extends EditTagDialogBase {
    * @param db     The database to insert new tags into.
    */
   public CreateTagDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
-    super("create_tag", config, db);
+    super(config, "create_tag", db);
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton()) {
         try {

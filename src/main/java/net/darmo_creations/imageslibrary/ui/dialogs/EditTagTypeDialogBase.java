@@ -27,8 +27,8 @@ public abstract class EditTagTypeDialogBase extends DialogBase<TagType> {
 
   protected final DatabaseConnection db;
 
-  protected EditTagTypeDialogBase(@NotNull String name, @NotNull Config config, @NotNull DatabaseConnection db) {
-    super(name, false, config, ButtonTypes.OK, ButtonTypes.CANCEL);
+  protected EditTagTypeDialogBase(@NotNull Config config, @NotNull String name, @NotNull DatabaseConnection db) {
+    super(config, name, false, ButtonTypes.OK, ButtonTypes.CANCEL);
     this.db = db;
 
     this.labelErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
@@ -36,7 +36,6 @@ public abstract class EditTagTypeDialogBase extends DialogBase<TagType> {
 
     this.getDialogPane().setPrefWidth(400);
     this.getDialogPane().setContent(this.createContent());
-    config.theme().getAppIcon().ifPresent(this::setIcon);
   }
 
   private Pane createContent() {

@@ -14,7 +14,7 @@ import org.jetbrains.annotations.*;
  */
 public class Splash extends DialogBase<ButtonType> {
   public Splash(final @NotNull Config config) {
-    super("splash", false, config, ButtonTypes.OK);
+    super(config, "splash", false, ButtonTypes.OK);
     this.stage().initStyle(StageStyle.UNDECORATED);
     final DialogPane dialogPane = this.getDialogPane();
     final Node node = dialogPane.lookupButton(ButtonTypes.OK);

@@ -30,7 +30,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
    * @param config The app’s configuration.
    */
   public SettingsDialog(@NotNull Config config) {
-    super("settings", false, config, ButtonTypes.OK, ButtonTypes.CANCEL);
+    super(config, "settings", false, ButtonTypes.OK, ButtonTypes.CANCEL);
 
     final VBox content = new VBox(
         this.createInterfaceForm(),
@@ -39,7 +39,6 @@ public class SettingsDialog extends DialogBase<ButtonType> {
     );
     content.setPrefWidth(450);
     this.getDialogPane().setContent(content);
-    config.theme().getAppIcon().ifPresent(this::setIcon);
 
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton()) {

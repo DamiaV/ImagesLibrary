@@ -12,7 +12,6 @@ import java.util.*;
  * Dialog to create a new tag type.
  */
 public class CreateTagTypeDialog extends EditTagTypeDialogBase {
-
   /**
    * Create a tag type creation dialog.
    *
@@ -20,7 +19,7 @@ public class CreateTagTypeDialog extends EditTagTypeDialogBase {
    * @param db     The database to insert new tag types into.
    */
   public CreateTagTypeDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
-    super("create_tag_type", config, db);
+    super(config, "create_tag_type", db);
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton()) {
         try {
