@@ -558,6 +558,7 @@ public class AppController implements ResultsView.SearchListener {
 
   private void editSelectedPictures() {
     // TODO
+    System.out.println("edit images");
   }
 
   private void editTag(Tag tag) {
