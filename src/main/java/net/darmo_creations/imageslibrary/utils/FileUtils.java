@@ -51,7 +51,7 @@ public class FileUtils {
 
     try {
       Runtime.getRuntime().exec(command);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       App.logger().error("Unable to open file system explorer", e);
     }
   }

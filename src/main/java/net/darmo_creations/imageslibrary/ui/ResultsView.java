@@ -96,7 +96,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       config.setQuerySyntaxHighlightingEnabled(!config.isQuerySyntaxHighlightingEnabled());
       try {
         config.save();
-      } catch (IOException ex) {
+      } catch (final IOException ex) {
         App.logger().error("Unable to save config", ex);
       }
     });
@@ -115,7 +115,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       config.setCaseSensitiveQueriesByDefault(!config.caseSensitiveQueriesByDefault());
       try {
         config.save();
-      } catch (IOException ex) {
+      } catch (final IOException ex) {
         App.logger().error("Unable to save config", ex);
       }
     });
@@ -236,7 +236,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       Set<Tag> imageTags;
       try {
         imageTags = this.db.getImageTags(picture);
-      } catch (DatabaseOperationException e) {
+      } catch (final DatabaseOperationException e) {
         App.logger().error("Error getting tags for image {}", picture, e);
         imageTags = Set.of();
       }
@@ -258,13 +258,13 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     final TagQuery tagQuery;
     try {
       tagQuery = TagQueryParser.parse(query, tagDefinitions, DatabaseConnection.PSEUDO_TAGS, this.config);
-    } catch (TagQueryTooLargeException e) {
+    } catch (final TagQueryTooLargeException e) {
       this.showPopup(language.translate("image_search_field.recursive_loop_error"));
       return;
-    } catch (TagQuerySyntaxErrorException e) {
+    } catch (final TagQuerySyntaxErrorException e) {
       this.showPopup(language.translate("image_search_field.query_syntax_error"));
       return;
-    } catch (InvalidPseudoTagException e) {
+    } catch (final InvalidPseudoTagException e) {
       this.showPopup(language.translate("image_search_field.invalid_pseudo_tag", new FormatArg("tag", e.pseudoTag())));
       return;
     }
@@ -296,7 +296,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       final Set<Picture> pictures;
       try {
         pictures = search.run();
-      } catch (DatabaseOperationException e) {
+      } catch (final DatabaseOperationException e) {
         Platform.runLater(() -> {
           Alerts.databaseError(this.config, e.errorCode());
           this.onSearchError();

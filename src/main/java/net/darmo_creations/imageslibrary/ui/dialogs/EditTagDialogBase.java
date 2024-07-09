@@ -83,11 +83,11 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
         try {
           TagQueryParser.parse(newValue, Map.of(), DatabaseConnection.PSEUDO_TAGS, this.config);
           this.isDefinitionValid = true;
-        } catch (InvalidPseudoTagException e) {
+        } catch (final InvalidPseudoTagException e) {
           this.definitionErrorPopup.setText(language.translate("image_search_field.invalid_pseudo_tag", new FormatArg("tag", e.pseudoTag())));
-        } catch (TagQuerySyntaxErrorException e) {
+        } catch (final TagQuerySyntaxErrorException e) {
           this.definitionErrorPopup.setText(language.translate("image_search_field.query_syntax_error"));
-        } catch (TagQueryTooLargeException e) {
+        } catch (final TagQueryTooLargeException e) {
           this.definitionErrorPopup.setText(language.translate("image_search_field.recursive_loop_error"));
         }
       } else

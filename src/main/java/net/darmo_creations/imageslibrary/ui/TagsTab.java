@@ -47,7 +47,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
 
     this.getStyleClass().add("tags-tab");
     if (this.tagType != null) {
-      String color = StringUtils.colorToCss(this.tagType.color());
+      final String color = StringUtils.colorToCss(this.tagType.color());
       this.setStyle("-fx-text-base-color: %s;".formatted(color));
       this.label.setStyle("-fx-text-fill: %s;".formatted(color));
     }

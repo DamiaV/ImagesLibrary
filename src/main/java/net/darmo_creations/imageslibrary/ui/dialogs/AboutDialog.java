@@ -70,7 +70,7 @@ public class AboutDialog extends DialogBase<ButtonType> {
 
   private static Node getTextArea() {
     final TextFlow textFlow = new TextFlow();
-    Text version = new Text(App.VERSION);
+    final Text version = new Text(App.VERSION);
     version.setStyle("-fx-font-weight: bold");
     textFlow.getChildren().addAll(
         new Text("Version: "),
@@ -89,7 +89,7 @@ public class AboutDialog extends DialogBase<ButtonType> {
   }
 
   private static Text createLink(@NotNull String text, @NotNull String url) {
-    Text link = new Text(text);
+    final Text link = new Text(text);
     link.getStyleClass().add("hyperlink"); // Add built-in JavaFX CSS class to format link
     link.setOnMouseClicked(event -> App.openURL(url));
     return link;

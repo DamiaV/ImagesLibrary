@@ -79,7 +79,7 @@ public final class Config implements Cloneable {
           querySH,
           debug
       );
-    } catch (IllegalArgumentException e) {
+    } catch (final IllegalArgumentException e) {
       throw new ConfigException(e);
     }
   }
@@ -104,7 +104,7 @@ public final class Config implements Cloneable {
   private static void loadLanguages() throws IOException {
     LANGUAGES.clear();
     for (final var langCode : LANGUAGE_CODES) {
-      ResourceBundle bundle = getResourceBundle(new Locale(langCode));
+      final ResourceBundle bundle = getResourceBundle(new Locale(langCode));
       if (bundle != null) {
         final String langName = bundle.getString("language_name");
         LANGUAGES.put(langCode, new Language(langCode, langName, new Locale(langCode), bundle));
@@ -303,7 +303,7 @@ public final class Config implements Cloneable {
   public Config clone() {
     try {
       return (Config) super.clone();
-    } catch (CloneNotSupportedException e) {
+    } catch (final CloneNotSupportedException e) {
       throw new RuntimeException(e);
     }
   }

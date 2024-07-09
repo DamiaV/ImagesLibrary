@@ -86,7 +86,7 @@ public final class Tag extends DatabaseObject implements TagLike {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || this.getClass() != o.getClass()) return false;
-    Tag tag = (Tag) o;
+    final Tag tag = (Tag) o;
     return this.id() == tag.id()
            && Objects.equals(this.label, tag.label)
            && Objects.equals(this.type, tag.type)

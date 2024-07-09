@@ -46,7 +46,7 @@ public final class Picture extends DatabaseObject implements PictureLike {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || this.getClass() != o.getClass()) return false;
-    Picture picture = (Picture) o;
+    final Picture picture = (Picture) o;
     return this.id() == picture.id()
            && Objects.equals(this.path, picture.path)
            && Objects.equals(this.hash, picture.hash);

@@ -90,7 +90,7 @@ public class App extends Application {
       try {
         //noinspection resource
         db = new DatabaseConnection(config.databaseFile());
-      } catch (DatabaseOperationException e) {
+      } catch (final DatabaseOperationException e) {
         generateCrashReport(e);
         Platform.runLater(() -> {
           splash.hide();
@@ -106,7 +106,7 @@ public class App extends Application {
         final AppController controller;
         try {
           controller = new AppController(stage, config, db);
-        } catch (DatabaseOperationException e) {
+        } catch (final DatabaseOperationException e) {
           generateCrashReport(e);
           Alerts.databaseError(config, e.errorCode());
           System.exit(4);
@@ -122,7 +122,7 @@ public class App extends Application {
     try {
       parsedArgs = parseArgs(args);
       config = Config.loadConfig(parsedArgs.debug());
-    } catch (IOException | ParseException | ConfigException e) {
+    } catch (final IOException | ParseException | ConfigException e) {
       generateCrashReport(e);
       System.exit(1);
     }
@@ -132,7 +132,7 @@ public class App extends Application {
     LOGGER = LoggerFactory.getLogger("App");
     try {
       launch();
-    } catch (Exception e) {
+    } catch (final Exception e) {
       generateCrashReport(e.getCause()); // JavaFX wraps exceptions into a RuntimeException
       System.exit(2);
     }
@@ -196,7 +196,7 @@ public class App extends Application {
       if (!Files.exists(logsDir))
         Files.createDirectory(logsDir);
       Files.writeString(logsDir.resolve(fileName), message);
-    } catch (IOException ex) {
+    } catch (final IOException ex) {
       throw new RuntimeException(ex);
     }
   }

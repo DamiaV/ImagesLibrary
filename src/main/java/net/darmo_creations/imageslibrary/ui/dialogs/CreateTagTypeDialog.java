@@ -30,7 +30,7 @@ public class CreateTagTypeDialog extends EditTagTypeDialogBase {
               .filter(tagType -> tagType.label().equals(update.label()))
               .findFirst()
               .orElseThrow(); // Should never happen
-        } catch (DatabaseOperationException e) {
+        } catch (final DatabaseOperationException e) {
           App.logger().error("Exception caught while inserting new tag type", e);
           Alerts.databaseError(config, e.errorCode());
         }

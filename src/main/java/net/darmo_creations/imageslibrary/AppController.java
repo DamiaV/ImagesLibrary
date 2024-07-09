@@ -93,9 +93,8 @@ public class AppController implements ResultsView.SearchListener {
     // Files/directories drag-and-drop
     scene.setOnDragOver(event -> {
       if (event.getGestureSource() == null // From another application
-          && this.isDragAndDropValid(event.getDragboard())) {
+          && this.isDragAndDropValid(event.getDragboard()))
         event.acceptTransferModes(TransferMode.COPY);
-      }
       event.consume();
     });
     scene.setOnDragDropped(event -> {
@@ -429,7 +428,7 @@ public class AppController implements ResultsView.SearchListener {
       return;
     try {
       this.db.deleteTagTypes(Set.of(tagType));
-    } catch (DatabaseOperationException e) {
+    } catch (final DatabaseOperationException e) {
       Alerts.databaseError(this.config, e.errorCode());
       return;
     }
@@ -542,7 +541,7 @@ public class AppController implements ResultsView.SearchListener {
   private void onQuit() {
     try {
       this.db.close();
-    } catch (DatabaseOperationException e) {
+    } catch (final DatabaseOperationException e) {
       throw new RuntimeException(e);
     }
     Platform.exit();
@@ -598,7 +597,7 @@ public class AppController implements ResultsView.SearchListener {
     for (final var picture : this.selectedPictures) {
       try {
         this.db.deletePicture(picture, fromDisk.get());
-      } catch (DatabaseOperationException e) {
+      } catch (final DatabaseOperationException e) {
         notDeleted.add(picture);
       }
     }
@@ -664,7 +663,7 @@ public class AppController implements ResultsView.SearchListener {
       final Path newPath;
       try {
         newPath = DatabaseConnection.convertPythonDatabase(path.get());
-      } catch (DatabaseOperationException e) {
+      } catch (final DatabaseOperationException e) {
         Platform.runLater(() -> {
           App.logger().error("Unable to convert database file", e);
           this.restoreInteractions();
@@ -684,7 +683,7 @@ public class AppController implements ResultsView.SearchListener {
         if (proceed) {
           try {
             this.config.withDatabaseFile(newPath).save();
-          } catch (IOException e) {
+          } catch (final IOException e) {
             App.logger().error("Unable to save config", e);
             Alerts.error(this.config, "dialog.settings.alert.save_error.header", null, null);
           }

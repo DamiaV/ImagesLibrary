@@ -120,7 +120,7 @@ public final class DatabaseConnection implements AutoCloseable {
         this.setupDatabase();
       else
         this.checkSchemaVersion();
-    } catch (SQLException | IOException e) {
+    } catch (final SQLException | IOException e) {
       if (e instanceof IOException ex)
         throw this.logThrownError(new DatabaseOperationException(getErrorCode(ex), ex));
       throw this.logThrownError(new DatabaseOperationException(getErrorCode((SQLException) e), e));
@@ -129,7 +129,7 @@ public final class DatabaseConnection implements AutoCloseable {
 
     try {
       this.initCaches();
-    } catch (IOException e) {
+    } catch (final IOException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
@@ -165,8 +165,8 @@ public final class DatabaseConnection implements AutoCloseable {
             annotation.nArgs(),
             annotation.flags()
         );
-      } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-               NoSuchMethodException e) {
+      } catch (final InstantiationException | IllegalAccessException | InvocationTargetException |
+                     NoSuchMethodException e) {
         this.logCaughtError(e);
       }
       total++;
@@ -268,7 +268,7 @@ public final class DatabaseConnection implements AutoCloseable {
           throw this.logThrownError(new SQLException("Query did not generate any key"));
         generatedIds.add(new Pair<>(id.get(), tagTypeUpdate));
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
@@ -324,7 +324,7 @@ public final class DatabaseConnection implements AutoCloseable {
       try (final var statement1 = this.connection.prepareStatement(RESET_UPDATING_TAG_TYPES_QUERY)) {
         statement1.executeUpdate();
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
@@ -401,7 +401,7 @@ public final class DatabaseConnection implements AutoCloseable {
     final List<TagUpdate> updates = new ArrayList<>(tagUpdates);
     try {
       generatedIds = this.insertTagsNoCommit(updates);
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
@@ -461,10 +461,10 @@ public final class DatabaseConnection implements AutoCloseable {
   public void updateTags(final @NotNull Set<TagUpdate> tagUpdates) throws DatabaseOperationException {
     try {
       this.updateTagsNoCommit(new ArrayList<>(tagUpdates));
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
-    } catch (DatabaseOperationException e) {
+    } catch (final DatabaseOperationException e) {
       this.rollback();
       throw e;
     }
@@ -598,10 +598,10 @@ public final class DatabaseConnection implements AutoCloseable {
         statement.setInt(1, o.id());
         statement.executeUpdate();
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
-    } catch (DatabaseOperationException e) {
+    } catch (final DatabaseOperationException e) {
       this.rollback();
       throw e;
     }
@@ -634,7 +634,7 @@ public final class DatabaseConnection implements AutoCloseable {
             new Hash(resultSet.getLong("hash"))
         ));
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     return pictures;
@@ -664,7 +664,7 @@ public final class DatabaseConnection implements AutoCloseable {
         while (resultSet.next())
           tags.add(this.tagsCache.get(resultSet.getInt("id")));
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     return tags;
@@ -693,7 +693,7 @@ public final class DatabaseConnection implements AutoCloseable {
       try (final var resultSet = statement.executeQuery()) {
         return resultSet.next(); // Check if there are any rows
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
@@ -735,7 +735,7 @@ public final class DatabaseConnection implements AutoCloseable {
               resultSet.getFloat("confidence")
           ));
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     return pictures;
@@ -767,10 +767,10 @@ public final class DatabaseConnection implements AutoCloseable {
       if (id.isEmpty())
         throw this.logThrownError(new SQLException("Query did not generate any key"));
       result = this.updatePictureTagsNoCommit(pictureUpdate.withId(id.get()));
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
-    } catch (DatabaseOperationException e) {
+    } catch (final DatabaseOperationException e) {
       this.rollback();
       throw e;
     }
@@ -803,10 +803,10 @@ public final class DatabaseConnection implements AutoCloseable {
       statement.setInt(2, pictureUpdate.id());
       statement.executeUpdate();
       result = this.updatePictureTagsNoCommit(pictureUpdate);
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
-    } catch (DatabaseOperationException e) {
+    } catch (final DatabaseOperationException e) {
       this.rollback();
       throw e;
     }
@@ -861,8 +861,8 @@ public final class DatabaseConnection implements AutoCloseable {
   private void moveOrRenamePicture(@NotNull Picture picture, @NotNull Path newPath) throws DatabaseOperationException {
     try {
       Files.move(picture.path(), newPath);
-    } catch (NoSuchFileException ignored) {
-    } catch (IOException e) {
+    } catch (final NoSuchFileException ignored) {
+    } catch (final IOException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
 
@@ -870,7 +870,7 @@ public final class DatabaseConnection implements AutoCloseable {
       statement.setString(1, newPath.toString());
       statement.setInt(2, picture.id());
       statement.executeUpdate();
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
@@ -903,7 +903,7 @@ public final class DatabaseConnection implements AutoCloseable {
     try {
       // Add tags of picture1 to picture2
       result = this.updatePictureTagsNoCommit(new PictureUpdate(picture2.id(), picture2.path(), picture2.hash(), pic1Tags, Set.of()));
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
@@ -1098,8 +1098,8 @@ public final class DatabaseConnection implements AutoCloseable {
     if (fromDisk) {
       try {
         Files.delete(picture.path());
-      } catch (NoSuchFileException ignored) {
-      } catch (IOException e) {
+      } catch (final NoSuchFileException ignored) {
+      } catch (final IOException e) {
         throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
       }
     }
@@ -1107,7 +1107,7 @@ public final class DatabaseConnection implements AutoCloseable {
     try (final var statement = this.connection.prepareStatement(DELETE_IMAGE_QUERY)) {
       statement.setInt(1, picture.id());
       statement.executeUpdate();
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
@@ -1150,7 +1150,7 @@ public final class DatabaseConnection implements AutoCloseable {
         if (!resultSet.next())
           throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.OBJECT_DOES_NOT_EXIST));
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
@@ -1159,7 +1159,7 @@ public final class DatabaseConnection implements AutoCloseable {
   public void close() throws DatabaseOperationException {
     try {
       this.connection.close();
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
@@ -1198,7 +1198,7 @@ public final class DatabaseConnection implements AutoCloseable {
         ));
         this.tagTypesCounts.put(id, 0);
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new IOException(e));
     }
     this.logger.info("Found {} tag type(s)", this.tagTypesCache.size());
@@ -1224,7 +1224,7 @@ public final class DatabaseConnection implements AutoCloseable {
             this.tagTypesCounts.put(tagType.id(), this.tagTypesCounts.get(tagType.id()) + 1);
         }
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new IOException(e));
     }
     this.logger.info("Found {} tag(s)", this.tagsCache.size());
@@ -1241,7 +1241,7 @@ public final class DatabaseConnection implements AutoCloseable {
   private void executeUpdateQuery(@SQLite @NotNull String query) throws SQLException {
     try (final var statement = this.connection.createStatement()) {
       statement.executeUpdate(query);
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       this.connection.rollback();
       throw this.logThrownError(e);
     }
@@ -1256,7 +1256,7 @@ public final class DatabaseConnection implements AutoCloseable {
   private void rollback() throws DatabaseOperationException {
     try {
       this.connection.rollback();
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
@@ -1269,7 +1269,7 @@ public final class DatabaseConnection implements AutoCloseable {
   private void commit() throws DatabaseOperationException {
     try {
       this.connection.commit();
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
@@ -1357,7 +1357,7 @@ public final class DatabaseConnection implements AutoCloseable {
     if (Files.exists(outputPath)) {
       try {
         Files.delete(outputPath);
-      } catch (IOException e) {
+      } catch (final IOException e) {
         throw new DatabaseOperationException(getErrorCode(e), e);
       }
     }
@@ -1424,7 +1424,7 @@ public final class DatabaseConnection implements AutoCloseable {
           db.insertPicture(new PictureUpdate(0, Path.of(path).toAbsolutePath(), hash, imageTags, Set.of()));
         }
       }
-    } catch (SQLException e) {
+    } catch (final SQLException e) {
       throw new DatabaseOperationException(getErrorCode(e), e);
     }
     return outputPath;

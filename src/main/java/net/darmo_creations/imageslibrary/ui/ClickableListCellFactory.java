@@ -25,7 +25,7 @@ public final class ClickableListCellFactory {
           this.setGraphic(null);
         } else if (item instanceof Node newNode) {
           this.setText(null);
-          Node currentNode = this.getGraphic();
+          final Node currentNode = this.getGraphic();
           if (currentNode == null || !currentNode.equals(newNode))
             this.setGraphic(newNode);
           this.installMouseClickListener(item);

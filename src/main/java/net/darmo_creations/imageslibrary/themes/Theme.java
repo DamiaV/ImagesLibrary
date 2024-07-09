@@ -48,7 +48,7 @@ public final class Theme {
             THEMES.put(themeID, new Theme(themeID, (String) data.get("name")));
           }
         }
-      } catch (RuntimeException e) {
+      } catch (final RuntimeException e) {
         App.logger().error("Exception while loading theme %s".formatted(themeID), e);
       }
     }
@@ -130,7 +130,7 @@ public final class Theme {
         return null;
       }
       return new Image(stream);
-    } catch (IOException e) {
+    } catch (final IOException e) {
       return null;
     }
   }
@@ -146,7 +146,7 @@ public final class Theme {
         return Optional.empty();
       }
       return Optional.of(new Image(stream));
-    } catch (IOException e) {
+    } catch (final IOException e) {
       return Optional.empty();
     }
   }

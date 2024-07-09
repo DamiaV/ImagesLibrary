@@ -87,7 +87,7 @@ public final class TagType extends DatabaseObject implements TagTypeLike {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || this.getClass() != o.getClass()) return false;
-    TagType tagType = (TagType) o;
+    final TagType tagType = (TagType) o;
     return this.id() == tagType.id()
            && this.symbol == tagType.symbol
            && this.color == tagType.color

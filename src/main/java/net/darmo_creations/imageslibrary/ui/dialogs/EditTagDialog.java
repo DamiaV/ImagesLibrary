@@ -32,7 +32,7 @@ public class EditTagDialog extends EditTagDialogBase {
               .filter(tag -> tag.label().equals(update.label()))
               .findFirst()
               .orElseThrow(); // Should never happen
-        } catch (DatabaseOperationException e) {
+        } catch (final DatabaseOperationException e) {
           App.logger().error("Exception caught while updating tag", e);
           Alerts.databaseError(config, e.errorCode());
         }
