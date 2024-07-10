@@ -13,6 +13,7 @@ import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.ui.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.controlsfx.control.*;
+import org.fxmisc.richtext.*;
 import org.jetbrains.annotations.*;
 
 import java.nio.file.*;
@@ -27,7 +28,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private final Label fileNameLabel = new Label();
   private final Label fileMetadataLabel = new Label();
   private final TextPopOver tagsErrorPopup;
-  private final AutoCompleteTextArea<Tag> tagsField; // TODO use text area
+  private final AutoCompleteField<Tag> tagsField;
   private final Button nextButton;
   private final Button skipButton;
 
@@ -51,7 +52,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.imageView = new ImageView();
 
     this.tagsErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
-    this.tagsField = new AutoCompleteTextArea<>(this.db.getAllTags(), Tag::label, null);
+    this.tagsField = new AutoCompleteField<>(new StyleClassedTextArea(), this.db.getAllTags(), Tag::label, null);
 
     this.nextButton = (Button) this.getDialogPane().lookupButton(ButtonTypes.NEXT);
     this.nextButton.addEventFilter(ActionEvent.ACTION, event -> {

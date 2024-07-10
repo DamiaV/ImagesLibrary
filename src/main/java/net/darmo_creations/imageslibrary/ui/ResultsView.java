@@ -15,6 +15,7 @@ import net.darmo_creations.imageslibrary.ui.dialogs.*;
 import net.darmo_creations.imageslibrary.ui.syntax_highlighting.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.controlsfx.control.*;
+import org.fxmisc.richtext.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
@@ -32,7 +33,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final DatabaseConnection db;
 
   private final MenuButton historyButton = new MenuButton();
-  private final AutoCompleteTextField<Tag> searchField;
+  private final AutoCompleteField<Tag> searchField;
   private final Button clearSearchButton = new Button();
   private final Label resultsLabel = new Label();
   private final ListView<PictureEntry> imagesList = new ListView<>();
@@ -56,14 +57,16 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.historyButton.setGraphic(theme.getIcon(Icon.SEARCH_HISTORY, Icon.Size.BIG));
     this.historyButton.setDisable(true);
 
-    this.searchField = new AutoCompleteTextField<>(
+    final var textField = new StyleClassedTextField();
+    this.searchField = new AutoCompleteField<>(
+        textField,
         db.getAllTags(),
         Tag::label,
         config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null
     );
-    this.searchField.setPromptText(new Text(language.translate("image_search_field.search")));
-    this.searchField.setStyle("-fx-font-size: 2em");
-    this.searchField.setOnAction(e -> this.search(null));
+    textField.setPromptText(new Text(language.translate("image_search_field.search")));
+    textField.setStyle("-fx-font-size: 2em");
+    textField.setOnAction(e -> this.search(null));
     this.searchField.textProperty().addListener((observable, oldValue, newValue) -> {
       if (this.popup.isShowing())
         this.popup.hide();

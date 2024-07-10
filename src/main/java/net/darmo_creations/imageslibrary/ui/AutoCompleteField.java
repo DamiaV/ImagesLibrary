@@ -1,8 +1,10 @@
 package net.darmo_creations.imageslibrary.ui;
 
+import javafx.beans.value.*;
 import javafx.geometry.*;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
+import javafx.scene.layout.*;
 import net.darmo_creations.imageslibrary.ui.syntax_highlighting.*;
 import org.fxmisc.richtext.*;
 import org.jetbrains.annotations.*;
@@ -12,7 +14,8 @@ import java.util.*;
 import java.util.function.*;
 
 /**
- * This class is a TextField which implements an "autocomplete" functionality, based on a supplied list of entries.
+ * This class wraps a {@link StyledTextArea} and attaches an "autocomplete" functionality to it,
+ * based on a supplied list of entries.
  * <p>
  * It may also perform syntax highlighting if given a {@link SyntaxHighlighter} object.
  * <p>
@@ -21,7 +24,7 @@ import java.util.function.*;
  *
  * @param <T> The type of the suggestions.
  */
-public class AutoCompleteTextField<T> extends StyleClassedTextField {
+public class AutoCompleteField<T> extends AnchorPane {
   private static final int CARET_X_OFFSET = -20;
   private static final int CARET_Y_OFFSET = 0;
   private static final int MAX_SHOWN_SUGGESTIONS = 10;
@@ -34,20 +37,29 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
   private boolean hidePopupTemporarily = false;
   private boolean canShowSuggestions = false;
 
+  private final StyledTextArea<Collection<String>, Collection<String>> styledArea;
+
   /**
-   * Construct a new field.
+   * Wrap a {@link StyledTextArea}.
    *
+   * @param styledArea        The text input to wrap.
    * @param entries           The set of entries.
    * @param stringConverter   A function to convert each suggestion into a string.
    * @param syntaxHighlighter An optional syntax highlighter that will color the text.
    */
-  public AutoCompleteTextField(
+  public AutoCompleteField(
+      @NotNull StyledTextArea<Collection<String>, Collection<String>> styledArea,
       final @NotNull Set<T> entries,
       @NotNull Function<T, String> stringConverter,
       SyntaxHighlighter syntaxHighlighter
   ) {
+    if (!styledArea.getStyleClass().contains("text-input"))
+      styledArea.getStyleClass().add("text-input");
+    if (!styledArea.getStyleClass().contains("text-area"))
+      styledArea.getStyleClass().add("text-area");
+    this.styledArea = styledArea;
     this.setSyntaxHighlighter(syntaxHighlighter);
-    EventStreams.nonNullValuesOf(this.caretBoundsProperty()).subscribe(opt -> {
+    EventStreams.nonNullValuesOf(styledArea.caretBoundsProperty()).subscribe(opt -> {
       if (opt.isPresent()) {
         final Bounds bounds = opt.get();
         this.entriesPopup.setX(bounds.getMaxX() + CARET_X_OFFSET);
@@ -61,13 +73,13 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
         this.hidePopupTemporarily = true;
       }
     });
-    this.selectedTextProperty().addListener((observable, oldValue, newValue) -> this.hideSuggestions());
-    this.textProperty().addListener((observableValue, oldValue, newValue) -> {
+    styledArea.selectedTextProperty().addListener((observable, oldValue, newValue) -> this.hideSuggestions());
+    styledArea.textProperty().addListener((observableValue, oldValue, newValue) -> {
       this.canShowSuggestions = true;
       this.highlight();
     });
-    this.focusedProperty().addListener((observableValue, oldValue, newValue) -> this.hideSuggestions());
-    this.caretPositionProperty().addListener((observable, oldValue, newValue) -> {
+    styledArea.focusedProperty().addListener((observableValue, oldValue, newValue) -> this.hideSuggestions());
+    styledArea.caretPositionProperty().addListener((observable, oldValue, newValue) -> {
       if (!this.canShowSuggestions) {
         this.hideSuggestions();
         return;
@@ -81,36 +93,54 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
       this.fillAndShowSuggestions(entries, stringConverter, caretPos);
       this.canShowSuggestions = false;
     });
-    this.setOnKeyPressed(event -> {
+    styledArea.setOnKeyPressed(event -> {
       if (event.getCode() == KeyCode.SPACE && event.isControlDown()
           && !event.isAltDown() && !event.isMetaDown() && !event.isShiftDown())
-        this.fillAndShowSuggestions(entries, stringConverter, this.getCaretPosition());
+        this.fillAndShowSuggestions(entries, stringConverter, styledArea.getCaretPosition());
     });
+
+    AnchorPane.setTopAnchor(styledArea, 0.0);
+    AnchorPane.setBottomAnchor(styledArea, 0.0);
+    AnchorPane.setLeftAnchor(styledArea, 0.0);
+    AnchorPane.setRightAnchor(styledArea, 0.0);
+    this.getChildren().add(styledArea);
+  }
+
+  public String getText() {
+    return this.styledArea.getText();
+  }
+
+  public void setText(@NotNull String text) {
+    if (text.equals(this.getText()))
+      this.styledArea.replaceText(""); // Force update to properly refresh highlighting within dialogs
+    this.styledArea.replaceText(text);
+  }
+
+  public final ObservableValue<String> textProperty() {
+    return this.styledArea.textProperty();
+  }
+
+  @Override
+  public void requestFocus() {
+    this.styledArea.requestFocus();
   }
 
   private void highlight() {
-    this.clearStyle(0);
+    this.styledArea.clearStyle(0);
     if (this.syntaxHighlighter != null)
       this.syntaxHighlighter.highlight(this.getText())
-          .forEach(span -> this.setStyleClass(span.start(), span.end() + 1, span.cssClass()));
+          .forEach(span -> this.styledArea.setStyle(span.start(), span.end() + 1, List.of(span.cssClass())));
   }
 
   public void setSyntaxHighlighter(SyntaxHighlighter syntaxHighlighter) {
     this.syntaxHighlighter = syntaxHighlighter;
     if (this.previousHighlightClass != null)
-      this.getStyleClass().remove(this.previousHighlightClass);
+      this.styledArea.getStyleClass().remove(this.previousHighlightClass);
     if (syntaxHighlighter != null) {
       this.previousHighlightClass = "highlight-" + syntaxHighlighter.cssClass();
-      this.getStyleClass().add(this.previousHighlightClass);
+      this.styledArea.getStyleClass().add(this.previousHighlightClass);
     }
     this.highlight();
-  }
-
-  @Override
-  public void setText(@NotNull String text) {
-    if (text.equals(this.getText()))
-      super.setText(""); // Force update to properly refresh highlighting within dialogs
-    super.setText(text);
   }
 
   private void showSuggestions() {
@@ -162,10 +192,10 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
     final CustomMenuItem item = new CustomMenuItem(new Label(suggestion), true);
     item.setOnAction(actionEvent -> {
       final String text = this.getText();
-      final int caretPosition = this.getCaretPosition();
+      final int caretPosition = this.styledArea.getCaretPosition();
       final String beforeCaret = text.substring(0, caretPosition);
       final int length = beforeCaret.substring(beforeCaret.lastIndexOf(' ') + 1).length();
-      this.insertText(caretPosition, suggestion.substring(length));
+      this.styledArea.insertText(caretPosition, suggestion.substring(length));
       this.hideSuggestions();
     });
     return item;

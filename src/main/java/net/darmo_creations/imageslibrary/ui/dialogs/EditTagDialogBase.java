@@ -11,6 +11,7 @@ import net.darmo_creations.imageslibrary.ui.*;
 import net.darmo_creations.imageslibrary.ui.syntax_highlighting.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.controlsfx.control.*;
+import org.fxmisc.richtext.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
@@ -23,7 +24,7 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
   protected final TextField labelField = new TextField();
   protected final ComboBox<TagTypeEntry> tagTypeComboBox = new ComboBox<>();
   private final TextPopOver definitionErrorPopup;
-  protected final AutoCompleteTextField<Tag> definitionField;
+  protected final AutoCompleteField<Tag> definitionField;
 
   protected boolean isLabelValid = false;
   protected boolean isDefinitionValid = true;
@@ -36,7 +37,12 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
 
     this.labelErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
     this.definitionErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
-    this.definitionField = new AutoCompleteTextField<>(this.db.getAllTags(), Tag::label, new TagQuerySyntaxHighlighter());
+    this.definitionField = new AutoCompleteField<>(
+        new StyleClassedTextField(),
+        this.db.getAllTags(),
+        Tag::label,
+        new TagQuerySyntaxHighlighter()
+    );
 
     this.getDialogPane().setPrefWidth(400);
     this.getDialogPane().setContent(this.createContent());

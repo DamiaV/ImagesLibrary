@@ -6,7 +6,7 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * Base interface for syntax highlighters accepted by the {@link AutoCompleteTextField} class.
+ * Base interface for syntax highlighters accepted by the {@link AutoCompleteField} class.
  */
 public interface SyntaxHighlighter {
   /**
