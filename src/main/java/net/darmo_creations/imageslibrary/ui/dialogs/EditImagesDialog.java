@@ -125,7 +125,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
     final SplitPane splitPane = new SplitPane(
         imageViewBox,
-        new VBox(5, fileNameBox, metadataBox, this.tagsField, new TextArea())
+        new VBox(5, fileNameBox, metadataBox, this.tagsField)
     );
     splitPane.setOrientation(Orientation.VERTICAL);
     splitPane.setDividerPositions(0.75);
