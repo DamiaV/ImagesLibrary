@@ -21,7 +21,7 @@ import java.util.function.*;
  *
  * @param <T> The type of the suggestions.
  */
-public class AutoCompleteTextField<T> extends StyleClassedTextField {
+public class AutoCompleteTextArea<T> extends StyleClassedTextArea {
   private static final int CARET_X_OFFSET = -20;
   private static final int CARET_Y_OFFSET = 0;
   private static final int MAX_SHOWN_SUGGESTIONS = 10;
@@ -41,11 +41,12 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
    * @param stringConverter   A function to convert each suggestion into a string.
    * @param syntaxHighlighter An optional syntax highlighter that will color the text.
    */
-  public AutoCompleteTextField(
+  public AutoCompleteTextArea(
       final @NotNull Set<T> entries,
       @NotNull Function<T, String> stringConverter,
       SyntaxHighlighter syntaxHighlighter
   ) {
+    this.getStyleClass().addAll("text-input", "text-area");
     this.setSyntaxHighlighter(syntaxHighlighter);
     EventStreams.nonNullValuesOf(this.caretBoundsProperty()).subscribe(opt -> {
       if (opt.isPresent()) {
@@ -106,11 +107,10 @@ public class AutoCompleteTextField<T> extends StyleClassedTextField {
     this.highlight();
   }
 
-  @Override
   public void setText(@NotNull String text) {
     if (text.equals(this.getText()))
-      super.setText(""); // Force update to properly refresh highlighting within dialogs
-    super.setText(text);
+      this.replaceText(""); // Force update to properly refresh highlighting within dialogs
+    this.replaceText(text);
   }
 
   private void showSuggestions() {

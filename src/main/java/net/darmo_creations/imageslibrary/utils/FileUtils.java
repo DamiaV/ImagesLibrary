@@ -90,6 +90,35 @@ public class FileUtils {
   );
 
   /**
+   * Format the metada of the given image file: width, height,
+   * approximate size (in KiB, MiB or GiB), and full size in bytes
+   *
+   * @param path   The path to the image.
+   * @param image  The image.
+   * @param config The app’s config.
+   * @return The formatted metadata.
+   */
+  public static String formatImageMetadata(@NotNull Path path, @NotNull Image image, final @NotNull Config config) {
+    long size = -1;
+    try {
+      size = Files.size(path);
+    } catch (final IOException e) {
+      App.logger().error("Unable to get size of file {}", path, e);
+    }
+
+    final Language language = config.language();
+    final var formattedSize = size >= 0 ? formatBytesSize(size, language) : new Pair<>("?", "");
+    return language.translate(
+        "image_preview.file_metadata.label",
+        new FormatArg("width", (int) image.getWidth()),
+        new FormatArg("height", (int) image.getHeight()),
+        new FormatArg("abbr_bytes", formattedSize.getKey()),
+        new FormatArg("unit", formattedSize.getValue()),
+        new FormatArg("full_bytes", language.formatNumber(size))
+    );
+  }
+
+  /**
    * Load the given image. If the file’s format is not supported by JavaFX,
    * but is in the {@link App#VALID_IMAGE_EXTENSIONS} list, the image will be converted in-memory
    * into a format that JavaFX supports.

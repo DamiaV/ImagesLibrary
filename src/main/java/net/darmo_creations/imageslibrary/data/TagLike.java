@@ -47,4 +47,20 @@ public interface TagLike extends DatabaseElement {
   static boolean isLabelValid(@NotNull String label) {
     return label.matches("[\\p{IsL}\\p{IsN}_]+");
   }
+
+  /**
+   * Extract the tag type and label from the given string.
+   *
+   * @param tag The string to split.
+   * @return A pair containing the tag type symbol and the tag label.
+   * @throws IllegalArgumentException If the label is invalid.
+   */
+  static Pair<Optional<Character>, String> splitLabel(@NotNull String tag) {
+    if (TagTypeLike.isSymbolValid(tag.charAt(0))) {
+      ensureValidLabel(tag.substring(1));
+      return new Pair<>(Optional.of(tag.charAt(0)), tag.substring(1));
+    }
+    ensureValidLabel(tag);
+    return new Pair<>(Optional.empty(), tag);
+  }
 }

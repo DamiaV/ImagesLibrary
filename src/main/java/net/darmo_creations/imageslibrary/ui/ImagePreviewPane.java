@@ -5,15 +5,12 @@ import javafx.geometry.*;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
 import javafx.scene.layout.*;
-import javafx.util.*;
-import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
 
-import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
@@ -135,7 +132,9 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
         this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
         FileUtils.loadImage(path, image -> {
           this.imageView.setImage(image);
-          this.displayMetadata(path, image);
+          final String text = FileUtils.formatImageMetadata(path, image, this.config);
+          this.fileMetadataLabel.setText(text);
+          this.fileMetadataLabel.setTooltip(new Tooltip(text));
           this.openInExplorerButton.setDisable(false);
         }, error -> {
           this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
@@ -156,28 +155,6 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
 
   public void addEditTagsListener(@NotNull EditTagsListener listener) {
     this.editTagsListeners.add(Objects.requireNonNull(listener));
-  }
-
-  private void displayMetadata(@NotNull Path path, @NotNull Image image) {
-    long size = -1;
-    try {
-      size = Files.size(path);
-    } catch (final IOException e) {
-      App.logger().error("Unable to get size of file {}", path, e);
-    }
-
-    final Language language = this.config.language();
-    final var formattedSize = size >= 0 ? FileUtils.formatBytesSize(size, language) : new Pair<>("?", "");
-    final String text = language.translate(
-        "image_preview.file_metadata.label",
-        new FormatArg("width", (int) image.getWidth()),
-        new FormatArg("height", (int) image.getHeight()),
-        new FormatArg("abbr_bytes", formattedSize.getKey()),
-        new FormatArg("unit", formattedSize.getValue()),
-        new FormatArg("full_bytes", language.formatNumber(size))
-    );
-    this.fileMetadataLabel.setText(text);
-    this.fileMetadataLabel.setTooltip(new Tooltip(text));
   }
 
   private void onOpenFile() {

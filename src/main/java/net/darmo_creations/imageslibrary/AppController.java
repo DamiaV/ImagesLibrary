@@ -27,6 +27,7 @@ public class AppController implements ResultsView.SearchListener {
   private final Stage stage;
   private final Config config;
 
+  private final EditImagesDialog editImagesDialog;
   private final CreateTagTypeDialog createTagTypeDialog;
   private final EditTagTypeDialog editTagTypeDialog;
   private final EditTagDialog editTagDialog;
@@ -73,6 +74,7 @@ public class AppController implements ResultsView.SearchListener {
     stage.setTitle(App.NAME + (config.isDebug() ? " [DEBUG]" : ""));
     stage.setMaximized(true);
 
+    this.editImagesDialog = new EditImagesDialog(config, db);
     this.createTagTypeDialog = new CreateTagTypeDialog(config, db);
     this.editTagTypeDialog = new EditTagTypeDialog(config, db);
     this.editTagDialog = new EditTagDialog(config, db);
@@ -443,9 +445,14 @@ public class AppController implements ResultsView.SearchListener {
     });
   }
 
-  private void onImageClick(Picture picture) {
-    // TODO
-    System.out.println("image clicked: " + picture.path());
+  private void onImageClick(@NotNull Picture picture) {
+    this.editImagesDialog.setPictures(List.of(picture), false);
+    this.editImagesDialog.showAndWait().ifPresent(anyUpdate -> {
+      if (anyUpdate) {
+        this.resultsView.refresh();
+        this.tagsView.refresh();
+      }
+    });
   }
 
   private void onImageSelectionChange(final @NotNull List<Picture> pictures) {
@@ -558,11 +565,18 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void editSelectedPictures() {
-    // TODO
-    System.out.println("edit images");
+    if (this.selectedPictures.isEmpty())
+      return;
+    this.editImagesDialog.setPictures(this.selectedPictures, false);
+    this.editImagesDialog.showAndWait().ifPresent(anyUpdate -> {
+      if (anyUpdate) {
+        this.resultsView.refresh();
+        this.tagsView.refresh();
+      }
+    });
   }
 
-  private void editTag(Tag tag) {
+  private void editTag(@NotNull Tag tag) {
     this.editTagDialog.setTag(tag);
     this.editTagDialog.showAndWait().ifPresent(t -> {
       this.tagsView.refresh();
@@ -604,8 +618,10 @@ public class AppController implements ResultsView.SearchListener {
     if (!notDeleted.isEmpty()) {
       Alerts.error(this.config, "alert.deletion_error.header", null, null);
       this.resultsView.listImages(notDeleted);
-    } else
+    } else {
       this.resultsView.refresh();
+      this.tagsView.refresh();
+    }
   }
 
   private void deleteSelectedTags() {
