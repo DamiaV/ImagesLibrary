@@ -269,10 +269,10 @@ public class EditImagesDialog extends DialogBase<Boolean> {
    * Update the state of this dialog’s buttons.
    */
   private void updateState() {
-    final boolean oneRemaining = this.pictures.size() <= 1;
+    final boolean noneRemaining = this.pictures.isEmpty();
     final boolean invalid = this.getPictureUpdate().isEmpty();
-    this.getDialogPane().lookupButton(ButtonTypes.FINISH).setDisable(!oneRemaining || invalid);
-    this.nextButton.setDisable(oneRemaining || invalid);
-    this.skipButton.setDisable(oneRemaining);
+    this.getDialogPane().lookupButton(ButtonTypes.FINISH).setDisable(!noneRemaining || invalid);
+    this.nextButton.setDisable(noneRemaining || invalid);
+    this.skipButton.setDisable(noneRemaining);
   }
 }
