@@ -84,10 +84,10 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
     // TODO button to move image, button to list similar images
     final HBox imageViewBox = new HBox(this.imageView);
-    imageViewBox.setAlignment(Pos.TOP_CENTER);
+    imageViewBox.setAlignment(Pos.CENTER);
     this.imageView.setPreserveRatio(true);
     this.imageView.fitHeightProperty().bind(imageViewBox.heightProperty().subtract(10));
-//    this.imageView.fitWidthProperty().bind(imageViewBox.widthProperty().subtract(10));
+    this.imageView.fitWidthProperty().bind(this.stage().widthProperty().subtract(30));
     imageViewBox.setMinHeight(200);
 
     final HBox fileNameBox = new HBox(this.fileNameLabel);
