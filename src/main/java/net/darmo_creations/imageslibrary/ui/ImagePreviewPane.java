@@ -18,7 +18,7 @@ import java.nio.file.*;
 import java.util.*;
 
 // TODO allow tag removal/insertion from the list directly
-public class ImagePreviewPane extends VBox implements ClickableListCellFactory.ClickListener<ImagePreviewPane.TagEntry> {
+public class ImagePreviewPane extends SplitPane implements ClickableListCellFactory.ClickListener<ImagePreviewPane.TagEntry> {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final List<EditTagsListener> editTagsListeners = new ArrayList<>();
 
@@ -34,10 +34,8 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
   private Picture picture;
 
   public ImagePreviewPane(final @NotNull Config config) {
-    super(5);
     this.config = config;
     this.setMinWidth(300);
-    this.setPadding(new Insets(2, 0, 0, 0));
 
     final Language language = config.language();
     final Theme theme = config.theme();
@@ -57,10 +55,10 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     metadataBox.setPadding(new Insets(0, 5, 0, 5));
 
     final HBox imageViewBox = new HBox(this.imageView);
-    imageViewBox.setAlignment(Pos.TOP_CENTER);
+    imageViewBox.setAlignment(Pos.CENTER);
     this.imageView.setPreserveRatio(true);
     this.imageView.fitHeightProperty().bind(imageViewBox.heightProperty().subtract(10));
-    VBox.setVgrow(imageViewBox, Priority.ALWAYS);
+    imageViewBox.setMinHeight(200);
 
     final HBox tagsLabelBox = new HBox(new Label(language.translate("image_preview.section.tags.title")));
     tagsLabelBox.getStyleClass().add("section-title");
@@ -72,19 +70,20 @@ public class ImagePreviewPane extends VBox implements ClickableListCellFactory.C
     this.editTagsButton.setGraphic(theme.getIcon(Icon.EDIT_TAGS, Icon.Size.SMALL));
     this.editTagsButton.setDisable(true);
 
-    this.tagsList.setPrefHeight(150);
-    this.tagsList.setCellFactory(ignored -> ClickableListCellFactory.forListener(this));
-
     HBox.setHgrow(tagsLabelBox, Priority.ALWAYS);
     final HBox tagsTitleBox = new HBox(5, tagsLabelBox, this.editTagsButton);
     tagsTitleBox.setPadding(new Insets(0, 5, 0, 5));
-    this.getChildren().addAll(controlsBox,
-        fileNameBox,
-        metadataBox,
+
+    this.tagsList.setPrefHeight(150);
+    this.tagsList.setCellFactory(ignored -> ClickableListCellFactory.forListener(this));
+    VBox.setVgrow(this.tagsList, Priority.ALWAYS);
+
+    this.setOrientation(Orientation.VERTICAL);
+    this.getItems().addAll(
         imageViewBox,
-        tagsTitleBox,
-        this.tagsList
+        new VBox(5, fileNameBox, metadataBox, tagsTitleBox, this.tagsList)
     );
+    this.setDividerPositions(0.75);
     this.setImage(null, null);
   }
 
