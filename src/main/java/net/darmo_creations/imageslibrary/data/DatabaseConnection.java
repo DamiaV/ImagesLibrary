@@ -1398,6 +1398,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param file The path to the file to convert.
    * @return The converted file.
    */
+  // TODO async and show progress dialog
   public static Path convertPythonDatabase(final @NotNull Path file) throws DatabaseOperationException {
     final Path outputPath = file.toAbsolutePath().getParent().resolve("converted-" + file.getFileName());
 

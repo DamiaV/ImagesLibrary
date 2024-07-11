@@ -177,7 +177,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   }
 
   private void showTagsErrorPopup() {
-    this.tagsErrorPopup.show(this.tagsField);
+    if (this.getDialogPane().getScene() != null && this.stage().isShowing()) // Fix an NPE that sometimes occur
+      this.tagsErrorPopup.show(this.tagsField);
   }
 
   /**
@@ -368,7 +369,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     } catch (final DatabaseOperationException e) {
       App.logger().error("Error fetching similar pictures", e);
     }
-    System.out.println(this.similarPictures);
+    System.out.println(this.similarPictures); // DEBUG
     this.viewSimilarImagesButton.setDisable(this.similarPictures.isEmpty());
   }
 }
