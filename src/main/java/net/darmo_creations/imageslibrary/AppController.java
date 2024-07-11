@@ -17,6 +17,7 @@ import org.jetbrains.annotations.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.stream.*;
 
 public class AppController implements ResultsView.SearchListener {
   private final DatabaseConnection db;
@@ -103,7 +104,7 @@ public class AppController implements ResultsView.SearchListener {
       final Dragboard dragboard = event.getDragboard();
       final boolean success = this.isDragAndDropValid(dragboard);
       if (success)
-        this.loadFiles(dragboard.getFiles());
+        this.loadFiles(dragboard.getFiles().stream().map(File::toPath).toList());
       event.setDropCompleted(success);
       event.consume();
     });
@@ -369,8 +370,100 @@ public class AppController implements ResultsView.SearchListener {
     });
   }
 
-  private void loadFiles(final @NotNull List<File> filesOrDirs) {
-    // TODO
+  private void loadFiles(final @NotNull List<Path> filesOrDirs) {
+    if (filesOrDirs.isEmpty())
+      return;
+
+    final LoadingResult res = this.loadPictures(filesOrDirs);
+    final List<Picture> pictures = res.pictures();
+    pictures.sort(Comparator.comparing(Picture::path));
+    final List<Path> skipped = res.skipped();
+    skipped.sort(null);
+    final List<Path> errors = res.errors();
+    errors.sort(null);
+
+    if (!errors.isEmpty() || !skipped.isEmpty()) {
+      final String headerKey;
+      if (!errors.isEmpty() && skipped.isEmpty())
+        headerKey = "alert.loading_error.header";
+      else if (errors.isEmpty())
+        headerKey = "alert.skipped_files.header";
+      else
+        headerKey = "alert.skipped_files_and_error.header";
+      Alerts.warning(
+          this.config,
+          headerKey,
+          null,
+          null,
+          new FormatArg("skipped_nb", skipped.size()),
+          new FormatArg("errors_nb", errors.size())
+      );
+    }
+
+    if (pictures.isEmpty()) {
+      Alerts.warning(
+          this.config,
+          "alert.no_files.header",
+          null,
+          null
+      );
+      return;
+    }
+
+    this.editImagesDialog.setPictures(pictures, true);
+    this.editImagesDialog.showAndWait().ifPresent(anyUpdate -> {
+      if (anyUpdate) {
+        this.resultsView.refresh();
+        this.tagsView.refresh();
+      }
+    });
+  }
+
+  private LoadingResult loadPictures(final @NotNull List<Path> filesOrDirs) {
+    final List<Picture> pictures = new LinkedList<>();
+    final List<Path> errors = new LinkedList<>();
+    final List<Path> skipped = new LinkedList<>();
+
+    for (final Path fileOrDir : filesOrDirs)
+      if (Files.isDirectory(fileOrDir))
+        try (final Stream<Path> tree = Files.walk(fileOrDir, 1, FileVisitOption.FOLLOW_LINKS)) {
+          final var res = this.loadPictures(tree.filter(f -> {
+            try {
+              return !Files.isSameFile(fileOrDir, f);
+            } catch (final IOException e) {
+              errors.add(f);
+              return false;
+            }
+          }).toList());
+          pictures.addAll(res.pictures());
+          skipped.addAll(res.skipped());
+          errors.addAll(res.errors());
+        } catch (final IOException e) {
+          errors.add(fileOrDir);
+        }
+      else if (App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(fileOrDir)))
+        try {
+          if (this.db.isFileRegistered(fileOrDir))
+            skipped.add(fileOrDir);
+          else
+            pictures.add(new Picture(0, fileOrDir, Hash.computeForFile(fileOrDir)));
+        } catch (final DatabaseOperationException | IOException e) {
+          errors.add(fileOrDir);
+        }
+
+    return new LoadingResult(pictures, skipped, errors);
+  }
+
+  private record LoadingResult(
+      @NotNull List<Picture> pictures,
+      @NotNull List<Path> skipped,
+      @NotNull List<Path> errors
+  ) {
+    private LoadingResult {
+      Objects.requireNonNull(pictures);
+      Objects.requireNonNull(skipped);
+      Objects.requireNonNull(errors);
+    }
   }
 
   private void onTagClick(Tag tag) {
@@ -525,13 +618,12 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void onImportImages() {
-    // TODO
-    System.out.println("import images");
+    this.loadFiles(FileChoosers.showImagesFileChooser(this.config, this.stage));
   }
 
   private void onImportDirectories() {
-    // TODO
-    System.out.println("import directories");
+    FileChoosers.showDirectoryChooser(this.config, this.stage)
+        .ifPresent(value -> this.loadFiles(List.of(value)));
   }
 
   /**
@@ -671,7 +763,7 @@ public class AppController implements ResultsView.SearchListener {
    * Open the dialog to convert a Python database file.
    */
   private void onConvertPythonDbMenuItem() {
-    final var path = FileChoosers.showDatabaseFileChooser(this.config, this.stage, null);
+    final var path = FileChoosers.showDatabaseFileChooser(this.config, this.stage);
     if (path.isEmpty())
       return;
     this.disableInteractions();

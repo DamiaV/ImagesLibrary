@@ -40,12 +40,13 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
   private final Queue<Picture> pictures = new LinkedList<>();
   private final Set<Tag> currentPictureTags = new HashSet<>();
+  private Path targetPath;
   private Picture currentPicture;
   private boolean insert;
   private boolean anyUpdate;
 
   public EditImagesDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
-    super(config, "edit_images", true, ButtonTypes.FINISH, ButtonTypes.NEXT, ButtonTypes.SKIP, ButtonTypes.CANCEL);
+    super(config, "edit_images", true, ButtonTypes.FINISH, ButtonTypes.SKIP, ButtonTypes.NEXT, ButtonTypes.CANCEL);
     this.db = db;
     this.tagTypes = db.getAllTagTypes();
 
@@ -147,9 +148,11 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     if (pictures.isEmpty())
       throw new IllegalArgumentException("pictures must not be empty");
     this.insert = insert;
+    this.setTitle(this.config.language().translate(insert ? "dialog.insert_images.title" : "dialog.edit_images.title"));
     this.pictures.clear();
     this.pictures.addAll(pictures);
     this.anyUpdate = false;
+    this.targetPath = null;
     this.nextPicture();
   }
 
@@ -160,12 +163,13 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     if (this.pictures.isEmpty())
       return;
     this.currentPicture = this.pictures.poll();
-    try {
-      this.currentPictureTags.clear();
-      this.currentPictureTags.addAll(this.db.getImageTags(this.currentPicture));
-    } catch (final DatabaseOperationException e) {
-      Alerts.error(this.config, "dialog.edit_images.tags_querying_error.header", null, null);
-    }
+    if (!this.insert)
+      try {
+        this.currentPictureTags.clear();
+        this.currentPictureTags.addAll(this.db.getImageTags(this.currentPicture));
+      } catch (final DatabaseOperationException e) {
+        Alerts.error(this.config, "dialog.edit_images.tags_querying_error.header", null, null);
+      }
     this.imageView.setImage(null);
     final Path path = this.currentPicture.path();
     final String fileName = path.getFileName().toString();
@@ -186,26 +190,48 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       }, error -> this.fileMetadataLabel.setText(language.translate("image_preview.missing_file")));
     }
     final var joiner = new StringJoiner(" ");
-    this.currentPictureTags.forEach(tag -> {
-      String t = tag.label();
-      if (tag.type().isPresent())
-        t = tag.type().get().symbol() + t;
-      joiner.add(t);
-    });
-    this.tagsField.setText(joiner.toString());
+    if (!this.insert) {
+      this.currentPictureTags.forEach(tag -> {
+        String t = tag.label();
+        if (tag.type().isPresent())
+          t = tag.type().get().symbol() + t;
+        joiner.add(t);
+      });
+      this.tagsField.setText(joiner.toString());
+    }
     this.updateState();
   }
 
   private boolean applyChanges() {
     final Optional<PictureUpdate> update = this.getPictureUpdate();
-    if (update.isPresent())
+    if (update.isPresent()) {
+      if (this.insert)
+        try {
+          this.db.insertPicture(update.get());
+          this.anyUpdate = true;
+        } catch (final DatabaseOperationException e) {
+          Alerts.databaseError(this.config, e.errorCode());
+          return false;
+        }
+      else
+        try {
+          this.db.updatePicture(update.get());
+          this.anyUpdate = true;
+        } catch (final DatabaseOperationException e) {
+          Alerts.databaseError(this.config, e.errorCode());
+          return false;
+        }
+    }
+
+    if (this.targetPath != null && !this.targetPath.equals(this.currentPicture.path()))
       try {
-        this.db.updatePicture(update.get());
+        this.db.movePicture(this.currentPicture, this.targetPath);
         this.anyUpdate = true;
       } catch (final DatabaseOperationException e) {
         Alerts.databaseError(this.config, e.errorCode());
         return false;
       }
+
     return true;
   }
 

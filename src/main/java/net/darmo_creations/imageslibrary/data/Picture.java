@@ -20,7 +20,7 @@ public final class Picture extends DatabaseObject implements PictureLike {
    * @param path The path to the picture’s file.
    * @param hash The hash of the file.
    */
-  Picture(int id, final @NotNull Path path, @NotNull Hash hash) {
+  public Picture(int id, final @NotNull Path path, @NotNull Hash hash) {
     super(id);
     this.path = path.toAbsolutePath();
     this.hash = Objects.requireNonNull(hash);

@@ -100,7 +100,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
   }
 
   private void onSelectDatabaseFile() {
-    final var path = FileChoosers.showDatabaseFileChooser(this.config, this.stage(), null);
+    final var path = FileChoosers.showDatabaseFileChooser(this.config, this.stage());
     if (path.isPresent()) {
       final Path file = path.get();
       this.dbFileField.setText(file.toString());

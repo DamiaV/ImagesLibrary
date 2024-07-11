@@ -16,67 +16,77 @@ import java.util.*;
  */
 public final class FileChoosers {
   /**
-   * Open a dialog to choose a .reg file.
+   * Open a dialog to choose a {@code .sqlite3} file.
    *
-   * @param stage       The parent stage object.
-   * @param defaultName Default file name.
+   * @param config The app’s config.
+   * @param stage  The parent stage object.
    * @return The selected file.
    */
   public static Optional<Path> showDatabaseFileChooser(
       final @NotNull Config config,
-      final @NotNull Window stage,
-      String defaultName
+      final @NotNull Window stage
   ) {
     return openFileChooser(
         config,
         stage,
         "database_file_chooser",
-        defaultName,
         List.of(DatabaseConnection.DATABASE_FILE_EXT)
     );
   }
 
   /**
-   * Open a dialog to choose an image file.
+   * Open a dialog to choose image files.
    *
-   * @param config      The current config.
-   * @param stage       The parent stage object.
-   * @param defaultName Default file name.
+   * @param config The app’s config.
+   * @param stage  The parent stage object.
    * @return The selected file.
    */
   @Unmodifiable
   public static List<Path> showImagesFileChooser(
       final @NotNull Config config,
-      final @NotNull Window stage,
-      String defaultName
+      final @NotNull Window stage
   ) {
     return openMultipleFilesChooser(
         config,
         stage,
-        "image_file_chooser",
-        defaultName,
+        "image_files_chooser",
+        null,
         App.VALID_IMAGE_EXTENSIONS
     );
   }
 
   /**
+   * Open a dialog to choose a directory.
+   *
+   * @param config The app’s config.
+   * @param stage  The parent stage object.
+   * @return The selected directory.
+   */
+  public static Optional<Path> showDirectoryChooser(
+      final @NotNull Config config,
+      @NotNull Window stage
+  ) {
+    final var fileChooser = new DirectoryChooser();
+    fileChooser.setTitle(config.language().translate("dialog.directories_chooser.title"));
+    return Optional.ofNullable(fileChooser.showDialog(stage)).map(File::toPath);
+  }
+
+  /**
    * Open a single file chooser.
    *
-   * @param config      The current config.
-   * @param stage       The parent stage object.
-   * @param dialogName  Name of the file chooser.
-   * @param defaultName Default file name.
-   * @param extensions  Allowed file extensions.
+   * @param config     The app’s config.
+   * @param stage      The parent stage object.
+   * @param dialogName Name of the file chooser.
+   * @param extensions Allowed file extensions.
    * @return The selected file.
    */
   private static Optional<Path> openFileChooser(
       final @NotNull Config config,
       @NotNull Window stage,
       @NotNull String dialogName,
-      String defaultName,
       final @NotNull List<String> extensions
   ) {
-    final File file = buildFileChooser(config, dialogName, defaultName, extensions).showOpenDialog(stage);
+    final File file = buildFileChooser(config, dialogName, null, extensions).showOpenDialog(stage);
     if (file == null)
       return Optional.empty();
     final String fileName = file.getName();
@@ -88,7 +98,7 @@ public final class FileChoosers {
   /**
    * Open a multiple file chooser.
    *
-   * @param config      The current config.
+   * @param config      The app’s config.
    * @param stage       The parent stage object.
    * @param dialogName  Name of the file chooser.
    * @param defaultName Default file name.
@@ -115,7 +125,7 @@ public final class FileChoosers {
   /**
    * Open a file saver.
    *
-   * @param config      The current config.
+   * @param config      The app’s config.
    * @param stage       The parent stage object.
    * @param dialogName  Name of the file saver.
    * @param defaultName Default file name.
