@@ -1449,7 +1449,7 @@ public final class DatabaseConnection implements AutoCloseable {
 
       // Copy images
       try (final var imagesCountStatement = conn.createStatement();
-           final var statement = conn.prepareStatement("SELECT * FROM images"); // Using * as the hash column may not be present
+           final var statement = conn.prepareStatement("SELECT id, path FROM images"); // Ignoring "hash" column as we recompute it
            final var tagsStatement = conn.prepareStatement("SELECT tag_id FROM image_tag WHERE image_id = ?");
            final var resultSet = statement.executeQuery()) {
         final int total;
