@@ -5,11 +5,14 @@ import javafx.geometry.*;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
+import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
 import javafx.util.*;
+import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
+import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.ui.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.controlsfx.control.*;
@@ -27,10 +30,16 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private final ImageView imageView;
   private final Label fileNameLabel = new Label();
   private final Label fileMetadataLabel = new Label();
+  private final Button viewSimilarImagesButton = new Button();
+  private final Button moveButton = new Button();
+  private final Button clearPathButton = new Button();
+  private final Label targetPathLabel = new Label();
+  private final HBox pathBox = new HBox();
   private final TextPopOver tagsErrorPopup;
   private final AutoCompleteField<Tag> tagsField;
   private final Button nextButton;
   private final Button skipButton;
+  private final Button finishButton;
 
   private boolean areTagsValid = false;
 
@@ -42,6 +51,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private final Set<Tag> currentPictureTags = new HashSet<>();
   private Path targetPath;
   private Picture currentPicture;
+  private final List<Pair<Picture, Float>> similarPictures = new LinkedList<>();
   private boolean insert;
   private boolean anyUpdate;
 
@@ -66,6 +76,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       this.nextPicture();
       event.consume();
     });
+    this.finishButton = (Button) this.getDialogPane().lookupButton(ButtonTypes.FINISH);
 
     this.getDialogPane().setContent(this.createContent());
 
@@ -83,7 +94,6 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private Node createContent() {
     final Language language = this.config.language();
 
-    // TODO button to move image, button to list similar images
     final HBox imageViewBox = new HBox(this.imageView);
     imageViewBox.setAlignment(Pos.CENTER);
     this.imageView.setPreserveRatio(true);
@@ -99,6 +109,28 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     metadataBox.setAlignment(Pos.CENTER);
     metadataBox.setPadding(new Insets(0, 5, 0, 5));
 
+    this.viewSimilarImagesButton.setText(language.translate("dialog.edit_images.view_similar_images"));
+    this.viewSimilarImagesButton.setGraphic(this.config.theme().getIcon(Icon.SHOW_SILIMAR_IMAGES, Icon.Size.SMALL));
+    this.viewSimilarImagesButton.setOnAction(event -> this.onViewSimilarAction());
+    this.moveButton.setText(language.translate("dialog.edit_images.move_image"));
+    this.moveButton.setGraphic(this.config.theme().getIcon(Icon.MOVE_IMAGES, Icon.Size.SMALL));
+    this.moveButton.setOnAction(event -> this.onMoveAction());
+    this.clearPathButton.setText(language.translate("dialog.edit_images.clear_path"));
+    this.clearPathButton.setGraphic(this.config.theme().getIcon(Icon.CLEAR_TEXT, Icon.Size.SMALL));
+    this.clearPathButton.setOnAction(event -> this.clearTargetPath());
+    final HBox buttonsBox = new HBox(5, this.viewSimilarImagesButton, this.moveButton, this.clearPathButton);
+    buttonsBox.setAlignment(Pos.CENTER);
+    buttonsBox.setPadding(new Insets(0, 5, 0, 5));
+
+    this.pathBox.setAlignment(Pos.CENTER);
+    this.pathBox.setPadding(new Insets(0, 5, 0, 5));
+    this.pathBox.managedProperty().bind(this.pathBox.visibleProperty());
+    this.pathBox.getChildren().addAll(
+        new Label(language.translate("dialog.edit_images.target_directory.label")),
+        this.targetPathLabel
+    );
+    this.pathBox.setVisible(false);
+
     this.tagsField.textProperty().addListener((observable, oldValue, newValue) -> {
       final var styleClass = this.tagsField.getStyleClass();
       if (!newValue.isBlank()) {
@@ -109,8 +141,10 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         } catch (final IllegalArgumentException e) {
           this.tagsErrorPopup.setText(language.translate("dialog.edit_images.invalid_tags"));
         }
-      } else
-        this.areTagsValid = true;
+      } else {
+        this.areTagsValid = false;
+        this.tagsErrorPopup.setText(language.translate("dialog.edit_images.no_tags"));
+      }
 
       if (!this.areTagsValid) {
         this.showTagsErrorPopup();
@@ -122,11 +156,20 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       }
       this.updateState();
     });
+    this.tagsField.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+      if (event.getCode() == KeyCode.ENTER && event.isControlDown()) {
+        if (!this.nextButton.isDisabled())
+          this.nextButton.fire();
+        else
+          this.finishButton.fire();
+        event.consume();
+      }
+    });
     VBox.setVgrow(this.tagsField, Priority.ALWAYS);
 
     final SplitPane splitPane = new SplitPane(
         imageViewBox,
-        new VBox(5, fileNameBox, metadataBox, this.tagsField)
+        new VBox(5, fileNameBox, metadataBox, buttonsBox, this.pathBox, this.tagsField)
     );
     splitPane.setOrientation(Orientation.VERTICAL);
     splitPane.setDividerPositions(0.75);
@@ -152,7 +195,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.pictures.clear();
     this.pictures.addAll(pictures);
     this.anyUpdate = false;
-    this.targetPath = null;
+    this.clearTargetPath();
     this.nextPicture();
   }
 
@@ -207,7 +250,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     if (update.isPresent()) {
       if (this.insert)
         try {
-          this.db.insertPicture(update.get());
+          this.currentPicture = this.db.insertPicture(update.get());
           this.anyUpdate = true;
         } catch (final DatabaseOperationException e) {
           Alerts.databaseError(this.config, e.errorCode());
@@ -262,6 +305,25 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     ));
   }
 
+  private void onViewSimilarAction() {
+    // TODO
+  }
+
+  private void onMoveAction() {
+    final Optional<Path> path = FileChoosers.showDirectoryChooser(this.config, this.stage());
+    this.pathBox.setVisible(path.isPresent());
+    if (path.isEmpty())
+      return;
+    this.targetPath = path.get();
+    this.targetPathLabel.setText(this.targetPath.toString());
+  }
+
+  private void clearTargetPath() {
+    this.pathBox.setVisible(false);
+    this.targetPath = null;
+    this.targetPathLabel.setText(null);
+  }
+
   /**
    * Parse the tags from the tags field’s text.
    *
@@ -297,8 +359,16 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private void updateState() {
     final boolean noneRemaining = this.pictures.isEmpty();
     final boolean invalid = this.getPictureUpdate().isEmpty();
-    this.getDialogPane().lookupButton(ButtonTypes.FINISH).setDisable(!noneRemaining || invalid);
     this.nextButton.setDisable(noneRemaining || invalid);
     this.skipButton.setDisable(noneRemaining);
+    this.finishButton.setDisable(!noneRemaining || invalid);
+    this.similarPictures.clear();
+    try {
+      this.similarPictures.addAll(this.db.getSimilarImages(this.currentPicture.hash(), this.currentPicture));
+    } catch (final DatabaseOperationException e) {
+      App.logger().error("Error fetching similar pictures", e);
+    }
+    System.out.println(this.similarPictures);
+    this.viewSimilarImagesButton.setDisable(this.similarPictures.isEmpty());
   }
 }

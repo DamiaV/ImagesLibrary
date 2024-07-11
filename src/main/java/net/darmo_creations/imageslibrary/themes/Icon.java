@@ -45,6 +45,8 @@ public enum Icon {
 
   OPEN_DB_FILE("folder_database"),
   OPEN_FILE_IN_EXPLORER("folder_go"),
+
+  SHOW_SILIMAR_IMAGES("pictures"),
   ;
 
   private final String baseName;

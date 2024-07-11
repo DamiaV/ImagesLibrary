@@ -67,7 +67,7 @@ public final class FileChoosers {
       @NotNull Window stage
   ) {
     final var fileChooser = new DirectoryChooser();
-    fileChooser.setTitle(config.language().translate("dialog.directories_chooser.title"));
+    fileChooser.setTitle(config.language().translate("dialog.directory_chooser.title"));
     return Optional.ofNullable(fileChooser.showDialog(stage)).map(File::toPath);
   }
 

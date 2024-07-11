@@ -629,13 +629,8 @@ public final class DatabaseConnection implements AutoCloseable {
     final Set<Picture> pictures = new HashSet<>();
     try (final var statement = this.connection.prepareStatement(query);
          final var resultSet = statement.executeQuery()) {
-      while (resultSet.next()) {
-        pictures.add(new Picture(
-            resultSet.getInt("id"),
-            Path.of(resultSet.getString("path")),
-            new Hash(resultSet.getLong("hash"))
-        ));
-      }
+      while (resultSet.next())
+        pictures.add(newPicture(resultSet));
     } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
@@ -755,11 +750,7 @@ public final class DatabaseConnection implements AutoCloseable {
       try (final var resultSet = statement.executeQuery()) {
         while (resultSet.next())
           pictures.add(new Pair<>(
-              new Picture(
-                  resultSet.getInt("id"),
-                  Path.of(resultSet.getString("path")),
-                  new Hash(resultSet.getLong("hash"))
-              ),
+              newPicture(resultSet),
               resultSet.getFloat("confidence")
           ));
       }
@@ -774,19 +765,27 @@ public final class DatabaseConnection implements AutoCloseable {
       INSERT INTO images (path, hash)
       VALUES (?, ?)
       """;
+  @SQLite
+  private static final String IMAGE_WITH_ID_QUERY = """
+      SELECT id, path, hash
+      FROM images
+      WHERE id = ?1
+      """;
 
   /**
    * Insert the given picture.
    *
    * @param pictureUpdate The picture to insert.
+   * @return The inserted picture.
    * @throws DatabaseOperationException If any data base error occurs.
    * @throws IllegalArgumentException   If the {@code tagsToRemove} property is not empty.
    */
-  public void insertPicture(@NotNull PictureUpdate pictureUpdate) throws DatabaseOperationException {
+  public Picture insertPicture(@NotNull PictureUpdate pictureUpdate) throws DatabaseOperationException {
     if (!pictureUpdate.tagsToRemove().isEmpty())
       throw this.logThrownError(new IllegalArgumentException("Cannot remove tags from a picture that is not yet registered"));
 
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
+    final int newId;
     try (final var statement = this.connection.prepareStatement(INSERT_IMAGE_QUERY, Statement.RETURN_GENERATED_KEYS)) {
       statement.setString(1, pictureUpdate.path().toString());
       statement.setLong(2, pictureUpdate.hash().bytes());
@@ -794,7 +793,8 @@ public final class DatabaseConnection implements AutoCloseable {
       final var id = getFirstGeneratedId(statement);
       if (id.isEmpty())
         throw this.logThrownError(new SQLException("Query did not generate any key"));
-      result = this.updatePictureTagsNoCommit(pictureUpdate.withId(id.get()));
+      newId = id.get();
+      result = this.updatePictureTagsNoCommit(pictureUpdate.withId(newId));
     } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
@@ -804,6 +804,24 @@ public final class DatabaseConnection implements AutoCloseable {
     }
     this.commit();
     this.updateTagsCache(result.getKey(), result.getValue());
+
+    try (final var statement = this.connection.prepareStatement(IMAGE_WITH_ID_QUERY)) {
+      statement.setInt(1, newId);
+      try (final var resultSet = statement.executeQuery()) {
+        resultSet.next();
+        return newPicture(resultSet);
+      }
+    } catch (final SQLException e) {
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
+    }
+  }
+
+  private static Picture newPicture(final @NotNull ResultSet resultSet) throws SQLException {
+    return new Picture(
+        resultSet.getInt("id"),
+        Path.of(resultSet.getString("path")),
+        new Hash(resultSet.getLong("hash"))
+    );
   }
 
   @SQLite
