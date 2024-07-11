@@ -244,6 +244,13 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       this.tagsField.setText(joiner.toString());
     }
     this.updateState();
+    this.similarPictures.clear();
+    try {
+      this.similarPictures.addAll(this.db.getSimilarImages(this.currentPicture.hash(), this.currentPicture));
+    } catch (final DatabaseOperationException e) {
+      App.logger().error("Error fetching similar pictures", e);
+    }
+    this.viewSimilarImagesButton.setDisable(this.similarPictures.isEmpty());
   }
 
   private boolean applyChanges() {
@@ -363,13 +370,5 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.nextButton.setDisable(noneRemaining || invalid);
     this.skipButton.setDisable(noneRemaining);
     this.finishButton.setDisable(!noneRemaining || invalid);
-    this.similarPictures.clear();
-    try {
-      this.similarPictures.addAll(this.db.getSimilarImages(this.currentPicture.hash(), this.currentPicture));
-    } catch (final DatabaseOperationException e) {
-      App.logger().error("Error fetching similar pictures", e);
-    }
-    System.out.println(this.similarPictures); // DEBUG
-    this.viewSimilarImagesButton.setDisable(this.similarPictures.isEmpty());
   }
 }
