@@ -7,13 +7,14 @@ import net.darmo_creations.imageslibrary.utils.*;
 import org.intellij.lang.annotations.*;
 import org.jetbrains.annotations.*;
 import org.slf4j.*;
+import org.sqlite.*;
 
 import java.io.*;
 import java.lang.reflect.*;
 import java.nio.file.*;
 import java.sql.*;
 import java.util.*;
-import java.util.function.*;
+import java.util.function.Function;
 import java.util.stream.*;
 
 /**
@@ -111,10 +112,11 @@ public final class DatabaseConnection implements AutoCloseable {
     this.logger.info("Connecting to database file at {}", fileName);
     try {
       final boolean needToSetup = file == null || !Files.exists(file);
-      this.connection = DriverManager.getConnection("jdbc:sqlite:%s".formatted(fileName));
+      final SQLiteConfig sqLiteConfig = new SQLiteConfig();
+      sqLiteConfig.enforceForeignKeys(true);
+      this.connection = DriverManager.getConnection("jdbc:sqlite:%s".formatted(fileName), sqLiteConfig.toProperties());
       this.injectCustomFunctions();
       this.connection.setAutoCommit(false);
-      this.executeUpdateQuery("PRAGMA FOREIGN_KEYS = ON");
       this.logger.info("Foreign keys enabled.");
       if (needToSetup) // If the DB file does not exist, create it
         this.setupDatabase();
@@ -1130,6 +1132,7 @@ public final class DatabaseConnection implements AutoCloseable {
       }
     }
 
+    final Set<Tag> imageTags = this.getImageTags(picture);
     try (final var statement = this.connection.prepareStatement(DELETE_IMAGE_QUERY)) {
       statement.setInt(1, picture.id());
       statement.executeUpdate();
@@ -1140,8 +1143,7 @@ public final class DatabaseConnection implements AutoCloseable {
     this.commit();
 
     // Update tag counts
-    this.getImageTags(picture)
-        .forEach(imageTag -> this.tagsCounts.put(imageTag.id(), this.tagsCounts.get(imageTag.id()) - 1));
+    imageTags.forEach(imageTag -> this.tagsCounts.put(imageTag.id(), this.tagsCounts.get(imageTag.id()) - 1));
   }
 
   @SuppressWarnings("SqlResolve")
