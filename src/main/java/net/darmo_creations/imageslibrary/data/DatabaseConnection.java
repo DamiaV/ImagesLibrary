@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.data;
 
 import javafx.util.*;
+import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.data.sql_functions.*;
 import net.darmo_creations.imageslibrary.query_parser.*;
 import net.darmo_creations.imageslibrary.utils.*;
@@ -1447,17 +1448,29 @@ public final class DatabaseConnection implements AutoCloseable {
           .collect(Collectors.toMap(Tag::label, Function.identity()));
 
       // Copy images
-      try (final var statement = conn.prepareStatement("SELECT * FROM images"); // Using * as the hash column may not be present
+      try (final var imagesCountStatement = conn.createStatement();
+           final var statement = conn.prepareStatement("SELECT * FROM images"); // Using * as the hash column may not be present
            final var tagsStatement = conn.prepareStatement("SELECT tag_id FROM image_tag WHERE image_id = ?");
            final var resultSet = statement.executeQuery()) {
+        final int total;
+        try (final var rs = imagesCountStatement.executeQuery("SELECT COUNT(*) FROM images")) {
+          rs.next();
+          total = rs.getInt(1);
+        }
+        int count = 0;
         while (resultSet.next()) {
+          count++;
+          if (count % 100 == 0)
+            App.logger().debug("{}/{}", count, total);
           final int id = resultSet.getInt("id");
-          final String path = resultSet.getString("path");
-          final Hash hash;
-          if (resultSet.getMetaData().getColumnCount() == 3)
-            hash = new Hash(resultSet.getLong("hash"));
-          else
+          final Path path = Path.of(resultSet.getString("path"));
+          Hash hash;
+          try {
+            hash = Hash.computeForFile(path);
+          } catch (final Exception e) {
+            App.logger().error("Failed to compute hash for {}", path, e);
             hash = new Hash(0);
+          }
           // Fetch associated tags
           final Set<Pair<TagType, String>> imageTags = new HashSet<>();
           tagsStatement.setInt(1, id);
@@ -1467,7 +1480,7 @@ public final class DatabaseConnection implements AutoCloseable {
               imageTags.add(new Pair<>(tag.type().orElse(null), tag.label()));
             }
           }
-          db.insertPicture(new PictureUpdate(0, Path.of(path).toAbsolutePath(), hash, imageTags, Set.of()));
+          db.insertPicture(new PictureUpdate(0, path.toAbsolutePath(), hash, imageTags, Set.of()));
         }
       }
     } catch (final SQLException e) {
