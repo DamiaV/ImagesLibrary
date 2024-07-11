@@ -767,37 +767,33 @@ public class AppController implements ResultsView.SearchListener {
     if (path.isEmpty())
       return;
     this.disableInteractions();
-    new Thread(() -> {
-      final Path newPath;
-      try {
-        newPath = DatabaseConnection.convertPythonDatabase(path.get());
-      } catch (final DatabaseOperationException e) {
-        Platform.runLater(() -> {
+    // TODO show progress dialog
+    DatabaseConnection.convertPythonDatabase(
+        path.get(),
+        newPath -> {
+          this.restoreInteractions();
+          final boolean proceed = Alerts.confirmation(
+              this.config,
+              "alert.conversion_done.header",
+              "alert.conversion_done.content",
+              null,
+              new FormatArg("path", newPath)
+          );
+          if (proceed) {
+            try {
+              this.config.withDatabaseFile(newPath).save();
+            } catch (final IOException e) {
+              App.logger().error("Unable to save config", e);
+              Alerts.error(this.config, "dialog.settings.alert.save_error.header", null, null);
+            }
+          }
+        },
+        e -> {
           App.logger().error("Unable to convert database file", e);
           this.restoreInteractions();
           Alerts.databaseError(this.config, e.errorCode());
-        });
-        return;
-      }
-      Platform.runLater(() -> {
-        this.restoreInteractions();
-        final boolean proceed = Alerts.confirmation(
-            this.config,
-            "alert.conversion_done.header",
-            "alert.conversion_done.content",
-            null,
-            new FormatArg("path", newPath)
-        );
-        if (proceed) {
-          try {
-            this.config.withDatabaseFile(newPath).save();
-          } catch (final IOException e) {
-            App.logger().error("Unable to save config", e);
-            Alerts.error(this.config, "dialog.settings.alert.save_error.header", null, null);
-          }
         }
-      });
-    }).start();
+    );
   }
 
   /**

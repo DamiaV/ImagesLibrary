@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.data;
 
+import javafx.application.*;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.data.sql_functions.*;
@@ -16,6 +17,7 @@ import java.nio.file.*;
 import java.sql.*;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.*;
 import java.util.stream.*;
 
 /**
@@ -1394,12 +1396,34 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * Convert a database file created by the Python app to this app’s format.
    * The original file remains unchanged and the converted database is written to a new file.
+   * <p>
+   * Callbacks will be called on the JavaFX application thread.
    *
-   * @param file The path to the file to convert.
-   * @return The converted file.
+   * @param file      The path to the file to convert.
+   * @param onSuccess A callback invoked when the file has been converted.
+   * @param onError   A callback invoked when any error occurs and the conversion is aborted.
    */
-  // TODO async and show progress dialog
-  public static Path convertPythonDatabase(final @NotNull Path file) throws DatabaseOperationException {
+  public static void convertPythonDatabase(
+      final @NotNull Path file,
+      @NotNull Consumer<Path> onSuccess,
+      @NotNull Consumer<DatabaseOperationException> onError
+  ) {
+    new Thread(() -> {
+      try {
+        final Path outputPath = convertPythonDb(file);
+        Platform.runLater(() -> onSuccess.accept(outputPath));
+      } catch (final DatabaseOperationException e) {
+        try {
+          Files.delete(file);
+        } catch (final IOException ex) {
+          App.logger().error("Failed to delete incomplete database file {}", file, ex);
+        }
+        Platform.runLater(() -> onError.accept(e));
+      }
+    }).start();
+  }
+
+  private static Path convertPythonDb(@NotNull Path file) throws DatabaseOperationException {
     final Path outputPath = file.toAbsolutePath().getParent().resolve("converted-" + file.getFileName());
 
     if (Files.exists(outputPath)) {
