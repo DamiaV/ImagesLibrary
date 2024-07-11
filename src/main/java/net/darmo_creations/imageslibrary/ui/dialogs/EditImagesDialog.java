@@ -27,7 +27,7 @@ import java.util.stream.*;
  * Dialog to create/edit images.
  */
 public class EditImagesDialog extends DialogBase<Boolean> {
-  private final ImageView imageView;
+  private final ImageView imageView = new ImageView();
   private final Label fileNameLabel = new Label();
   private final Label fileMetadataLabel = new Label();
   private final Button viewSimilarImagesButton = new Button();
@@ -36,10 +36,12 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private final Label targetPathLabel = new Label();
   private final HBox pathBox = new HBox();
   private final TextPopOver tagsErrorPopup;
-  private final AutoCompleteField<Tag> tagsField;
+  private final AutoCompleteField<Tag> tagsField; // TODO syntax highlighting: use tag type colors
   private final Button nextButton;
   private final Button skipButton;
   private final Button finishButton;
+
+  private final SimilarImagesDialog similarImagesDialog;
 
   private boolean areTagsValid = false;
 
@@ -51,7 +53,6 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private final Set<Tag> currentPictureTags = new HashSet<>();
   private Path targetPath;
   private Picture currentPicture;
-  private final List<Pair<Picture, Float>> similarPictures = new LinkedList<>();
   private boolean insert;
   private boolean anyUpdate;
 
@@ -60,7 +61,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.db = db;
     this.tagTypes = db.getAllTagTypes();
 
-    this.imageView = new ImageView();
+    this.similarImagesDialog = new SimilarImagesDialog(config);
 
     this.tagsErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
     this.tagsField = new AutoCompleteField<>(new StyleClassedTextArea(), this.db.getAllTags(), Tag::label, null);
@@ -89,6 +90,9 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         this.applyChanges();
       return this.anyUpdate;
     });
+
+    // Hide the similar images dialog when this one closes
+    this.setOnCloseRequest(event -> this.similarImagesDialog.hide());
   }
 
   private Node createContent() {
@@ -173,6 +177,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     );
     splitPane.setOrientation(Orientation.VERTICAL);
     splitPane.setDividerPositions(0.75);
+    splitPane.setPrefWidth(800);
+    splitPane.setPrefHeight(600);
     return splitPane;
   }
 
@@ -226,12 +232,16 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
     } else {
       this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
-      FileUtils.loadImage(path, image -> {
-        this.imageView.setImage(image);
-        final String text = FileUtils.formatImageMetadata(path, image, this.config);
-        this.fileMetadataLabel.setText(text);
-        this.fileMetadataLabel.setTooltip(new Tooltip(text));
-      }, error -> this.fileMetadataLabel.setText(language.translate("image_preview.missing_file")));
+      FileUtils.loadImage(
+          path,
+          image -> {
+            this.imageView.setImage(image);
+            final String text = FileUtils.formatImageMetadata(path, image, this.config);
+            this.fileMetadataLabel.setText(text);
+            this.fileMetadataLabel.setTooltip(new Tooltip(text));
+          },
+          error -> this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"))
+      );
     }
     final var joiner = new StringJoiner(" ");
     if (!this.insert) {
@@ -244,13 +254,15 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       this.tagsField.setText(joiner.toString());
     }
     this.updateState();
-    this.similarPictures.clear();
+    List<Pair<Picture, Float>> similarPictures;
     try {
-      this.similarPictures.addAll(this.db.getSimilarImages(this.currentPicture.hash(), this.currentPicture));
+      similarPictures = this.db.getSimilarImages(this.currentPicture.hash(), this.currentPicture);
     } catch (final DatabaseOperationException e) {
       App.logger().error("Error fetching similar pictures", e);
+      similarPictures = List.of();
     }
-    this.viewSimilarImagesButton.setDisable(this.similarPictures.isEmpty());
+    this.viewSimilarImagesButton.setDisable(similarPictures.isEmpty());
+    this.similarImagesDialog.setPictures(similarPictures);
   }
 
   private boolean applyChanges() {
@@ -314,7 +326,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   }
 
   private void onViewSimilarAction() {
-    // TODO
+    if (!this.similarImagesDialog.isShowing())
+      this.similarImagesDialog.show();
   }
 
   private void onMoveAction() {

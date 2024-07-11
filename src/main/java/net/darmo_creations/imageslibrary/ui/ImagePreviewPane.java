@@ -130,16 +130,20 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
         this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
       } else {
         this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
-        FileUtils.loadImage(path, image -> {
-          this.imageView.setImage(image);
-          final String text = FileUtils.formatImageMetadata(path, image, this.config);
-          this.fileMetadataLabel.setText(text);
-          this.fileMetadataLabel.setTooltip(new Tooltip(text));
-          this.openInExplorerButton.setDisable(false);
-        }, error -> {
-          this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
-          this.openInExplorerButton.setDisable(true);
-        });
+        FileUtils.loadImage(
+            path,
+            image -> {
+              this.imageView.setImage(image);
+              final String text = FileUtils.formatImageMetadata(path, image, this.config);
+              this.fileMetadataLabel.setText(text);
+              this.fileMetadataLabel.setTooltip(new Tooltip(text));
+              this.openInExplorerButton.setDisable(false);
+            },
+            error -> {
+              this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
+              this.openInExplorerButton.setDisable(true);
+            }
+        );
       }
       final var tagsEntries = tags.stream()
           .sorted(Comparator.comparing(Tag::label))
