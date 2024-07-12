@@ -381,6 +381,11 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         final var tagType = this.tagTypes.stream().filter(type -> type.symbol() == symbol).findAny();
         if (tagType.isEmpty())
           throw new IllegalArgumentException("Invalid tag type symbol: " + symbol);
+        else if (tagOpt.isPresent()) {
+          final var type = tagOpt.get().type();
+          if (type.isEmpty() || type.get() != tagType.get())
+            throw new IllegalArgumentException("Mismatch tag types");
+        }
         tags.add(new Pair<>(tagType, tagLabel));
       } else
         tags.add(new Pair<>(Optional.empty(), tagLabel));
