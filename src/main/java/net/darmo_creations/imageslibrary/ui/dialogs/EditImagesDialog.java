@@ -59,6 +59,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private Picture currentPicture;
   private boolean insert;
   private boolean anyUpdate;
+  private boolean preventClosing;
 
   public EditImagesDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
     super(config, "edit_images", true, ButtonTypes.FINISH, ButtonTypes.SKIP, ButtonTypes.NEXT, ButtonTypes.CANCEL);
@@ -98,12 +99,18 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
     this.setResultConverter(buttonType -> {
       if (!buttonType.getButtonData().isCancelButton())
-        this.applyChanges();
+        this.preventClosing = !this.applyChanges();
       return this.anyUpdate;
     });
 
-    // Hide the similar images dialog when this one closes
-    this.setOnCloseRequest(event -> this.similarImagesDialog.hide());
+    this.setOnCloseRequest(event -> {
+      // Hide the similar images dialog when this one closes
+      this.similarImagesDialog.hide();
+      if (this.preventClosing) {
+        event.consume();
+        this.preventClosing = false;
+      }
+    });
   }
 
   private Node createContent() {
