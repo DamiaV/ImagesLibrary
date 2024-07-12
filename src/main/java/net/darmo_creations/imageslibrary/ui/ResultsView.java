@@ -79,10 +79,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     searchButton.setGraphic(theme.getIcon(Icon.SEARCH, Icon.Size.BIG));
     searchButton.setTooltip(new Tooltip(language.translate("image_search_field.go")));
 
-    this.clearSearchButton.setOnAction(e -> {
-      this.searchField.setText("");
-      this.searchField.requestFocus();
-    });
+    this.clearSearchButton.setOnAction(e -> this.searchField.requestFocus());
     this.clearSearchButton.setGraphic(theme.getIcon(Icon.CLEAR_TEXT, Icon.Size.BIG));
     this.clearSearchButton.setTooltip(new Tooltip(language.translate("search_field.erase_search")));
     this.clearSearchButton.setDisable(true);
@@ -168,7 +165,6 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    * @param tag The tag to insert.
    */
   public void searchTag(@NotNull Tag tag) {
-    this.searchField.setText(""); // Force refresh highlighting
     this.searchField.setText(tag.label());
     this.searchField.requestFocus();
     this.search(null);
@@ -199,7 +195,6 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    * Search for all images that are not associated to any tag.
    */
   public void searchImagesWithNoTags() {
-    this.searchField.setText(""); // Force refresh highlighting
     this.searchField.setText("#no_tags");
     this.search(null);
   }
@@ -208,7 +203,6 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    * Search for all images whose file is missing.
    */
   public void searchImagesWithNoFile() {
-    this.searchField.setText(""); // Force refresh highlighting
     this.searchField.setText("#no_file");
     this.searchField.requestFocus();
     this.search(null);
@@ -304,7 +298,6 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       final MenuItem menuItem = new MenuItem(query);
       menuItem.setMnemonicParsing(false);
       menuItem.setOnAction(e -> {
-        this.searchField.setText(""); // Force refresh highlighting
         this.searchField.setText(query);
         this.searchField.requestFocus();
       });

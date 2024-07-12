@@ -45,6 +45,9 @@ public class AutoCompleteField<T, S> extends AnchorPane {
   private boolean canShowSuggestions = false;
 
   private final StyledTextArea<S, S> styledArea;
+  private final LinkedList<String> history = new LinkedList<>();
+  private int historyIndex;
+  private boolean internalUpdate = false;
 
   /**
    * Wrap a {@link StyledTextArea}.
@@ -89,6 +92,12 @@ public class AutoCompleteField<T, S> extends AnchorPane {
     styledArea.textProperty().addListener((observableValue, oldValue, newValue) -> {
       this.canShowSuggestions = true;
       this.highlight();
+      if (!this.internalUpdate) {
+        if (this.historyIndex >= 0) // Clear history after current index
+          this.history.subList(this.historyIndex + 1, this.history.size()).clear();
+        this.history.add(newValue); // Add new value
+        this.historyIndex++;
+      }
     });
     styledArea.focusedProperty().addListener((observableValue, oldValue, newValue) -> this.hideSuggestions());
     styledArea.caretPositionProperty().addListener((observable, oldValue, newValue) -> {
@@ -109,6 +118,17 @@ public class AutoCompleteField<T, S> extends AnchorPane {
           && !event.isAltDown() && !event.isMetaDown() && !event.isShiftDown())
         this.fillAndShowSuggestions(entries, stringConverter, styledArea.getCaretPosition());
     });
+    styledArea.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+      if (event.getCode() == KeyCode.Z && event.isControlDown()) {
+        this.undoText();
+        event.consume();
+      } else if (event.getCode() == KeyCode.Y && event.isControlDown()) {
+        this.redoText();
+        event.consume();
+      }
+    });
+    this.history.add("");
+    this.historyIndex = 0;
 
     AnchorPane.setTopAnchor(styledArea, 0.0);
     AnchorPane.setBottomAnchor(styledArea, 0.0);
@@ -117,12 +137,50 @@ public class AutoCompleteField<T, S> extends AnchorPane {
     this.getChildren().add(styledArea);
   }
 
+  private void undoText() {
+    if (this.historyIndex > 0) {
+      this.internalUpdate = true;
+      final int caretPosition = this.styledArea.getCaretPosition(); // Prevent caret from going to the end
+      this.styledArea.replaceText(this.history.get(--this.historyIndex));
+      this.styledArea.moveTo(Math.min(caretPosition, this.styledArea.getText().length()));
+      this.internalUpdate = false;
+    }
+  }
+
+  private void redoText() {
+    if (this.historyIndex < this.history.size() - 1) {
+      this.internalUpdate = true;
+      final int caretPosition = this.styledArea.getCaretPosition(); // Prevent caret from going to the end
+      this.styledArea.replaceText(this.history.get(++this.historyIndex));
+      this.styledArea.moveTo(Math.min(caretPosition, this.styledArea.getText().length()));
+      this.internalUpdate = false;
+    }
+  }
+
   public String getText() {
     return this.styledArea.getText();
   }
 
+  /**
+   * Set the text of the wrapped {@link StyledTextArea}.
+   * <p>
+   * The undo history will be reset.
+   * Text highlighting will be updated only if the new text differs from the current one.
+   *
+   * @param text The new text.
+   */
   public void setText(@NotNull String text) {
+    this.history.clear();
+    final boolean forceRefresh = text.equals(this.styledArea.getText());
+    if (!forceRefresh)
+      this.historyIndex = -1;
+    else {
+      this.history.add(text);
+      this.historyIndex = 0;
+    }
     this.styledArea.replaceText(text);
+    if (forceRefresh)
+      this.highlight();
   }
 
   public final ObservableValue<String> textProperty() {
