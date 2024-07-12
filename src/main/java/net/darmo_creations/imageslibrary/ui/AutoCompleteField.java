@@ -88,7 +88,10 @@ public class AutoCompleteField<T, S> extends AnchorPane {
         this.hidePopupTemporarily = true;
       }
     });
-    styledArea.selectedTextProperty().addListener((observable, oldValue, newValue) -> this.hideSuggestions());
+    styledArea.selectedTextProperty().addListener((observable, oldValue, newValue) -> {
+      this.hideSuggestions();
+      this.highlight();
+    });
     styledArea.textProperty().addListener((observableValue, oldValue, newValue) -> {
       this.canShowSuggestions = true;
       this.highlight();
