@@ -72,7 +72,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         new InlineCssTextArea(),
         this.db.getAllTags(),
         Tag::label,
-        new TagListSyntaxHighlighter(this.allTags),
+        new TagListSyntaxHighlighter(this.allTags, this.tagTypes),
         Function.identity()
     );
 

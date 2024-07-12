@@ -11,16 +11,19 @@ import java.util.*;
  */
 public class TagListSyntaxHighlighter implements SyntaxHighlighter {
   private static final String CSS_CLASS = "tag-list";
+  private static final String ERROR_STYLE = "-fx-fill: red";
 
   private final Set<Tag> allTags;
+  private final Set<TagType> allTagTypes;
 
   /**
    * Create a new syntax highlighter.
    *
    * @param allTags The set of tags to use for color lookup.
    */
-  public TagListSyntaxHighlighter(final @NotNull Set<Tag> allTags) {
+  public TagListSyntaxHighlighter(final @NotNull Set<Tag> allTags, final @NotNull Set<TagType> allTagTypes) {
     this.allTags = allTags;
+    this.allTagTypes = allTagTypes;
   }
 
   @Override
@@ -29,11 +32,11 @@ public class TagListSyntaxHighlighter implements SyntaxHighlighter {
   }
 
   @Override
-  public Collection<Span> highlight(@NotNull String text) { // TODO highlight tag type symbols
+  public Collection<Span> highlight(@NotNull String text) {
     final List<Span> spans = new LinkedList<>();
     final var buffer = new StringBuilder();
+    char tagTypeSymbol = 0;
     boolean isError = false;
-    final String errorStyle = "-fx-fill: red";
     int i = 0, start = 0;
     final var iterator = text.chars().iterator();
 
@@ -45,24 +48,45 @@ public class TagListSyntaxHighlighter implements SyntaxHighlighter {
         if (!buffer.isEmpty()) {
           spans.add(new Span(this.getTagStyle(buffer.toString()), start, i - 1));
           buffer.setLength(0);
+        } else if (tagTypeSymbol != 0) {
+          spans.add(new Span(ERROR_STYLE, start, i - 1));
+          tagTypeSymbol = 0;
         } else if (isError) {
-          spans.add(new Span(errorStyle, start, i - 1));
+          spans.add(new Span(ERROR_STYLE, start, i - 1));
           isError = false;
         }
 
       } else if (TagLike.isLabelValid(ch)) {
-        if (isError) {
-          spans.add(new Span(errorStyle, start, i - 1));
+        if (tagTypeSymbol != 0) {
+          spans.add(new Span(this.getTagTypeStyle(tagTypeSymbol), start, i - 1));
+          tagTypeSymbol = 0;
+        } else if (isError) {
+          spans.add(new Span(ERROR_STYLE, start, i - 1));
           isError = false;
         }
         if (buffer.isEmpty())
           start = i;
         buffer.append(ch);
 
+      } else if (TagTypeLike.isSymbolValid(ch.charAt(0))) {
+        if (!buffer.isEmpty()) {
+          spans.add(new Span(ERROR_STYLE, start, i - 1));
+          buffer.setLength(0);
+        } else if (tagTypeSymbol != 0) {
+          spans.add(new Span(ERROR_STYLE, start, i - 1));
+        } else if (isError) {
+          spans.add(new Span(ERROR_STYLE, start, i - 1));
+          isError = false;
+        }
+        start = i;
+        tagTypeSymbol = ch.charAt(0);
+
       } else {
         if (!buffer.isEmpty()) {
           spans.add(new Span(this.getTagStyle(buffer.toString()), start, i - 1));
           buffer.setLength(0);
+        } else if (tagTypeSymbol != 0) {
+          spans.add(new Span(ERROR_STYLE, start, i - 1));
         }
         if (!isError) {
           start = i;
@@ -75,8 +99,10 @@ public class TagListSyntaxHighlighter implements SyntaxHighlighter {
 
     if (!buffer.isEmpty())
       spans.add(new Span(this.getTagStyle(buffer.toString()), start, i - 1));
-    if (isError)
-      spans.add(new Span(errorStyle, start, i - 1));
+    else if (tagTypeSymbol != 0)
+      spans.add(new Span(ERROR_STYLE, start, i - 1));
+    else if (isError)
+      spans.add(new Span(ERROR_STYLE, start, i - 1));
 
     return spans;
   }
@@ -90,5 +116,13 @@ public class TagListSyntaxHighlighter implements SyntaxHighlighter {
           return prefix + tag.type().map(type -> "-fx-fill: " + StringUtils.colorToCss(type.color())).orElse("");
         })
         .orElse("-fx-font-weight: bold"); // New tag
+  }
+
+  private String getTagTypeStyle(char symbol) {
+    return this.allTagTypes.stream()
+        .filter(type -> type.symbol() == symbol)
+        .findFirst()
+        .map(type -> "-fx-fill: " + StringUtils.colorToCss(type.color()))
+        .orElse(ERROR_STYLE);
   }
 }
