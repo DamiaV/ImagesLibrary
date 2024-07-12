@@ -172,12 +172,11 @@ public class AutoCompleteField<T, S> extends AnchorPane {
   public void setText(@NotNull String text) {
     this.history.clear();
     final boolean forceRefresh = text.equals(this.styledArea.getText());
-    if (!forceRefresh)
-      this.historyIndex = -1;
-    else {
+    if (forceRefresh) {
       this.history.add(text);
       this.historyIndex = 0;
-    }
+    } else
+      this.historyIndex = -1;
     this.styledArea.replaceText(text);
     if (forceRefresh)
       this.highlight();
