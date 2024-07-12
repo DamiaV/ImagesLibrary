@@ -91,7 +91,7 @@ Text.hyperlink {
 }
 
 .highlight-tag-query .tag {
-  -fx-fill: #ffbf26;
+  -fx-fill: -fx-light-text-color;
 }
 
 .highlight-tag-query .pseudo-tag {

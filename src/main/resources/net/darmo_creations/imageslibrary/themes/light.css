@@ -25,7 +25,7 @@ Text.hyperlink {
 }
 
 .highlight-tag-query .tag {
-  -fx-fill: #ff5200;
+  -fx-fill: -fx-mid-text-color;
 }
 
 .highlight-tag-query .pseudo-tag {
