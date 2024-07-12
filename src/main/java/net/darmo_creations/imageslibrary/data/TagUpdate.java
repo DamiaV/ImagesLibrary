@@ -17,7 +17,11 @@ public final class TagUpdate implements TagLike {
 
   public TagUpdate(int id, @NotNull String label, TagType type, String definition) {
     this.id = id;
-    TagLike.ensureValidLabel(label);
+    try {
+      TagLike.ensureValidLabel(label);
+    } catch (final TagParseException e) {
+      throw new RuntimeException(e);
+    }
     this.label = label;
     this.type = type;
     this.definition = definition;

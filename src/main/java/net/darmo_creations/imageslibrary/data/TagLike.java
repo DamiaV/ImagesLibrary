@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.data;
 
 import javafx.util.*;
+import net.darmo_creations.imageslibrary.utils.*;
 import org.intellij.lang.annotations.*;
 import org.jetbrains.annotations.*;
 
@@ -37,11 +38,13 @@ public interface TagLike extends DatabaseElement {
    * or is not an underscore '_'.
    *
    * @param label The label to check.
-   * @throws IllegalArgumentException If the label is invalid.
+   * @throws TagParseException If the label is invalid.
    */
-  static void ensureValidLabel(@NotNull String label) {
+  static void ensureValidLabel(@NotNull String label) throws TagParseException {
+    if (label.isEmpty())
+      throw new TagParseException("empty_tag_label");
     if (!isLabelValid(label))
-      throw new IllegalArgumentException("Invalid label: " + label);
+      throw new TagParseException("invalid_tag_label", new FormatArg("label", label));
   }
 
   /**
@@ -59,12 +62,14 @@ public interface TagLike extends DatabaseElement {
    *
    * @param tag The string to split.
    * @return A pair containing the tag type symbol and the tag label.
-   * @throws IllegalArgumentException If the label is invalid.
+   * @throws TagParseException If the label is invalid.
    */
-  static Pair<Optional<Character>, String> splitLabel(@NotNull String tag) {
-    if (TagTypeLike.isSymbolValid(tag.charAt(0))) {
-      ensureValidLabel(tag.substring(1));
-      return new Pair<>(Optional.of(tag.charAt(0)), tag.substring(1));
+  static Pair<Optional<Character>, String> splitLabel(@NotNull String tag) throws TagParseException {
+    final char firstChar = tag.charAt(0);
+    if (TagTypeLike.isSymbolValid(firstChar)) {
+      final String tagLabel = tag.substring(1);
+      ensureValidLabel(tagLabel);
+      return new Pair<>(Optional.of(firstChar), tagLabel);
     }
     ensureValidLabel(tag);
     return new Pair<>(Optional.empty(), tag);

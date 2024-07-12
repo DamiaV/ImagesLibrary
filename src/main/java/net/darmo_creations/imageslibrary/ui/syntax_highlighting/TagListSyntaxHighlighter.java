@@ -29,7 +29,7 @@ public class TagListSyntaxHighlighter implements SyntaxHighlighter {
   }
 
   @Override
-  public Collection<Span> highlight(@NotNull String text) {
+  public Collection<Span> highlight(@NotNull String text) { // TODO highlight tag type symbols
     final List<Span> spans = new LinkedList<>();
     final var buffer = new StringBuilder();
     boolean isError = false;

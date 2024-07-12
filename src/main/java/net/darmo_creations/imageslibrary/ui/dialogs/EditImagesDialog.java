@@ -152,8 +152,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         try {
           this.parseTags();
           this.areTagsValid = true;
-        } catch (final IllegalArgumentException e) {
-          this.tagsErrorPopup.setText(language.translate("dialog.edit_images.invalid_tags"));
+        } catch (final TagParseException e) {
+          this.tagsErrorPopup.setText(language.translate(e.translationKey(), e.formatArgs()));
         }
       } else {
         this.areTagsValid = false;
@@ -314,7 +314,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     final Set<Pair<Optional<TagType>, String>> parsedTags;
     try {
       parsedTags = this.parseTags();
-    } catch (final IllegalArgumentException e) {
+    } catch (final TagParseException e) {
       return Optional.empty();
     }
     final var toAdd = parsedTags.stream()
@@ -359,32 +359,59 @@ public class EditImagesDialog extends DialogBase<Boolean> {
    * Parse the tags from the tags field’s text.
    *
    * @return The set of parsed tags with their optional type.
-   * @throws IllegalArgumentException If any invalid tag or tag type is encountered.
+   * @throws TagParseException If any invalid tag or tag type is encountered.
    */
-  private Set<Pair<Optional<TagType>, String>> parseTags() {
+  private Set<Pair<Optional<TagType>, String>> parseTags() throws TagParseException {
     final var text = StringUtils.stripNullable(this.tagsField.getText());
     if (text.isEmpty())
       return Set.of();
 
     final Set<Pair<Optional<TagType>, String>> tags = new HashSet<>();
     for (final String tag : text.get().split("\\s+")) {
-      final var splitTag = TagLike.splitLabel(tag);
+      final Pair<Optional<Character>, String> splitTag;
+      try {
+        splitTag = TagLike.splitLabel(tag);
+      } catch (final TagParseException e) {
+        throw new TagParseException(
+            e,
+            "dialog.edit_images." + e.translationKey(),
+            e.formatArgs()
+        );
+      }
       final var tagTypeSymbol = splitTag.getKey();
       final String tagLabel = splitTag.getValue();
       final var tagOpt = this.allTags.stream()
           .filter(t -> t.label().equals(tagLabel))
           .findFirst();
       if (tagOpt.isPresent() && tagOpt.get().definition().isPresent())
-        throw new IllegalArgumentException("Compound tags are not allowed");
+        throw new TagParseException(
+            "dialog.edit_images.compound_tag_error",
+            new FormatArg("label", tagOpt.get().label())
+        );
       if (tagTypeSymbol.isPresent()) {
         final char symbol = tagTypeSymbol.get();
         final var tagType = this.tagTypes.stream().filter(type -> type.symbol() == symbol).findAny();
         if (tagType.isEmpty())
-          throw new IllegalArgumentException("Invalid tag type symbol: " + symbol);
+          throw new TagParseException(
+              "dialog.edit_images.undefined_tag_type_symbol",
+              new FormatArg("symbol", symbol)
+          );
         else if (tagOpt.isPresent()) {
-          final var type = tagOpt.get().type();
-          if (type.isEmpty() || type.get() != tagType.get())
-            throw new IllegalArgumentException("Mismatch tag types");
+          final var expectedType = tagOpt.get().type();
+          final TagType actualType = tagType.get();
+          if (expectedType.isEmpty())
+            throw new TagParseException(
+                "dialog.edit_images.mismatch_tag_types",
+                new FormatArg("label", tagOpt.get().label()),
+                new FormatArg("actual_symbol", actualType.symbol())
+            );
+          else if (expectedType.get() != actualType)
+            throw new TagParseException(
+                "dialog.edit_images.mismatch_tag_types_2",
+                new FormatArg("label", tagOpt.get().label()),
+                new FormatArg("expected_symbol", expectedType.get().symbol()),
+                new FormatArg("actual_symbol", actualType.symbol())
+            );
         }
         tags.add(new Pair<>(tagType, tagLabel));
       } else
