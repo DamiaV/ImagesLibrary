@@ -122,8 +122,6 @@ public class AutoCompleteField<T, S> extends AnchorPane {
   }
 
   public void setText(@NotNull String text) {
-    if (text.equals(this.getText()))
-      this.styledArea.replaceText(""); // Force update to properly refresh highlighting within dialogs
     this.styledArea.replaceText(text);
   }
 

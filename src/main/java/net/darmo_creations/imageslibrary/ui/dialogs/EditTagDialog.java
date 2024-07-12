@@ -50,6 +50,7 @@ public class EditTagDialog extends EditTagDialogBase {
       this.tagTypeComboBox.getSelectionModel().select(new TagTypeEntry(type.get()));
     else
       this.tagTypeComboBox.getSelectionModel().select(0);
+    this.definitionField.setText(""); // Force refresh highlighting
     this.definitionField.setText(tag.definition().orElse(""));
     this.definitionField.setDisable(this.db.getAllTagsCounts().get(tag.id()) != 0);
     this.refreshTitle();
