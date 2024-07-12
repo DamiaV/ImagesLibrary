@@ -33,7 +33,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final DatabaseConnection db;
 
   private final MenuButton historyButton = new MenuButton();
-  private final AutoCompleteField<Tag> searchField;
+  private final AutoCompleteField<Tag, Collection<String>> searchField;
   private final Button clearSearchButton = new Button();
   private final Label resultsLabel = new Label();
   private final ListView<PictureEntry> imagesList = new ListView<>();
@@ -62,7 +62,8 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         textField,
         db.getAllTags(),
         Tag::label,
-        config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null
+        config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null,
+        List::of
     );
     textField.setPromptText(new Text(language.translate("image_search_field.search")));
     textField.setStyle("-fx-font-size: 2em");

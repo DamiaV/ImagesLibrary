@@ -5,6 +5,7 @@ import javafx.geometry.*;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
+import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.ui.syntax_highlighting.*;
 import org.fxmisc.richtext.*;
 import org.jetbrains.annotations.*;
@@ -12,6 +13,7 @@ import org.reactfx.*;
 
 import java.util.*;
 import java.util.function.*;
+import java.util.regex.*;
 
 /**
  * This class wraps a {@link StyledTextArea} and attaches an "autocomplete" functionality to it,
@@ -23,13 +25,18 @@ import java.util.function.*;
  * https://github.com/FXMisc/RichTextFX/blob/master/richtextfx-demos/src/main/java/org/fxmisc/richtext/demo/PopupDemo.java
  *
  * @param <T> The type of the suggestions.
+ * @param <S> The type of the style values accepted by the {@link StyledTextArea#setStyle(int, int, S)} method.
  */
-public class AutoCompleteField<T> extends AnchorPane {
+public class AutoCompleteField<T, S> extends AnchorPane {
+  private static final Pattern WORD_START_PATTERN =
+      Pattern.compile("(?:%s|^)(%s)$".formatted(TagLike.NOT_LABEL_PATTERN, TagLike.LABEL_PATTERN));
+
   private static final int CARET_X_OFFSET = -20;
   private static final int CARET_Y_OFFSET = 0;
   private static final int MAX_SHOWN_SUGGESTIONS = 10;
 
   private final ContextMenu entriesPopup = new ContextMenu();
+  private final Function<String, S> cssConverter;
   @Nullable
   private SyntaxHighlighter syntaxHighlighter;
   @Nullable
@@ -37,7 +44,7 @@ public class AutoCompleteField<T> extends AnchorPane {
   private boolean hidePopupTemporarily = false;
   private boolean canShowSuggestions = false;
 
-  private final StyledTextArea<Collection<String>, Collection<String>> styledArea;
+  private final StyledTextArea<S, S> styledArea;
 
   /**
    * Wrap a {@link StyledTextArea}.
@@ -46,13 +53,18 @@ public class AutoCompleteField<T> extends AnchorPane {
    * @param entries           The set of entries.
    * @param stringConverter   A function to convert each suggestion into a string.
    * @param syntaxHighlighter An optional syntax highlighter that will color the text.
+   * @param cssConverter      If the {@code syntaxHighlighter} argument is specified,
+   *                          a function that converts a string returned by {@link Span} objects
+   *                          into the appropriate type accepted by the {@code styledArea} object.
    */
   public AutoCompleteField(
-      @NotNull StyledTextArea<Collection<String>, Collection<String>> styledArea,
+      @NotNull StyledTextArea<S, S> styledArea,
       final @NotNull Set<T> entries,
       @NotNull Function<T, String> stringConverter,
-      SyntaxHighlighter syntaxHighlighter
+      SyntaxHighlighter syntaxHighlighter,
+      Function<String, S> cssConverter
   ) {
+    this.cssConverter = cssConverter;
     if (!styledArea.getStyleClass().contains("text-input"))
       styledArea.getStyleClass().add("text-input");
     if (!styledArea.getStyleClass().contains("text-area"))
@@ -89,8 +101,7 @@ public class AutoCompleteField<T> extends AnchorPane {
         this.hideSuggestions();
         return;
       }
-      final int caretPos = newValue;
-      this.fillAndShowSuggestions(entries, stringConverter, caretPos);
+      this.fillAndShowSuggestions(entries, stringConverter, newValue);
       this.canShowSuggestions = false;
     });
     styledArea.setOnKeyPressed(event -> {
@@ -129,7 +140,7 @@ public class AutoCompleteField<T> extends AnchorPane {
     this.styledArea.clearStyle(0);
     if (this.syntaxHighlighter != null)
       this.syntaxHighlighter.highlight(this.getText())
-          .forEach(span -> this.styledArea.setStyle(span.start(), span.end() + 1, List.of(span.cssClass())));
+          .forEach(span -> this.styledArea.setStyle(span.start(), span.end() + 1, this.cssConverter.apply(span.css())));
   }
 
   public void setSyntaxHighlighter(SyntaxHighlighter syntaxHighlighter) {
@@ -159,7 +170,8 @@ public class AutoCompleteField<T> extends AnchorPane {
   ) {
     final String text = this.getText();
     final String beforeCaret = text.substring(0, caretIndex);
-    final String wordBegining = beforeCaret.substring(beforeCaret.lastIndexOf(' ') + 1);
+    final Matcher matcher = WORD_START_PATTERN.matcher(beforeCaret);
+    final String wordBegining = matcher.find() ? matcher.group(1) : "";
     final var suggestions = entries.stream()
         .map(stringConverter)
         .filter(s -> s.startsWith(wordBegining) && !s.equals(wordBegining))
@@ -194,7 +206,9 @@ public class AutoCompleteField<T> extends AnchorPane {
       final String text = this.getText();
       final int caretPosition = this.styledArea.getCaretPosition();
       final String beforeCaret = text.substring(0, caretPosition);
-      final int length = beforeCaret.substring(beforeCaret.lastIndexOf(' ') + 1).length();
+      final Matcher matcher = WORD_START_PATTERN.matcher(beforeCaret);
+      final String wordBegining = matcher.find() ? matcher.group(1) : "";
+      final int length = wordBegining.length();
       this.styledArea.insertText(caretPosition, suggestion.substring(length));
       this.hideSuggestions();
     });

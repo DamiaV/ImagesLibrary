@@ -24,7 +24,7 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
   protected final TextField labelField = new TextField();
   protected final ComboBox<TagTypeEntry> tagTypeComboBox = new ComboBox<>();
   private final TextPopOver definitionErrorPopup;
-  protected final AutoCompleteField<Tag> definitionField;
+  protected final AutoCompleteField<Tag, Collection<String>> definitionField;
 
   protected boolean isLabelValid = false;
   protected boolean isDefinitionValid = true;
@@ -41,7 +41,8 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
         new StyleClassedTextField(),
         this.db.getAllTags(),
         Tag::label,
-        new TagQuerySyntaxHighlighter()
+        new TagQuerySyntaxHighlighter(),
+        List::of
     );
 
     this.getDialogPane().setPrefWidth(400);

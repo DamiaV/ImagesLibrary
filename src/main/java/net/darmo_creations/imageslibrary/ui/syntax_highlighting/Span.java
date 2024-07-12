@@ -6,14 +6,15 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * This class represents a span of text to which a CSS class should be applied to in an {@link AutoCompleteField}.
+ * This class represents a span of text to which a CSS class or CSS rules
+ * should be applied to in an {@link AutoCompleteField}.
  *
- * @param cssClass The name of the CSS class.
- * @param start    The start text position.
- * @param end      The end text position (included).
+ * @param css   A CSS class or CSS rules.
+ * @param start The start text position.
+ * @param end   The end text position (included).
  */
-public record Span(@NotNull String cssClass, int start, int end) {
+public record Span(@NotNull String css, int start, int end) {
   public Span {
-    Objects.requireNonNull(cssClass);
+    Objects.requireNonNull(css);
   }
 }

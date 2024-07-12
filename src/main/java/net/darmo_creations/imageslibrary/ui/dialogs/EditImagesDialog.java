@@ -14,6 +14,7 @@ import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.ui.*;
+import net.darmo_creations.imageslibrary.ui.syntax_highlighting.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.controlsfx.control.*;
 import org.fxmisc.richtext.*;
@@ -21,6 +22,7 @@ import org.jetbrains.annotations.*;
 
 import java.nio.file.*;
 import java.util.*;
+import java.util.function.*;
 import java.util.stream.*;
 
 /**
@@ -36,7 +38,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private final Label targetPathLabel = new Label();
   private final HBox pathBox = new HBox();
   private final TextPopOver tagsErrorPopup;
-  private final AutoCompleteField<Tag> tagsField; // TODO syntax highlighting: use tag type colors
+  private final AutoCompleteField<Tag, String> tagsField;
   private final Button nextButton;
   private final Button skipButton;
   private final Button finishButton;
@@ -46,8 +48,9 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private boolean areTagsValid = false;
 
   private final DatabaseConnection db;
-  // Local cache to avoid creating unnecessary new set views.
+  // Local caches to avoid creating unnecessary new set views.
   private final Set<TagType> tagTypes;
+  private final Set<Tag> allTags;
 
   private final Queue<Picture> pictures = new LinkedList<>();
   private final Set<Tag> currentPictureTags = new HashSet<>();
@@ -60,11 +63,18 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     super(config, "edit_images", true, ButtonTypes.FINISH, ButtonTypes.SKIP, ButtonTypes.NEXT, ButtonTypes.CANCEL);
     this.db = db;
     this.tagTypes = db.getAllTagTypes();
+    this.allTags = db.getAllTags();
 
     this.similarImagesDialog = new SimilarImagesDialog(config);
 
     this.tagsErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
-    this.tagsField = new AutoCompleteField<>(new StyleClassedTextArea(), this.db.getAllTags(), Tag::label, null);
+    this.tagsField = new AutoCompleteField<>(
+        new InlineCssTextArea(),
+        this.db.getAllTags(),
+        Tag::label,
+        new TagListSyntaxHighlighter(this.allTags),
+        Function.identity()
+    );
 
     this.nextButton = (Button) this.getDialogPane().lookupButton(ButtonTypes.NEXT);
     this.nextButton.addEventFilter(ActionEvent.ACTION, event -> {
@@ -361,6 +371,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       final var splitTag = TagLike.splitLabel(tag);
       final var tagTypeSymbol = splitTag.getKey();
       final String tagLabel = splitTag.getValue();
+      // TODO throw if compound tag is present
       if (tagTypeSymbol.isPresent()) {
         final char symbol = tagTypeSymbol.get();
         final var any = this.tagTypes.stream().filter(tagType -> tagType.symbol() == symbol).findAny();

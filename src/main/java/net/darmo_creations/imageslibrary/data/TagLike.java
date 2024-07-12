@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.data;
 
 import javafx.util.*;
+import org.intellij.lang.annotations.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
@@ -9,6 +10,11 @@ import java.util.*;
  * Base interface for classes representing picture tags.
  */
 public interface TagLike extends DatabaseElement {
+  @Language("RegExp")
+  String LABEL_PATTERN = "[\\p{IsL}\\p{IsN}_]+";
+  @Language("RegExp")
+  String NOT_LABEL_PATTERN = "[^\\p{IsL}\\p{IsN}_]";
+
   /**
    * This tag’s label.
    */
@@ -45,7 +51,7 @@ public interface TagLike extends DatabaseElement {
    * @return True if the label is valid, false otherwise.
    */
   static boolean isLabelValid(@NotNull String label) {
-    return label.matches("[\\p{IsL}\\p{IsN}_]+");
+    return label.matches(LABEL_PATTERN);
   }
 
   /**
