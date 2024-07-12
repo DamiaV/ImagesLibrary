@@ -371,13 +371,17 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       final var splitTag = TagLike.splitLabel(tag);
       final var tagTypeSymbol = splitTag.getKey();
       final String tagLabel = splitTag.getValue();
-      // TODO throw if compound tag is present
+      final var tagOpt = this.allTags.stream()
+          .filter(t -> t.label().equals(tagLabel))
+          .findFirst();
+      if (tagOpt.isPresent() && tagOpt.get().definition().isPresent())
+        throw new IllegalArgumentException("Compound tags are not allowed");
       if (tagTypeSymbol.isPresent()) {
         final char symbol = tagTypeSymbol.get();
-        final var any = this.tagTypes.stream().filter(tagType -> tagType.symbol() == symbol).findAny();
-        if (any.isEmpty())
+        final var tagType = this.tagTypes.stream().filter(type -> type.symbol() == symbol).findAny();
+        if (tagType.isEmpty())
           throw new IllegalArgumentException("Invalid tag type symbol: " + symbol);
-        tags.add(new Pair<>(any, tagLabel));
+        tags.add(new Pair<>(tagType, tagLabel));
       } else
         tags.add(new Pair<>(Optional.empty(), tagLabel));
     }
