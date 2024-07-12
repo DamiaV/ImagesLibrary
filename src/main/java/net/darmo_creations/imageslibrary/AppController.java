@@ -717,8 +717,18 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void deleteSelectedTags() {
-    // TODO
-    System.out.println("delete tags");
+    if (!this.selectedTags.isEmpty() && Alerts.confirmation(
+        this.config,
+        "alert.delete_tags.header",
+        null,
+        null))
+      try {
+        this.db.deleteTags(new HashSet<>(this.selectedTags));
+        this.resultsView.refresh();
+        this.tagsView.refresh();
+      } catch (final DatabaseOperationException e) {
+        Alerts.databaseError(this.config, e.errorCode());
+      }
   }
 
   /**
