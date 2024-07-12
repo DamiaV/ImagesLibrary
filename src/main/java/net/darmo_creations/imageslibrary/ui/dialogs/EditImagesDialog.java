@@ -35,8 +35,9 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private final Button viewSimilarImagesButton = new Button();
   private final Button moveButton = new Button();
   private final Button clearPathButton = new Button();
+  private final CheckBox overwriteTargetCheckBox = new CheckBox();
   private final Label targetPathLabel = new Label();
-  private final HBox pathBox = new HBox();
+  private final HBox pathBox = new HBox(5);
   private final TextPopOver tagsErrorPopup;
   private final AutoCompleteField<Tag, String> tagsField;
   private final Button nextButton;
@@ -126,13 +127,26 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.viewSimilarImagesButton.setText(language.translate("dialog.edit_images.view_similar_images"));
     this.viewSimilarImagesButton.setGraphic(this.config.theme().getIcon(Icon.SHOW_SILIMAR_IMAGES, Icon.Size.SMALL));
     this.viewSimilarImagesButton.setOnAction(event -> this.onViewSimilarAction());
+
     this.moveButton.setText(language.translate("dialog.edit_images.move_image"));
     this.moveButton.setGraphic(this.config.theme().getIcon(Icon.MOVE_IMAGES, Icon.Size.SMALL));
     this.moveButton.setOnAction(event -> this.onMoveAction());
+
     this.clearPathButton.setText(language.translate("dialog.edit_images.clear_path"));
     this.clearPathButton.setGraphic(this.config.theme().getIcon(Icon.CLEAR_TEXT, Icon.Size.SMALL));
     this.clearPathButton.setOnAction(event -> this.clearTargetPath());
-    final HBox buttonsBox = new HBox(5, this.viewSimilarImagesButton, this.moveButton, this.clearPathButton);
+    this.clearPathButton.setDisable(true);
+
+    this.overwriteTargetCheckBox.setText(language.translate("dialog.edit_images.overwrite_target"));
+    this.overwriteTargetCheckBox.setDisable(true);
+
+    final HBox buttonsBox = new HBox(
+        5,
+        this.viewSimilarImagesButton,
+        this.moveButton,
+        this.clearPathButton,
+        this.overwriteTargetCheckBox
+    );
     buttonsBox.setAlignment(Pos.CENTER);
     buttonsBox.setPadding(new Insets(0, 5, 0, 5));
 
@@ -298,7 +312,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
     if (this.targetPath != null && !this.targetPath.equals(this.currentPicture.path()))
       try {
-        this.db.movePicture(this.currentPicture, this.targetPath);
+        this.db.movePicture(this.currentPicture, this.targetPath, this.overwriteTargetCheckBox.isSelected());
         this.anyUpdate = true;
       } catch (final DatabaseOperationException e) {
         Alerts.databaseError(this.config, e.errorCode());
@@ -347,12 +361,16 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       return;
     this.targetPath = path.get();
     this.targetPathLabel.setText(this.targetPath.toString());
+    this.clearPathButton.setDisable(false);
+    this.overwriteTargetCheckBox.setDisable(false);
   }
 
   private void clearTargetPath() {
     this.pathBox.setVisible(false);
     this.targetPath = null;
     this.targetPathLabel.setText(null);
+    this.clearPathButton.setDisable(true);
+    this.overwriteTargetCheckBox.setDisable(true);
   }
 
   /**

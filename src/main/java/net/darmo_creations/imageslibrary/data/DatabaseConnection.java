@@ -837,7 +837,7 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * Update the given picture’s hash and tags.
    * <p>
-   * To move picture, see {@link #movePicture(Picture, Path)}.
+   * To move picture, see {@link #movePicture(Picture, Path, boolean)}.
    * To rename a picture, see {@link #renamePicture(Picture, String)}.
    * To merge two pictures, see {@link #mergePictures(Picture, Picture, boolean)}.
    *
@@ -889,11 +889,12 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param destDir The picture’s new name.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  public void movePicture(@NotNull Picture picture, @NotNull Path destDir) throws DatabaseOperationException {
+  public void movePicture(@NotNull Picture picture, @NotNull Path destDir, boolean overwriteDestination)
+      throws DatabaseOperationException {
     this.ensureInDatabase(picture);
     if (picture.path().getParent().equals(destDir.toAbsolutePath()))
       throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_IN_DEST_DIR));
-    if (Files.exists(destDir.resolve(picture.path().getFileName())))
+    if (!overwriteDestination && Files.exists(destDir.resolve(picture.path().getFileName())))
       throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
 
     this.moveOrRenamePicture(picture, destDir.resolve(picture.path().getFileName()));
