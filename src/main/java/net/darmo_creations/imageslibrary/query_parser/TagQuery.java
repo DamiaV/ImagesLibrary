@@ -26,6 +26,7 @@ public final class TagQuery {
    *
    * @param formula    The formula to wrap into a tag query.
    * @param pseudoTags A map containing pseudo-tags.
+   * @param config     The app’s config.
    * @throws InvalidPseudoTagException If the formula contains a pseudo-tag
    *                                   that is not present in the {@code pseudoTags} map.
    */

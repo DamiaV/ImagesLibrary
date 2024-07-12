@@ -21,6 +21,7 @@ public final class TagQueryParser {
    * @param query          The tag query string to parse.
    * @param tagDefinitions A map containing definitions of compound tags.
    * @param pseudoTags     A map containing pseudo-tags.
+   * @param config         The app’s config.
    * @return The parsed {@link TagQuery} object.
    * @throws TagQuerySyntaxErrorException If the query string contains a syntax error.
    * @throws TagQueryTooLargeException    If the query string is too large or one or more tag definition is circular.
@@ -32,7 +33,7 @@ public final class TagQueryParser {
       @NotNull String query,
       final @NotNull Map<String, String> tagDefinitions,
       final @NotNull Map<String, PseudoTag> pseudoTags,
-      final @NotNull Config config
+      final Config config
   ) throws InvalidPseudoTagException {
     return new TagQuery(parse(query, tagDefinitions, 0, new FormulaFactory()), pseudoTags, config);
   }
