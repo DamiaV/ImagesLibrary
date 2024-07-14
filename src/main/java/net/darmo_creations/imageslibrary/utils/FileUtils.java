@@ -102,7 +102,7 @@ public class FileUtils {
     long size = -1;
     try {
       size = Files.size(path);
-    } catch (final IOException e) {
+    } catch (final IOException | SecurityException e) {
       App.logger().error("Unable to get size of file {}", path, e);
     }
 

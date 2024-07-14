@@ -383,7 +383,13 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       this.tags = tags;
       final Language language = config.language();
       final Theme theme = config.theme();
-      if (!Files.exists(picture.path())) {
+      boolean exists;
+      try {
+        exists = Files.exists(picture.path());
+      } catch (final SecurityException e) {
+        exists = false;
+      }
+      if (!exists) {
         final Label label = new Label(null, theme.getIcon(Icon.NO_FILE, Icon.Size.SMALL));
         label.setTooltip(new Tooltip(language.translate("images_view.result.missing_file")));
         this.getChildren().add(label);

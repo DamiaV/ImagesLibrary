@@ -126,16 +126,14 @@ public final class DatabaseConnection implements AutoCloseable {
         this.setupDatabase();
       else
         this.checkSchemaVersion();
-    } catch (final SQLException | IOException e) {
-      if (e instanceof IOException ex)
-        throw this.logThrownError(new DatabaseOperationException(getErrorCode(ex), ex));
-      throw this.logThrownError(new DatabaseOperationException(getErrorCode((SQLException) e), e));
+    } catch (final SQLException | IOException | SecurityException e) {
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     this.logger.info("Connection established.");
 
     try {
       this.initCaches();
-    } catch (final IOException e) {
+    } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
@@ -872,7 +870,7 @@ public final class DatabaseConnection implements AutoCloseable {
 
   /**
    * Move/rename the given picture. If the underlying file does not exist,
-   * the picture’s path still gets updated.
+   * the picture’s path still gets updated in the database.
    *
    * @param picture              The picture to move/rename.
    * @param newPath              The destination path.
@@ -885,13 +883,17 @@ public final class DatabaseConnection implements AutoCloseable {
 
     if (picture.path().equals(newPath))
       return;
-    if (!overwriteDestination && Files.exists(picture.path()) && Files.exists(newPath))
-      throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
+    try {
+      if (!overwriteDestination && Files.exists(picture.path()) && Files.exists(newPath))
+        throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
+    } catch (final SecurityException e) {
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e)));
+    }
 
     try {
       Files.move(picture.path(), newPath);
     } catch (final NoSuchFileException ignored) {
-    } catch (final IOException e) {
+    } catch (final IOException | SecurityException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
 
@@ -1128,7 +1130,7 @@ public final class DatabaseConnection implements AutoCloseable {
       try {
         Files.delete(picture.path());
       } catch (final NoSuchFileException ignored) {
-      } catch (final IOException e) {
+      } catch (final IOException | SecurityException e) {
         throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
       }
     }
@@ -1213,7 +1215,7 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * Initalize the internal tag and tag type caches.
    */
-  private void initCaches() throws IOException {
+  private void initCaches() throws SQLException {
     this.logger.info("Initializing caches…");
     try (final var statement = this.connection.prepareStatement("SELECT id, label, symbol, color FROM tag_types");
          final var resultSet = statement.executeQuery()) {
@@ -1228,7 +1230,7 @@ public final class DatabaseConnection implements AutoCloseable {
         this.tagTypesCounts.put(id, 0);
       }
     } catch (final SQLException e) {
-      throw this.logThrownError(new IOException(e));
+      throw this.logThrownError(e);
     }
     this.logger.info("Found {} tag type(s)", this.tagTypesCache.size());
 
@@ -1254,7 +1256,7 @@ public final class DatabaseConnection implements AutoCloseable {
         }
       }
     } catch (final SQLException e) {
-      throw this.logThrownError(new IOException(e));
+      throw this.logThrownError(e);
     }
     this.logger.info("Found {} tag(s)", this.tagsCache.size());
     this.logger.info("Done.");
@@ -1333,29 +1335,23 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   /**
-   * Return a {@link DatabaseErrorCode} for the given {@link SQLException}.
+   * Return a {@link DatabaseErrorCode} for the given {@link Exception}.
    *
    * @param e The exception to get a code for.
    * @return The code for that exception.
    */
-  private static DatabaseErrorCode getErrorCode(final @NotNull SQLException e) {
+  private static DatabaseErrorCode getErrorCode(final @NotNull Exception e) {
     if (e instanceof org.sqlite.SQLiteException ex)
       return DatabaseErrorCode.forSQLiteCode(ex.getResultCode());
-    return DatabaseErrorCode.UNKNOWN_ERROR;
-  }
-
-  /**
-   * Get the {@link DatabaseErrorCode} for the given {@link IOException}.
-   *
-   * @param e The exception to get a code for.
-   * @return The code for that exception.
-   */
-  private static DatabaseErrorCode getErrorCode(final @NotNull IOException e) {
     if (e instanceof FileAlreadyExistsException)
       return DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR;
     if (e instanceof FileNotFoundException)
       return DatabaseErrorCode.MISSING_FILE_ERROR;
-    return DatabaseErrorCode.UNKNOWN_FILE_ERROR;
+    if (e instanceof IOException)
+      return DatabaseErrorCode.UNKNOWN_FILE_ERROR;
+    if (e instanceof SecurityException)
+      return DatabaseErrorCode.MISSING_PERMISSIONS_ERROR;
+    return DatabaseErrorCode.UNKNOWN_ERROR;
   }
 
   /**
@@ -1409,7 +1405,7 @@ public final class DatabaseConnection implements AutoCloseable {
 
     try {
       Files.deleteIfExists(outputPath);
-    } catch (final IOException e) {
+    } catch (final IOException | SecurityException e) {
       throw new DatabaseOperationException(getErrorCode(e), e);
     }
 
@@ -1590,7 +1586,7 @@ public final class DatabaseConnection implements AutoCloseable {
   private static void deleteConvertedFile(@NotNull Path file) {
     try {
       Files.deleteIfExists(file);
-    } catch (final IOException ex) {
+    } catch (final IOException | SecurityException ex) {
       App.logger().error("Failed to delete incomplete database file {}", file, ex);
     }
   }

@@ -14,6 +14,10 @@ public class FileExistsFunction extends org.sqlite.Function {
     if (s == null)
       this.result(0);
     else
-      this.result(Files.exists(Path.of(s)) ? 1 : 0);
+      try {
+        this.result(Files.exists(Path.of(s)) ? 1 : 0);
+      } catch (final SecurityException e) {
+        this.result(0);
+      }
   }
 }

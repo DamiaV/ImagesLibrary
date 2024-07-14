@@ -126,7 +126,13 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
       final String fileName = path.getFileName().toString();
       this.fileNameLabel.setText(fileName);
       this.fileNameLabel.setTooltip(new Tooltip(fileName));
-      if (!Files.exists(path)) {
+      boolean exists;
+      try {
+        exists = Files.exists(path);
+      } catch (final SecurityException e) {
+        exists = false;
+      }
+      if (!exists) {
         this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
       } else {
         this.fileMetadataLabel.setText(language.translate("image_preview.loading"));

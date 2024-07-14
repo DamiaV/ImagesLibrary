@@ -115,7 +115,13 @@ public class SimilarImagesDialog extends DialogBase<ButtonType> {
       final Label fileMetadataLabel = new Label();
       final Config config = SimilarImagesDialog.this.config;
       final Language language = config.language();
-      if (!Files.exists(path)) {
+      boolean exists;
+      try {
+        exists = Files.exists(path);
+      } catch (final SecurityException e) {
+        exists = false;
+      }
+      if (!exists) {
         fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
       } else {
         fileMetadataLabel.setText(language.translate("image_preview.loading"));

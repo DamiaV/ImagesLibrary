@@ -263,7 +263,13 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.fileMetadataLabel.setText(null);
     this.fileMetadataLabel.setTooltip(null);
     final Language language = this.config.language();
-    if (!Files.exists(path)) {
+    boolean exists;
+    try {
+      exists = Files.exists(path);
+    } catch (final SecurityException e) {
+      exists = false;
+    }
+    if (!exists) {
       this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
     } else {
       this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
