@@ -298,7 +298,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   }
 
   private boolean applyChanges() {
-    final Optional<PictureUpdate> update = this.getPictureUpdate();
+    final Optional<PictureUpdate> update = this.getPictureUpdate(true);
     if (update.isPresent()) {
       if (this.insert)
         try {
@@ -330,9 +330,10 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     return true;
   }
 
-  private Optional<PictureUpdate> getPictureUpdate() {
+  private Optional<PictureUpdate> getPictureUpdate(boolean recomputeHash) {
     if (!this.areTagsValid)
       return Optional.empty();
+
     final Set<Pair<Optional<TagType>, String>> parsedTags;
     try {
       parsedTags = this.parseTags();
@@ -348,10 +349,21 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         // Current tags that are not in the parsed tags
         .filter(tag -> parsedTags.stream().noneMatch(pair -> pair.getValue().equals(tag.label())))
         .collect(Collectors.toSet());
+
+    Hash hash = new Hash(0);
+    if (this.insert)
+      hash = this.currentPicture.hash();
+    else if (recomputeHash)
+      try {
+        hash = Hash.computeForFile(this.currentPicture.path());
+      } catch (final Exception e) {
+        App.logger().error("Error computing hash for file {}", this.currentPicture.path(), e);
+      }
+
     return Optional.of(new PictureUpdate(
         this.insert ? 0 : this.currentPicture.id(),
         this.currentPicture.path(),
-        this.currentPicture.hash(), // TODO recompute hash if not in insert mode
+        hash,
         toAdd,
         toRemove
     ));
@@ -452,7 +464,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
    */
   private void updateState() {
     final boolean noneRemaining = this.pictures.isEmpty();
-    final boolean invalid = this.getPictureUpdate().isEmpty();
+    final boolean invalid = this.getPictureUpdate(false).isEmpty();
     this.nextButton.setDisable(noneRemaining || invalid);
     this.skipButton.setDisable(noneRemaining);
     this.finishButton.setDisable(!noneRemaining || invalid);
