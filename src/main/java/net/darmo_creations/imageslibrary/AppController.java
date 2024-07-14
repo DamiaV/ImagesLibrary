@@ -449,7 +449,7 @@ public class AppController implements ResultsView.SearchListener {
             skipped.add(fileOrDir);
           else
             pictures.add(new Picture(0, fileOrDir, Hash.computeForFile(fileOrDir)));
-        } catch (final DatabaseOperationException | IOException e) {
+        } catch (final Exception e) {
           errors.add(fileOrDir);
         }
 
