@@ -277,12 +277,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     }
     final var joiner = new StringJoiner(" ");
     if (!this.insert) {
-      this.currentPictureTags.forEach(tag -> {
-        String t = tag.label();
-        if (tag.type().isPresent())
-          t = tag.type().get().symbol() + t;
-        joiner.add(t);
-      });
+      this.currentPictureTags.forEach(tag -> joiner.add(tag.label()));
       this.tagsField.setText(joiner.toString());
     }
     this.updateState();
