@@ -47,6 +47,8 @@ public class TagsView extends VBox {
     this.tagsCounts = Objects.requireNonNull(tagsCounts);
     this.tagTypes = Objects.requireNonNull(tagTypes);
 
+    this.setMinWidth(200);
+
     final Language language = config.language();
     final Theme theme = config.theme();
 
