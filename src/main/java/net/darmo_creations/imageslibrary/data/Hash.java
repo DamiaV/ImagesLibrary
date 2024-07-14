@@ -128,7 +128,7 @@ public record Hash(long bytes) {
   @Contract(pure = true, value = "_ -> new")
   private static BufferedImage resizeTo9By8(final @NotNull BufferedImage image) {
     final int w = 9, h = 8;
-    final var resizedImage = new BufferedImage(w, h, image.getType());
+    final var resizedImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
     resizedImage.getGraphics().drawImage(image.getScaledInstance(w, h, Image.SCALE_DEFAULT), 0, 0, null);
     return resizedImage;
   }
