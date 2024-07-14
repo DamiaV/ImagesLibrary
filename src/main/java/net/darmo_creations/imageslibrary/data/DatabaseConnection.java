@@ -838,8 +838,7 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * Update the given picture’s hash and tags.
    * <p>
-   * To move picture, see {@link #movePicture(Picture, Path, boolean)}.
-   * To rename a picture, see {@link #renamePicture(Picture, String)}.
+   * To move or rename a picture, see {@link #moveOrRenamePicture(Picture, Path, boolean)}.
    * To merge two pictures, see {@link #mergePictures(Picture, Picture, boolean)}.
    *
    * @param pictureUpdate The picture to update.
@@ -872,44 +871,23 @@ public final class DatabaseConnection implements AutoCloseable {
       """;
 
   /**
-   * Rename the given picture.
-   *
-   * @param picture The picture to rename.
-   * @param newName The picture’s new name.
-   * @throws DatabaseOperationException If any database or file system error occurs.
-   */
-  public void renamePicture(@NotNull Picture picture, @NotNull String newName) throws DatabaseOperationException {
-    this.ensureInDatabase(picture);
-    this.moveOrRenamePicture(picture, picture.path().getParent().resolve(newName));
-  }
-
-  /**
-   * Move the given picture to another directory.
-   *
-   * @param picture The picture to rename.
-   * @param destDir The picture’s new name.
-   * @throws DatabaseOperationException If any database or file system error occurs.
-   */
-  public void movePicture(@NotNull Picture picture, @NotNull Path destDir, boolean overwriteDestination)
-      throws DatabaseOperationException {
-    this.ensureInDatabase(picture);
-    if (picture.path().getParent().equals(destDir.toAbsolutePath()))
-      throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_IN_DEST_DIR));
-    if (!overwriteDestination && Files.exists(destDir.resolve(picture.path().getFileName())))
-      throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
-
-    this.moveOrRenamePicture(picture, destDir.resolve(picture.path().getFileName()));
-  }
-
-  /**
    * Move/rename the given picture. If the underlying file does not exist,
    * the picture’s path still gets updated.
    *
-   * @param picture The picture to move/rename.
-   * @param newPath The destination/new name.
+   * @param picture              The picture to move/rename.
+   * @param newPath              The destination path.
+   * @param overwriteDestination Indicate whether to overwrite any pre-existing file with the same name as the target.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  private void moveOrRenamePicture(@NotNull Picture picture, @NotNull Path newPath) throws DatabaseOperationException {
+  public void moveOrRenamePicture(@NotNull Picture picture, @NotNull Path newPath, boolean overwriteDestination)
+      throws DatabaseOperationException {
+    this.ensureInDatabase(picture);
+
+    if (picture.path().equals(newPath))
+      return;
+    if (!overwriteDestination && Files.exists(picture.path()) && Files.exists(newPath))
+      throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
+
     try {
       Files.move(picture.path(), newPath);
     } catch (final NoSuchFileException ignored) {
@@ -1377,7 +1355,7 @@ public final class DatabaseConnection implements AutoCloseable {
       return DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR;
     if (e instanceof FileNotFoundException)
       return DatabaseErrorCode.MISSING_FILE_ERROR;
-    return DatabaseErrorCode.UNKNOWN_ERROR;
+    return DatabaseErrorCode.UNKNOWN_FILE_ERROR;
   }
 
   /**

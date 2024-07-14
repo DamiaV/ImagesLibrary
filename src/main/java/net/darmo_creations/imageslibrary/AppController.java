@@ -37,8 +37,6 @@ public class AppController implements ResultsView.SearchListener {
   private final ProgressDialog progressDialog;
 
   private final Map<MenuItem, Boolean> menuItemStates = new HashMap<>();
-  private MenuItem renameImagesMenuItem;
-  private Button renameImagesButton;
   private MenuItem moveImagesMenuItem;
   private Button moveImagesButton;
   private MenuItem editMenuItem;
@@ -177,26 +175,17 @@ public class AppController implements ResultsView.SearchListener {
     this.deleteMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.DELETE));
     this.deleteMenuItem.setDisable(true);
     this.menuItemStates.put(this.deleteMenuItem, this.deleteMenuItem.isDisable());
-    this.renameImagesMenuItem = new MenuItem(
-        language.translate("menu.edit.rename_images"),
-        theme.getIcon(Icon.RENAME_IMAGES, Icon.Size.SMALL)
-    );
-    this.renameImagesMenuItem.setOnAction(e -> this.onRenameSelectedImages());
-    this.renameImagesMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN));
-    this.renameImagesMenuItem.setDisable(true);
-    this.menuItemStates.put(this.renameImagesMenuItem, this.renameImagesMenuItem.isDisable());
     this.moveImagesMenuItem = new MenuItem(
         language.translate("menu.edit.move_images"),
         theme.getIcon(Icon.MOVE_IMAGES, Icon.Size.SMALL)
     );
-    this.moveImagesMenuItem.setOnAction(e -> this.onMoveSelectedImages());
+    this.moveImagesMenuItem.setOnAction(e -> this.onBatchMoveSelectedImages());
     this.moveImagesMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.M, KeyCombination.CONTROL_DOWN));
     this.moveImagesMenuItem.setDisable(true);
     this.menuItemStates.put(this.moveImagesMenuItem, this.moveImagesMenuItem.isDisable());
     editMenu.getItems().addAll(
         this.editMenuItem,
         this.deleteMenuItem,
-        this.renameImagesMenuItem,
         this.moveImagesMenuItem
     );
 
@@ -294,12 +283,8 @@ public class AppController implements ResultsView.SearchListener {
     this.deleteButton.setOnAction(e -> this.onDelete());
     this.deleteButton.setTooltip(new Tooltip(language.translate("toolbar.edit.delete_images")));
     this.deleteButton.setDisable(true);
-    this.renameImagesButton = new Button(null, theme.getIcon(Icon.RENAME_IMAGES, Icon.Size.BIG));
-    this.renameImagesButton.setOnAction(e -> this.onRenameSelectedImages());
-    this.renameImagesButton.setTooltip(new Tooltip(language.translate("toolbar.edit.rename_images")));
-    this.renameImagesButton.setDisable(true);
     this.moveImagesButton = new Button(null, theme.getIcon(Icon.MOVE_IMAGES, Icon.Size.BIG));
-    this.moveImagesButton.setOnAction(e -> this.onMoveSelectedImages());
+    this.moveImagesButton.setOnAction(e -> this.onBatchMoveSelectedImages());
     this.moveImagesButton.setTooltip(new Tooltip(language.translate("toolbar.edit.move_images")));
     this.moveImagesButton.setDisable(true);
 
@@ -329,7 +314,6 @@ public class AppController implements ResultsView.SearchListener {
         new Separator(),
         this.editButton,
         this.deleteButton,
-        this.renameImagesButton,
         this.moveImagesButton,
         new Separator(),
         this.slideshowButton,
@@ -477,8 +461,6 @@ public class AppController implements ResultsView.SearchListener {
     this.selectedTags.clear();
     this.selectedTags.addAll(tags);
 
-    this.renameImagesMenuItem.setDisable(true);
-    this.renameImagesButton.setDisable(true);
     this.moveImagesMenuItem.setDisable(true);
     this.moveImagesButton.setDisable(true);
     this.deleteMenuItem.setDisable(true);
@@ -571,8 +553,6 @@ public class AppController implements ResultsView.SearchListener {
     this.deleteButton.setDisable(empty);
     this.deleteButton.setGraphic(theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.BIG));
     this.deleteButton.setTooltip(new Tooltip(language.translate("toolbar.edit.delete_images")));
-    this.renameImagesMenuItem.setDisable(empty);
-    this.renameImagesButton.setDisable(empty);
     this.moveImagesMenuItem.setDisable(empty);
     this.moveImagesButton.setDisable(empty);
     this.slideshowSelectedMenuItem.setDisable(empty);
@@ -734,17 +714,9 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   /**
-   * Open the dialog to rename selected images.
+   * Open the dialog to move selected images in batch.
    */
-  private void onRenameSelectedImages() {
-    // TODO
-    System.out.println("rename images");
-  }
-
-  /**
-   * Open the dialog to move selected images.
-   */
-  private void onMoveSelectedImages() {
+  private void onBatchMoveSelectedImages() {
     // TODO
     System.out.println("move images");
   }

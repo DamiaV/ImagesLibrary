@@ -1103,7 +1103,7 @@ class DatabaseConnectionTest {
   }
 
   // endregion
-  // region renamePicture
+  // region moveOrRenamePicture rename only
 
   @Test
   void renamePicture_updatesPath() throws DatabaseOperationException {
@@ -1111,10 +1111,11 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     var pic = this.getAllPictures().stream().findFirst().get();
-    this.db.renamePicture(pic, "test_file_3.png");
+    final Path targetPath = Path.of("test_file_3.png");
+    this.db.moveOrRenamePicture(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
     pic = this.getAllPictures().stream().findFirst().get();
-    assertEquals(Path.of("test_file_3.png").toAbsolutePath(), pic.path());
+    assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
@@ -1123,8 +1124,9 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     final var pic = this.getAllPictures().stream().findFirst().get();
-    this.db.renamePicture(pic, "test_file_3.png");
-    assertTrue(Files.exists(Path.of("test_file_3.png")));
+    final Path targetPath = Path.of("test_file_3.png");
+    this.db.moveOrRenamePicture(pic, targetPath, false);
+    assertTrue(Files.exists(targetPath));
   }
 
   @Test
@@ -1133,10 +1135,11 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     var pic = this.getAllPictures().stream().findFirst().get();
-    this.db.renamePicture(pic, "test_file_3.png");
+    final Path targetPath = Path.of("test_file_3.png");
+    this.db.moveOrRenamePicture(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
     pic = this.getAllPictures().stream().findFirst().get();
-    assertEquals(Path.of("test_file_3.png").toAbsolutePath(), pic.path());
+    assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
@@ -1145,28 +1148,29 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     var pic = this.getAllPictures().stream().findFirst().get();
-    this.db.renamePicture(pic, "test_file_2.png");
+    final Path targetPath = Path.of("test_file_2.png");
+    this.db.moveOrRenamePicture(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
     pic = this.getAllPictures().stream().findFirst().get();
-    assertEquals(Path.of("test_file_2.png").toAbsolutePath(), pic.path());
+    assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
   void renamePicture_targetFileExistsError() {
     final Path path = Path.of("test_file.png");
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.renamePicture(new Picture(1, path, new Hash(0)), "test_file_2.png"));
+        () -> this.db.moveOrRenamePicture(new Picture(1, path, new Hash(0)), Path.of("test_file_2.png"), false));
   }
 
   @Test
   void renamePicture_notInDbError() {
     final Path path = Path.of("test_file.png");
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.renamePicture(new Picture(1, path, new Hash(0)), "test_file_3.png"));
+        () -> this.db.moveOrRenamePicture(new Picture(1, path, new Hash(0)), Path.of("test_file_3.png"), false));
   }
 
   // endregion
-  // region movePicture
+  // region moveOrRenamePicture move
 
   @Test
   void movePicture_updatesPath() throws DatabaseOperationException {
@@ -1174,10 +1178,11 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     var pic = this.getAllPictures().stream().findFirst().get();
-    this.db.movePicture(pic, Path.of("dest"), false);
+    final Path targetPath = Path.of("dest", "test_file.png");
+    this.db.moveOrRenamePicture(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
     pic = this.getAllPictures().stream().findFirst().get();
-    assertEquals(Path.of("dest", "test_file.png").toAbsolutePath(), pic.path());
+    assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
@@ -1186,8 +1191,9 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     final var pic = this.getAllPictures().stream().findFirst().get();
-    this.db.movePicture(pic, Path.of("dest"), false);
-    assertTrue(Files.exists(Path.of("dest", "test_file.png")));
+    final Path targetPath = Path.of("dest", "test_file.png");
+    this.db.moveOrRenamePicture(pic, targetPath, false);
+    assertTrue(Files.exists(targetPath));
   }
 
   @Test
@@ -1196,10 +1202,11 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     var pic = this.getAllPictures().stream().findFirst().get();
-    this.db.movePicture(pic, Path.of("dest"), false);
+    final Path targetPath = Path.of("dest", "test_file_0.png");
+    this.db.moveOrRenamePicture(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
     pic = this.getAllPictures().stream().findFirst().get();
-    assertEquals(Path.of("dest", "test_file_0.png").toAbsolutePath(), pic.path());
+    assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
@@ -1208,24 +1215,25 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     var pic = this.getAllPictures().stream().findFirst().get();
-    this.db.movePicture(pic, Path.of("dest"), false);
+    final Path targetPath = Path.of("dest", "test_file_0.png");
+    this.db.moveOrRenamePicture(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
     pic = this.getAllPictures().stream().findFirst().get();
-    assertEquals(Path.of("dest", "test_file_0.png").toAbsolutePath(), pic.path());
+    assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
   void movePicture_targetFileExistsError() {
     final Path path = Path.of("test_file_2.png");
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.movePicture(new Picture(1, path, new Hash(0)), Path.of("dest"), false));
+        () -> this.db.moveOrRenamePicture(new Picture(1, path, new Hash(0)), Path.of("dest", "test_file_2"), false));
   }
 
   @Test
   void movePicture_notInDbError() {
     final Path path = Path.of("test_file.png");
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.movePicture(new Picture(1, path, new Hash(0)), Path.of("dest"), false));
+        () -> this.db.moveOrRenamePicture(new Picture(1, path, new Hash(0)), Path.of("dest", "test_file.png"), false));
   }
 
   // endregion

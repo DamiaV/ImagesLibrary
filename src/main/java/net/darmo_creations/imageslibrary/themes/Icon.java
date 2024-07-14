@@ -13,7 +13,6 @@ public enum Icon {
   SETTINGS("cog"),
   QUIT("door_in"),
   EDIT_IMAGES("picture_edit"),
-  RENAME_IMAGES("picture_textfield"),
   MOVE_IMAGES("picture_go"),
   DELETE_IMAGES("picture_delete"),
   EDIT_TAG("tag_blue_edit"),

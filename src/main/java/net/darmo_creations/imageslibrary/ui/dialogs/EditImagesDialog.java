@@ -30,7 +30,7 @@ import java.util.stream.*;
  */
 public class EditImagesDialog extends DialogBase<Boolean> {
   private final ImageView imageView = new ImageView();
-  private final Label fileNameLabel = new Label();
+  private final TextField fileNameField = new TextField();
   private final Label fileMetadataLabel = new Label();
   private final Button viewSimilarImagesButton = new Button();
   private final Button moveButton = new Button();
@@ -123,13 +123,17 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.imageView.fitWidthProperty().bind(this.stage().widthProperty().subtract(30));
     imageViewBox.setMinHeight(200);
 
-    final HBox fileNameBox = new HBox(this.fileNameLabel);
-    fileNameBox.setAlignment(Pos.CENTER);
-    fileNameBox.setPadding(new Insets(0, 5, 0, 5));
+    this.fileNameField.textProperty().addListener((observable, oldValue, newValue) -> this.updateState());
+    HBox.setHgrow(this.fileNameField, Priority.ALWAYS);
+    final HBox fileNameBox = new HBox(
+        5,
+        new Label(language.translate("dialog.edit_images.file_name")),
+        this.fileNameField
+    );
+    fileNameBox.setAlignment(Pos.CENTER_LEFT);
 
     final HBox metadataBox = new HBox(this.fileMetadataLabel);
     metadataBox.setAlignment(Pos.CENTER);
-    metadataBox.setPadding(new Insets(0, 5, 0, 5));
 
     this.viewSimilarImagesButton.setText(language.translate("dialog.edit_images.view_similar_images"));
     this.viewSimilarImagesButton.setGraphic(this.config.theme().getIcon(Icon.SHOW_SILIMAR_IMAGES, Icon.Size.SMALL));
@@ -204,7 +208,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
     final SplitPane splitPane = new SplitPane(
         imageViewBox,
-        new VBox(5, fileNameBox, metadataBox, buttonsBox, this.pathBox, this.tagsField)
+        new VBox(5, metadataBox, buttonsBox, this.pathBox, fileNameBox, this.tagsField)
     );
     splitPane.setOrientation(Orientation.VERTICAL);
     splitPane.setDividerPositions(0.75);
@@ -255,8 +259,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.imageView.setImage(null);
     final Path path = this.currentPicture.path();
     final String fileName = path.getFileName().toString();
-    this.fileNameLabel.setText(fileName);
-    this.fileNameLabel.setTooltip(new Tooltip(fileName));
+    this.fileNameField.setText(fileName);
     this.fileMetadataLabel.setText(null);
     this.fileMetadataLabel.setTooltip(null);
     final Language language = this.config.language();
@@ -313,9 +316,16 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         }
     }
 
-    if (this.targetPath != null && !this.targetPath.equals(this.currentPicture.path()))
+    //noinspection OptionalGetWithoutIsPresent
+    final String name = Objects.requireNonNull(StringUtils.stripNullable(this.fileNameField.getText()).get());
+    Path targetPath = this.targetPath;
+    if (targetPath == null)
+      targetPath = this.currentPicture.path().getParent();
+    targetPath = targetPath.resolve(name);
+
+    if (!targetPath.equals(this.currentPicture.path()))
       try {
-        this.db.movePicture(this.currentPicture, this.targetPath, this.overwriteTargetCheckBox.isSelected());
+        this.db.moveOrRenamePicture(this.currentPicture, targetPath, this.overwriteTargetCheckBox.isSelected());
         this.anyUpdate = true;
       } catch (final DatabaseOperationException e) {
         Alerts.databaseError(this.config, e.errorCode());
@@ -344,6 +354,9 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         // Current tags that are not in the parsed tags
         .filter(tag -> parsedTags.stream().noneMatch(pair -> pair.getValue().equals(tag.label())))
         .collect(Collectors.toSet());
+
+    if (StringUtils.stripNullable(this.fileNameField.getText()).isEmpty())
+      return Optional.empty();
 
     Hash hash = new Hash(0);
     if (this.insert)
