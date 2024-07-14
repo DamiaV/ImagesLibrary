@@ -229,7 +229,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     if (pictures.isEmpty())
       throw new IllegalArgumentException("pictures must not be empty");
     this.insert = insert;
-    this.setTitle(this.config.language().translate(insert ? "dialog.insert_images.title" : "dialog.edit_images.title"));
+    this.name = insert ? "insert_images" : "edit_images";
+    this.refreshTitle();
     this.pictures.clear();
     this.pictures.addAll(pictures);
     this.anyUpdate = false;
@@ -350,7 +351,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     return Optional.of(new PictureUpdate(
         this.insert ? 0 : this.currentPicture.id(),
         this.currentPicture.path(),
-        this.currentPicture.hash(),
+        this.currentPicture.hash(), // TODO recompute hash if not in insert mode
         toAdd,
         toRemove
     ));

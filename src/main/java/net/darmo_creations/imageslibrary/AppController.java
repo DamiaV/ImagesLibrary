@@ -34,6 +34,7 @@ public class AppController implements ResultsView.SearchListener {
   private final EditTagDialog editTagDialog;
   private final SettingsDialog settingsDialog;
   private final AboutDialog aboutDialog;
+  private final ProgressDialog progressDialog;
 
   private final Map<MenuItem, Boolean> menuItemStates = new HashMap<>();
   private MenuItem renameImagesMenuItem;
@@ -81,6 +82,7 @@ public class AppController implements ResultsView.SearchListener {
     this.editTagDialog = new EditTagDialog(config, db);
     this.settingsDialog = new SettingsDialog(config);
     this.aboutDialog = new AboutDialog(config);
+    this.progressDialog = new ProgressDialog(config, "converting_python_db");
 
     this.tagsView = new TagsView(
         config,
@@ -776,12 +778,11 @@ public class AppController implements ResultsView.SearchListener {
     final var path = FileChoosers.showDatabaseFileChooser(this.config, this.stage);
     if (path.isEmpty())
       return;
-    this.disableInteractions();
-    // TODO show progress dialog
+    this.progressDialog.show();
     DatabaseConnection.convertPythonDatabase(
         path.get(),
         newPath -> {
-          this.restoreInteractions();
+          this.progressDialog.hide();
           final boolean proceed = Alerts.confirmation(
               this.config,
               "alert.conversion_done.header",
@@ -800,9 +801,10 @@ public class AppController implements ResultsView.SearchListener {
         },
         e -> {
           App.logger().error("Unable to convert database file", e);
-          this.restoreInteractions();
+          this.progressDialog.hide();
           Alerts.databaseError(this.config, e.errorCode());
-        }
+        },
+        this.progressDialog
     );
   }
 

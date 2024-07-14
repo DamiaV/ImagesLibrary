@@ -5,6 +5,7 @@ import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.data.sql_functions.*;
 import net.darmo_creations.imageslibrary.query_parser.*;
+import net.darmo_creations.imageslibrary.ui.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.intellij.lang.annotations.*;
 import org.jetbrains.annotations.*;
@@ -1398,120 +1399,221 @@ public final class DatabaseConnection implements AutoCloseable {
    * Convert a database file created by the Python app to this app’s format.
    * The original file remains unchanged and the converted database is written to a new file.
    * <p>
-   * Callbacks will be called on the JavaFX application thread.
+   * Callbacks will be called on the JavaFX application thread, except for {@link ProgressManager#isCancelled()}.
    *
-   * @param file      The path to the file to convert.
-   * @param onSuccess A callback invoked when the file has been converted.
-   * @param onError   A callback invoked when any error occurs and the conversion is aborted.
+   * @param file            The path to the file to convert.
+   * @param onSuccess       A callback invoked when the file has been converted.
+   * @param onError         A callback invoked when any error occurs and the conversion is aborted.
+   * @param progressManager An object that can receive progress updates
+   *                        and indicates whether the process should be cancelled.
    */
   public static void convertPythonDatabase(
       final @NotNull Path file,
       @NotNull Consumer<Path> onSuccess,
-      @NotNull Consumer<DatabaseOperationException> onError
+      @NotNull Consumer<DatabaseOperationException> onError,
+      @NotNull ProgressManager progressManager
   ) {
     new Thread(() -> {
       try {
-        final Path outputPath = convertPythonDb(file);
-        Platform.runLater(() -> onSuccess.accept(outputPath));
+        convertPythonDb(file, progressManager)
+            .ifPresent(outputFile -> Platform.runLater(() -> onSuccess.accept(outputFile)));
       } catch (final DatabaseOperationException e) {
-        try {
-          Files.delete(file);
-        } catch (final IOException ex) {
-          App.logger().error("Failed to delete incomplete database file {}", file, ex);
-        }
         Platform.runLater(() -> onError.accept(e));
       }
-    }).start();
+    }, "Python DB Converter Thread").start();
   }
 
-  private static Path convertPythonDb(@NotNull Path file) throws DatabaseOperationException {
+  private static Optional<Path> convertPythonDb(
+      @NotNull Path file,
+      @NotNull ProgressManager progressManager
+  ) throws DatabaseOperationException {
     final Path outputPath = file.toAbsolutePath().getParent().resolve("converted-" + file.getFileName());
 
-    if (Files.exists(outputPath)) {
-      try {
-        Files.delete(outputPath);
-      } catch (final IOException e) {
-        throw new DatabaseOperationException(getErrorCode(e), e);
-      }
+    try {
+      Files.deleteIfExists(outputPath);
+    } catch (final IOException e) {
+      throw new DatabaseOperationException(getErrorCode(e), e);
     }
 
     try (final var db = new DatabaseConnection(outputPath);
          final var conn = DriverManager.getConnection("jdbc:sqlite:%s".formatted(file))) {
-      // Copy tag_types
       final Map<Integer, String> oldTagTypeIds = new HashMap<>();
-      try (final var statement = conn.prepareStatement("SELECT id, label, symbol, color FROM tag_types");
-           final var resultSet = statement.executeQuery()) {
-        final Set<TagTypeUpdate> updates = new HashSet<>();
-        while (resultSet.next()) {
-          final int id = resultSet.getInt("id");
-          final String label = resultSet.getString("label");
-          final char symbol = resultSet.getString("symbol").charAt(0);
-          final int color = resultSet.getInt("color");
-          updates.add(new TagTypeUpdate(0, label, symbol, color));
-          oldTagTypeIds.put(id, label);
-        }
-        db.insertTagTypes(updates);
+      if (!convertTagTypes(progressManager, conn, db, oldTagTypeIds)) {
+        App.logger().info("Conversion cancelled.");
+        deleteConvertedFile(outputPath);
+        return Optional.empty();
       }
       final var tagTypes = db.getAllTagTypes().stream()
           .collect(Collectors.toMap(TagType::label, Function.identity()));
 
-      // Copy tags
       final Map<Integer, String> oldTagIds = new HashMap<>();
-      try (final var statement = conn.prepareStatement("SELECT id, label, type_id, definition FROM tags");
-           final var resultSet = statement.executeQuery()) {
-        final Set<TagUpdate> updates = new HashSet<>();
-        while (resultSet.next()) {
-          final int id = resultSet.getInt("id");
-          final String label = resultSet.getString("label");
-          final int typeId = resultSet.getInt("type_id");
-          final String definition = resultSet.getString("definition");
-          updates.add(new TagUpdate(0, label, typeId != 0 ? tagTypes.get(oldTagTypeIds.get(typeId)) : null, definition));
-          oldTagIds.put(id, label);
-        }
-        db.insertTags(updates);
+      if (!convertTags(progressManager, conn, db, oldTagIds, tagTypes, oldTagTypeIds)) {
+        App.logger().info("Conversion cancelled.");
+        deleteConvertedFile(outputPath);
+        return Optional.empty();
       }
       final var tags = db.getAllTags().stream()
           .collect(Collectors.toMap(Tag::label, Function.identity()));
 
-      // Copy images
-      try (final var imagesCountStatement = conn.createStatement();
-           final var statement = conn.prepareStatement("SELECT id, path FROM images"); // Ignoring "hash" column as we recompute it
-           final var tagsStatement = conn.prepareStatement("SELECT tag_id FROM image_tag WHERE image_id = ?");
-           final var resultSet = statement.executeQuery()) {
-        final int total;
-        try (final var rs = imagesCountStatement.executeQuery("SELECT COUNT(*) FROM images")) {
-          rs.next();
-          total = rs.getInt(1);
-        }
-        int count = 0;
-        while (resultSet.next()) {
-          count++;
-          if (count % 100 == 0)
-            App.logger().debug("{}/{}", count, total);
-          final int id = resultSet.getInt("id");
-          final Path path = Path.of(resultSet.getString("path"));
-          Hash hash;
-          try {
-            hash = Hash.computeForFile(path);
-          } catch (final Exception e) {
-            App.logger().error("Failed to compute hash for {}", path, e);
-            hash = new Hash(0);
-          }
-          // Fetch associated tags
-          final Set<Pair<TagType, String>> imageTags = new HashSet<>();
-          tagsStatement.setInt(1, id);
-          try (final var tagsResultSet = tagsStatement.executeQuery()) {
-            while (tagsResultSet.next()) {
-              final Tag tag = tags.get(oldTagIds.get(tagsResultSet.getInt("tag_id")));
-              imageTags.add(new Pair<>(tag.type().orElse(null), tag.label()));
-            }
-          }
-          db.insertPicture(new PictureUpdate(0, path.toAbsolutePath(), hash, imageTags, Set.of()));
-        }
+      if (!convertImages(progressManager, conn, db, tags, oldTagIds)) {
+        App.logger().info("Conversion cancelled.");
+        deleteConvertedFile(outputPath);
+        return Optional.empty();
       }
     } catch (final SQLException e) {
+      deleteConvertedFile(outputPath);
       throw new DatabaseOperationException(getErrorCode(e), e);
+    } catch (final DatabaseOperationException e) {
+      deleteConvertedFile(outputPath);
+      throw e;
     }
-    return outputPath;
+    return Optional.of(outputPath);
+  }
+
+  private static boolean convertTagTypes(
+      @NotNull ProgressManager progressManager,
+      @NotNull Connection connection,
+      @NotNull DatabaseConnection db,
+      @NotNull Map<Integer, String> oldTagTypeIds
+  ) throws SQLException, DatabaseOperationException {
+    try (final var statement = connection.prepareStatement("SELECT id, label, symbol, color FROM tag_types");
+         final var resultSet = statement.executeQuery()) {
+      final int total = getTableRowCount("tag_types", connection);
+      int counter = 0;
+      notifyProgress(progressManager, "progress.converting_python_db.tag_types", total, counter);
+      final Set<TagTypeUpdate> updates = new HashSet<>();
+      while (resultSet.next()) {
+        if (progressManager.isCancelled())
+          return false;
+        final int id = resultSet.getInt("id");
+        final String label = resultSet.getString("label");
+        final char symbol = resultSet.getString("symbol").charAt(0);
+        final int color = resultSet.getInt("color");
+        updates.add(new TagTypeUpdate(0, label, symbol, color));
+        oldTagTypeIds.put(id, label);
+        counter++;
+        notifyProgress(progressManager, "progress.converting_python_db.tag_types", total, counter);
+      }
+      db.insertTagTypes(updates);
+    }
+    return true;
+  }
+
+  private static boolean convertTags(
+      @NotNull ProgressManager progressManager,
+      @NotNull Connection connection,
+      @NotNull DatabaseConnection db,
+      @NotNull Map<Integer, String> oldTagIds,
+      final @NotNull Map<String, TagType> tagTypes,
+      final @NotNull Map<Integer, String> oldTagTypeIds
+  ) throws SQLException, DatabaseOperationException {
+    try (final var statement = connection.prepareStatement("SELECT id, label, type_id, definition FROM tags");
+         final var resultSet = statement.executeQuery()) {
+      final int total = getTableRowCount("tags", connection);
+      int counter = 0;
+      notifyProgress(progressManager, "progress.converting_python_db.tags", total, counter);
+      final Set<TagUpdate> updates = new HashSet<>();
+      while (resultSet.next()) {
+        if (progressManager.isCancelled())
+          return false;
+        final int id = resultSet.getInt("id");
+        final String label = resultSet.getString("label");
+        final int typeId = resultSet.getInt("type_id");
+        final String definition = resultSet.getString("definition");
+        updates.add(new TagUpdate(0, label, typeId != 0 ? tagTypes.get(oldTagTypeIds.get(typeId)) : null, definition));
+        oldTagIds.put(id, label);
+        counter++;
+        notifyProgress(progressManager, "progress.converting_python_db.tags", total, counter);
+      }
+      db.insertTags(updates);
+    }
+    return true;
+  }
+
+  private static boolean convertImages(
+      @NotNull ProgressManager progressManager,
+      @NotNull Connection connection,
+      @NotNull DatabaseConnection db,
+      final @NotNull Map<String, Tag> tags,
+      final @NotNull Map<Integer, String> oldTagIds
+  ) throws SQLException, DatabaseOperationException {
+    try (final var statement = connection.prepareStatement("SELECT id, path FROM images"); // Ignoring "hash" column as we recompute it
+         final var tagsStatement = connection.prepareStatement("SELECT tag_id FROM image_tag WHERE image_id = ?");
+         final var resultSet = statement.executeQuery()) {
+      final int total = getTableRowCount("images", connection);
+      int counter = 0;
+      notifyProgress(progressManager, "progress.converting_python_db.images", total, counter);
+      while (resultSet.next()) {
+        if (progressManager.isCancelled())
+          return false;
+        final int id = resultSet.getInt("id");
+        final Path path = Path.of(resultSet.getString("path"));
+        Hash hash;
+        try {
+          hash = Hash.computeForFile(path);
+        } catch (final Exception e) {
+          App.logger().error("Failed to compute hash for {}", path, e);
+          hash = new Hash(0);
+        }
+        // Fetch associated tags
+        final Set<Pair<TagType, String>> imageTags = new HashSet<>();
+        tagsStatement.setInt(1, id);
+        try (final var tagsResultSet = tagsStatement.executeQuery()) {
+          while (tagsResultSet.next()) {
+            if (progressManager.isCancelled())
+              return false;
+            final Tag tag = tags.get(oldTagIds.get(tagsResultSet.getInt("tag_id")));
+            imageTags.add(new Pair<>(tag.type().orElse(null), tag.label()));
+          }
+        }
+        db.insertPicture(new PictureUpdate(0, path.toAbsolutePath(), hash, imageTags, Set.of()));
+        counter++;
+        notifyProgress(progressManager, "progress.converting_python_db.images", total, counter);
+      }
+    }
+    return true;
+  }
+
+  private static void notifyProgress(
+      @NotNull ProgressManager progressManager,
+      @NotNull String key,
+      int total,
+      int counter
+  ) {
+    Platform.runLater(() -> progressManager.notifyProgress(key, total, counter));
+  }
+
+  /**
+   * Return the total number of rows of the given table.
+   *
+   * @param tableName  The table’s name.
+   * @param connection A database connection.
+   * @return The total number of rows.
+   * @throws SQLException If any database error occurs.
+   */
+  private static int getTableRowCount(
+      @Language(value = "sqlite", prefix = "SELECT COUNT(*) FROM ") @NotNull String tableName,
+      @NotNull Connection connection
+  ) throws SQLException {
+    try (final var rowCountStatement = connection.prepareStatement("SELECT COUNT(*) FROM " + tableName);
+         final var rowCountResultSet = rowCountStatement.executeQuery()) {
+      rowCountResultSet.next();
+      return rowCountResultSet.getInt(1);
+    }
+  }
+
+  /**
+   * Delete the given converted database file.
+   * <p>
+   * Logs any {@link IOException} using the {@link App}’s global logger.
+   *
+   * @param file The file to delete.
+   */
+  private static void deleteConvertedFile(@NotNull Path file) {
+    try {
+      Files.deleteIfExists(file);
+    } catch (final IOException ex) {
+      App.logger().error("Failed to delete incomplete database file {}", file, ex);
+    }
   }
 }

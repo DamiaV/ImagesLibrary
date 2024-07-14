@@ -14,7 +14,7 @@ import java.util.*;
  * @param <T> Type of returned values.
  */
 public abstract class DialogBase<T> extends Dialog<T> {
-  private final String name;
+  protected String name;
   protected final Config config;
 
   /**
