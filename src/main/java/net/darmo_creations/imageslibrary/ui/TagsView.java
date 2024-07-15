@@ -2,6 +2,7 @@ package net.darmo_creations.imageslibrary.ui;
 
 import javafx.geometry.*;
 import javafx.scene.control.*;
+import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
@@ -18,6 +19,7 @@ public class TagsView extends VBox {
   private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
   private final Set<DeleteTagTypeListener> deleteTagTypeListeners = new HashSet<>();
   private final Set<CreateTagTypeListener> createTagTypeListeners = new HashSet<>();
+  private final Set<EditTagsTypeListener> editTagsTypeListeners = new HashSet<>();
 
   private final Config config;
   private final Set<Tag> tags;
@@ -67,6 +69,10 @@ public class TagsView extends VBox {
     this.tabPane.setSide(Side.LEFT);
     this.tabPane.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
         this.onTabSelectionChange());
+    this.tabPane.skinProperty().addListener((observable, oldValue, newValue) -> {
+      if (newValue != null)
+        this.hookDragAndDrop();
+    });
 
     this.searchField.setPromptText(language.translate("tag_search_field.search"));
     this.searchField.setStyle("-fx-font-size: 1.5em");
@@ -87,7 +93,6 @@ public class TagsView extends VBox {
    * Refresh this view from the internal tags and tag types views.
    */
   public void refresh() {
-    // TODO allow drag and drop of tag items between tabs to change their type
     this.tabPane.getTabs().clear();
 
     final Map<TagType, TagsTab> tagTypeTabs = new HashMap<>();
@@ -115,6 +120,40 @@ public class TagsView extends VBox {
       tabTags.get(tab).add(new TagsTab.TagEntry(tag, this.tagsCounts.get(tag.id()), this.config));
     });
     tabTags.forEach(TagsTab::setTags);
+    this.hookDragAndDrop();
+  }
+
+  private void hookDragAndDrop() {
+    if (this.tabPane.getSkin() == null)
+      return;
+    // Add tag drag-and-drop capabilities to tab headers
+    final Pane headerRegion = (Pane) this.tabPane.getSkin().getNode().lookup(".headers-region");
+    headerRegion.lookupAll(".tab").forEach(tabHeader -> {
+      tabHeader.setOnDragOver(event -> {
+        if (event.getDragboard().hasContent(TagsTab.DRAG_DATA_FORMAT))
+          event.acceptTransferModes(TransferMode.MOVE);
+        event.consume();
+      });
+      tabHeader.setOnDragDropped(event -> {
+        if (event.getDragboard().hasContent(TagsTab.DRAG_DATA_FORMAT)) {
+          final TagsTab targetTab = (TagsTab) tabHeader.getProperties().get(Tab.class);
+          final Optional<TagType> targetTagType = targetTab.tagType();
+          //noinspection unchecked
+          final var tags = ((List<Integer>) event.getDragboard().getContent(TagsTab.DRAG_DATA_FORMAT))
+              .stream()
+              // Remove tags whose type is already the target one
+              .flatMap(id -> this.tags.stream()
+                  .filter(tag -> tag.id() == id && !tag.type().equals(targetTagType))
+                  .findFirst()
+                  .stream())
+              .toList();
+          if (!tags.isEmpty())
+            this.editTagsTypeListeners.forEach(l -> l.onEditTagsType(tags, targetTagType.orElse(null)));
+          event.setDropCompleted(true);
+        }
+        event.consume();
+      });
+    });
   }
 
   /**
@@ -147,6 +186,10 @@ public class TagsView extends VBox {
 
   public void addCreateTagTypeListener(@NotNull CreateTagTypeListener listener) {
     this.createTagTypeListeners.add(Objects.requireNonNull(listener));
+  }
+
+  public void addEditTagsTypeListener(@NotNull EditTagsTypeListener listener) {
+    this.editTagsTypeListeners.add(Objects.requireNonNull(listener));
   }
 
   /**

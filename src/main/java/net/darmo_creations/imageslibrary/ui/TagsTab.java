@@ -4,6 +4,7 @@ import javafx.collections.*;
 import javafx.collections.transformation.*;
 import javafx.geometry.*;
 import javafx.scene.control.*;
+import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
@@ -17,6 +18,8 @@ import java.util.*;
  * A tab that displays a list of tags.
  */
 public final class TagsTab extends Tab implements ClickableListCellFactory.ClickListener<TagsTab.TagEntry> {
+  public static final DataFormat DRAG_DATA_FORMAT = new DataFormat("application/tag_ids");
+
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final Set<TagSelectionListener> tagSelectionListeners = new HashSet<>();
   private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
@@ -86,6 +89,15 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     this.filteredList.predicateProperty().addListener((observable, oldValue, newValue) -> {
       this.setText(getTitle(tagType, this.filteredList.size(), config.language()));
       this.label.setText(getTitle(tagType, this.filteredList.size(), config.language()));
+    });
+    // Allow drag-and-drop of tag items
+    this.tagsList.setOnDragDetected(event -> {
+      final Dragboard dragboard = this.tagsList.startDragAndDrop(TransferMode.MOVE);
+      final var selectedItems = this.tagsList.getSelectionModel().getSelectedItems().stream()
+          .map(e -> e.tag().id())
+          .toList();
+      dragboard.setContent(Map.of(DRAG_DATA_FORMAT, selectedItems));
+      event.consume();
     });
 
     this.setContent(new VBox(top, this.tagsList));

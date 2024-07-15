@@ -17,6 +17,7 @@ import org.jetbrains.annotations.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.stream.*;
 
 public class AppController implements ResultsView.SearchListener {
   private final DatabaseConnection db;
@@ -69,8 +70,8 @@ public class AppController implements ResultsView.SearchListener {
     this.db = db;
     final Theme theme = config.theme();
     theme.getAppIcon().ifPresent(icon -> stage.getIcons().add(icon));
-    stage.setMinWidth(300);
-    stage.setMinHeight(200);
+    stage.setMinWidth(800);
+    stage.setMinHeight(600);
     stage.setTitle(App.NAME + (config.isDebug() ? " [DEBUG]" : ""));
     stage.setMaximized(true);
 
@@ -89,7 +90,7 @@ public class AppController implements ResultsView.SearchListener {
         this.db.getAllTagsCounts(),
         this.db.getAllTagTypes()
     );
-    this.resultsView = new ResultsView(config, this.db);
+    this.resultsView = new ResultsView(config, db);
     final Scene scene = new Scene(new VBox(this.createMenuBar(), this.createToolBar(), this.createContent()));
     stage.setScene(scene);
     theme.applyTo(scene);
@@ -334,6 +335,7 @@ public class AppController implements ResultsView.SearchListener {
     this.tagsView.addEditTagTypeListener(this::onEditTagType);
     this.tagsView.addDeleteTagTypeListener(this::onDeleteTagType);
     this.tagsView.addCreateTagTypeListener(this::onCreateTagType);
+    this.tagsView.addEditTagsTypeListener(this::onEditTagsType);
     splitPane.getItems().add(this.tagsView);
     this.resultsView.addImageClickListener(this::onImageClick);
     this.resultsView.addImageSelectionListener(this::onImageSelectionChange);
@@ -516,6 +518,18 @@ public class AppController implements ResultsView.SearchListener {
       this.tagsView.refresh();
       this.tagsView.selectTagType(type);
     });
+  }
+
+  private void onEditTagsType(final @NotNull List<Tag> tags, TagType type) {
+    final Set<TagUpdate> updates = tags.stream()
+        .map(tag -> new TagUpdate(tag.id(), tag.label(), type, tag.definition().orElse(null)))
+        .collect(Collectors.toSet());
+    try {
+      this.db.updateTags(updates);
+      this.tagsView.refresh();
+    } catch (final DatabaseOperationException e) {
+      App.logger().error("Error updating tags", e);
+    }
   }
 
   private void onImageClick(@NotNull Picture picture) {
@@ -723,6 +737,8 @@ public class AppController implements ResultsView.SearchListener {
       }
     });
   }
+
+  // TODO dialog to manage files and directories: rename dirs, ?
 
   /**
    * Open the slideshow dialog for the current query results.
