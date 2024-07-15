@@ -46,6 +46,9 @@ public enum Icon {
   OPEN_FILE_IN_EXPLORER("folder_go"),
 
   SHOW_SILIMAR_IMAGES("pictures"),
+
+  WARNING("error"),
+  SELECT_DIRECTORY("folder"),
   ;
 
   private final String baseName;

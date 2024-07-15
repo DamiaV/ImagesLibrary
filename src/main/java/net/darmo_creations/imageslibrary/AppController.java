@@ -17,7 +17,6 @@ import org.jetbrains.annotations.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
-import java.util.stream.*;
 
 public class AppController implements ResultsView.SearchListener {
   private final DatabaseConnection db;
@@ -35,6 +34,7 @@ public class AppController implements ResultsView.SearchListener {
   private final SettingsDialog settingsDialog;
   private final AboutDialog aboutDialog;
   private final ProgressDialog progressDialog;
+  private final MovePicturesDialog movePicturesDialog;
 
   private final Map<MenuItem, Boolean> menuItemStates = new HashMap<>();
   private MenuItem moveImagesMenuItem;
@@ -81,6 +81,7 @@ public class AppController implements ResultsView.SearchListener {
     this.settingsDialog = new SettingsDialog(config);
     this.aboutDialog = new AboutDialog(config);
     this.progressDialog = new ProgressDialog(config, "converting_python_db");
+    this.movePicturesDialog = new MovePicturesDialog(config, db);
 
     this.tagsView = new TagsView(
         config,
@@ -412,19 +413,14 @@ public class AppController implements ResultsView.SearchListener {
 
     for (final Path fileOrDir : filesOrDirs)
       if (Files.isDirectory(fileOrDir))
-        try (final Stream<Path> tree = Files.walk(fileOrDir, 1, FileVisitOption.FOLLOW_LINKS)) {
-          final var res = this.loadPictures(tree.filter(f -> {
-            try {
-              return !Files.isSameFile(fileOrDir, f);
-            } catch (final IOException e) {
-              errors.add(f);
-              return false;
-            }
-          }).toList());
+        try (final var tree = Files.newDirectoryStream(fileOrDir)) {
+          final List<Path> files = new LinkedList<>();
+          tree.iterator().forEachRemaining(files::add);
+          final var res = this.loadPictures(files);
           pictures.addAll(res.pictures());
           skipped.addAll(res.skipped());
           errors.addAll(res.errors());
-        } catch (final IOException e) {
+        } catch (final IOException | SecurityException e) {
           errors.add(fileOrDir);
         }
       else if (App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(fileOrDir)))
@@ -714,11 +710,18 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   /**
-   * Open the dialog to move selected images in batch.
+   * Open the dialog to move the selected images in batch.
    */
   private void onBatchMoveSelectedImages() {
-    // TODO
-    System.out.println("move images");
+    if (this.selectedPictures.isEmpty())
+      return;
+    this.movePicturesDialog.setPictures(this.selectedPictures);
+    this.movePicturesDialog.showAndWait().ifPresent(anyUpdate -> {
+      if (anyUpdate) {
+        this.resultsView.refresh();
+        this.tagsView.refresh();
+      }
+    });
   }
 
   /**
