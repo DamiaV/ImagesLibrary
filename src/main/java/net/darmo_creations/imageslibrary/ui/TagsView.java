@@ -123,10 +123,12 @@ public class TagsView extends VBox {
     this.hookDragAndDrop();
   }
 
+  /**
+   * Add tag drag-and-drop capabilities to tab headers.
+   */
   private void hookDragAndDrop() {
     if (this.tabPane.getSkin() == null)
       return;
-    // Add tag drag-and-drop capabilities to tab headers
     final Pane headerRegion = (Pane) this.tabPane.getSkin().getNode().lookup(".headers-region");
     headerRegion.lookupAll(".tab").forEach(tabHeader -> {
       tabHeader.setOnDragOver(event -> {
