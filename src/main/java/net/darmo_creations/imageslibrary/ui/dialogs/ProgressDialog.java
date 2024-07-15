@@ -12,7 +12,7 @@ import org.jetbrains.annotations.*;
  * <p>
  * Clicking the “Cancel” button or closing this dialog will interrupt the process it is attached to.
  */
-public class ProgressDialog extends DialogBase<ButtonType> implements ProgressManager {
+public class ProgressDialog extends DialogBase<Void> implements ProgressManager {
   private final Label messageLabel = new Label();
   private final Label progressLabel = new Label();
   private final ProgressBar progressBar = new ProgressBar();
@@ -35,10 +35,10 @@ public class ProgressDialog extends DialogBase<ButtonType> implements ProgressMa
       this.cancelled = false;
     });
 
-    this.setResultConverter(button -> {
-      if (button.getButtonData().isCancelButton())
+    this.setResultConverter(buttonType -> {
+      if (buttonType.getButtonData().isCancelButton())
         this.cancelled = true;
-      return button;
+      return null;
     });
   }
 

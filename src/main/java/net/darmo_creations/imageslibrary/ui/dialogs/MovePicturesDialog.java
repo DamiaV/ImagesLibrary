@@ -87,7 +87,7 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
     stage.setMinWidth(500);
     stage.setMinHeight(300);
 
-    this.setResultConverter(button -> this.anyUpdate);
+    this.setResultConverter(buttonType -> this.anyUpdate);
 
     this.updateButtons();
   }

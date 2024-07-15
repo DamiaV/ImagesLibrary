@@ -12,7 +12,7 @@ import org.jetbrains.annotations.*;
 /**
  * Undecorated dialog that displays a splash image.
  */
-public class Splash extends DialogBase<ButtonType> {
+public class Splash extends DialogBase<Void> {
   public Splash(final @NotNull Config config) {
     super(config, "splash", false, ButtonTypes.OK);
     this.stage().initStyle(StageStyle.UNDECORATED);
@@ -30,5 +30,6 @@ public class Splash extends DialogBase<ButtonType> {
     }
     dialogPane.getStyleClass().remove("dialog-pane"); // Remove default margins, etc.
     dialogPane.getChildren().removeIf(child -> child instanceof ButtonBar); // Remove button bar at the bottom
+    this.setResultConverter(buttonType -> null);
   }
 }

@@ -16,7 +16,7 @@ import java.nio.file.*;
 /**
  * Dialog to update the app’s settings. It is not resizable.
  */
-public class SettingsDialog extends DialogBase<ButtonType> {
+public class SettingsDialog extends DialogBase<Void> {
   private final ComboBox<Language> languageCombo = new ComboBox<>();
   private final ComboBox<Theme> themeCombo = new ComboBox<>();
   private final TextField dbFileField = new TextField();
@@ -54,7 +54,7 @@ public class SettingsDialog extends DialogBase<ButtonType> {
           }
         }
       }
-      return buttonType;
+      return null;
     });
   }
 

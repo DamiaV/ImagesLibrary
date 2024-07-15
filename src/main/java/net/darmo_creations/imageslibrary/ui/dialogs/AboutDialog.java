@@ -19,7 +19,7 @@ import java.util.*;
 /**
  * Dialog that displays information about this app. It is not resizable.
  */
-public class AboutDialog extends DialogBase<ButtonType> {
+public class AboutDialog extends DialogBase<Void> {
   /**
    * Create an about dialog.
    *
@@ -66,6 +66,8 @@ public class AboutDialog extends DialogBase<ButtonType> {
     final Stage stage = this.stage();
     stage.setMinHeight(400);
     stage.setMinWidth(600);
+
+    this.setResultConverter(buttonType -> null);
   }
 
   private static Node getTextArea() {

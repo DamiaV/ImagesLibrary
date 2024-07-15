@@ -18,7 +18,7 @@ import java.util.*;
 /**
  * Dialog that shows images that are similar to a given one.
  */
-public class SimilarImagesDialog extends DialogBase<ButtonType> {
+public class SimilarImagesDialog extends DialogBase<Void> {
   private final ImageView imageView = new ImageView();
   private final Label fileNameLabel = new Label();
   private final Label fileMetadataLabel = new Label();
@@ -30,6 +30,7 @@ public class SimilarImagesDialog extends DialogBase<ButtonType> {
     final Stage stage = this.stage();
     stage.setMinWidth(800);
     stage.setMinHeight(600);
+    this.setResultConverter(buttonType -> null);
   }
 
   private Node createContent() {
