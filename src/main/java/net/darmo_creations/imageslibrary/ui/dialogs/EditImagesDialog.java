@@ -29,6 +29,7 @@ import java.util.stream.*;
  * Dialog to create/edit images.
  */
 public class EditImagesDialog extends DialogBase<Boolean> {
+  private final HBox imageViewBox;
   private final ImageView imageView = new ImageView();
   private final TextField fileNameField = new TextField();
   private final Label fileMetadataLabel = new Label();
@@ -91,6 +92,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     });
     this.finishButton = (Button) this.getDialogPane().lookupButton(ButtonTypes.FINISH);
 
+    this.imageViewBox = new HBox(this.imageView);
     this.getDialogPane().setContent(this.createContent());
 
     final Stage stage = this.stage();
@@ -104,24 +106,23 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     });
 
     this.setOnCloseRequest(event -> {
-      // Hide the similar images dialog when this one closes
-      this.similarImagesDialog.hide();
       if (this.preventClosing) {
         event.consume();
         this.preventClosing = false;
-      }
+      } else // Hide the similar images dialog when this one closes
+        this.similarImagesDialog.hide();
     });
   }
 
   private Node createContent() {
     final Language language = this.config.language();
 
-    final HBox imageViewBox = new HBox(this.imageView);
-    imageViewBox.setAlignment(Pos.CENTER);
+    this.imageViewBox.setAlignment(Pos.CENTER);
+    this.imageViewBox.setMinHeight(200);
+    this.imageViewBox.heightProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
+    this.stage().widthProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
+
     this.imageView.setPreserveRatio(true);
-    this.imageView.fitHeightProperty().bind(imageViewBox.heightProperty().subtract(10));
-    this.imageView.fitWidthProperty().bind(this.stage().widthProperty().subtract(30));
-    imageViewBox.setMinHeight(200);
 
     this.fileNameField.textProperty().addListener((observable, oldValue, newValue) -> this.updateState());
     HBox.setHgrow(this.fileNameField, Priority.ALWAYS);
@@ -207,7 +208,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     VBox.setVgrow(this.tagsField, Priority.ALWAYS);
 
     final SplitPane splitPane = new SplitPane(
-        imageViewBox,
+        this.imageViewBox,
         new VBox(5, metadataBox, buttonsBox, this.pathBox, fileNameBox, this.tagsField)
     );
     splitPane.setOrientation(Orientation.VERTICAL);
@@ -237,9 +238,20 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.refreshTitle();
     this.pictures.clear();
     this.pictures.addAll(pictures);
+    this.tagsField.setText("");
     this.anyUpdate = false;
     this.clearTargetPath();
     this.nextPicture();
+  }
+
+  private void updateImageViewSize() {
+    final Image image = this.imageView.getImage();
+    if (image != null) {
+      final double width = Math.min(image.getWidth(), this.stage().getWidth() - 20);
+      this.imageView.setFitWidth(width);
+      final double height = Math.min(image.getHeight(), this.imageViewBox.getHeight() - 10);
+      this.imageView.setFitHeight(height);
+    }
   }
 
   /**
@@ -280,6 +292,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
             final String text = FileUtils.formatImageMetadata(path, image, this.config);
             this.fileMetadataLabel.setText(text);
             this.fileMetadataLabel.setTooltip(new Tooltip(text));
+            this.updateImageViewSize();
           },
           error -> this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"))
       );

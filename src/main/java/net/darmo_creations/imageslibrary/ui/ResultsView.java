@@ -146,10 +146,17 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     resultsLabelBox.setAlignment(Pos.CENTER);
     final SplitPane splitPane = new SplitPane(this.imagesList, this.imagePreviewPane);
     splitPane.setDividerPositions(0.95);
-    this.imagePreviewPane.setSplitPane(splitPane, false);
     this.imagePreviewPane.addTagClickListener(this::searchTag);
     VBox.setVgrow(splitPane, Priority.ALWAYS);
     this.getChildren().addAll(searchBox, resultsLabelBox, splitPane);
+  }
+
+  /**
+   * Return a list of the images listed in this view.
+   */
+  @Unmodifiable
+  public List<Picture> pictures() {
+    return this.imagesList.getItems().stream().map(PictureEntry::picture).toList();
   }
 
   /**

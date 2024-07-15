@@ -1,6 +1,5 @@
 package net.darmo_creations.imageslibrary.ui;
 
-import javafx.beans.binding.*;
 import javafx.geometry.*;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
@@ -22,6 +21,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   private final Button openInExplorerButton = new Button();
   private final Label fileNameLabel = new Label();
   private final Label fileMetadataLabel = new Label();
+  private final HBox imageViewBox;
   private final ImageView imageView = new ImageView();
   private final Button editTagsButton = new Button();
   private final ListView<TagEntry> tagsList = new ListView<>();
@@ -51,11 +51,12 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     metadataBox.setAlignment(Pos.CENTER);
     metadataBox.setPadding(new Insets(0, 5, 0, 5));
 
-    final HBox imageViewBox = new HBox(this.imageView);
-    imageViewBox.setAlignment(Pos.CENTER);
+    this.imageViewBox = new HBox(this.imageView);
+    this.imageViewBox.setAlignment(Pos.CENTER);
+    this.imageViewBox.setMinHeight(200);
+    this.imageViewBox.heightProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
+    this.widthProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
     this.imageView.setPreserveRatio(true);
-    this.imageView.fitHeightProperty().bind(imageViewBox.heightProperty().subtract(10));
-    imageViewBox.setMinHeight(200);
 
     final HBox tagsLabelBox = new HBox(new Label(language.translate("image_preview.section.tags.title")));
     tagsLabelBox.getStyleClass().add("section-title");
@@ -77,26 +78,21 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
 
     this.setOrientation(Orientation.VERTICAL);
     this.getItems().addAll(
-        imageViewBox,
+        this.imageViewBox,
         new VBox(5, fileNameBox, metadataBox, tagsTitleBox, this.tagsList)
     );
     this.setDividerPositions(0.75);
     this.setImage(null, null);
   }
 
-  /**
-   * Set the splitpane this component is in.
-   *
-   * @param splitPane The splitpane ancestor.
-   * @param left      Whether this component is to the left (true) or right (false) of the splitpane’s divider.
-   */
-  @SuppressWarnings("SameParameterValue")
-  public void setSplitPane(@NotNull SplitPane splitPane, boolean left) {
-    // Cf. https://stackoverflow.com/a/47226681/3779986
-    DoubleExpression posProp = splitPane.getDividers().get(0).positionProperty();
-    if (!left) // Compute 1 - pos
-      posProp = posProp.negate().add(1);
-    this.imageView.fitWidthProperty().bind(posProp.multiply(splitPane.widthProperty()).subtract(10));
+  private void updateImageViewSize() {
+    final Image image = this.imageView.getImage();
+    if (image != null) {
+      final double width = Math.min(image.getWidth(), this.getWidth() - 10);
+      this.imageView.setFitWidth(width);
+      final double height = Math.min(image.getHeight(), this.imageViewBox.getHeight() - 10);
+      this.imageView.setFitHeight(height);
+    }
   }
 
   /**
@@ -144,6 +140,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
               this.fileMetadataLabel.setText(text);
               this.fileMetadataLabel.setTooltip(new Tooltip(text));
               this.openInExplorerButton.setDisable(false);
+              this.updateImageViewSize();
             },
             error -> {
               this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));

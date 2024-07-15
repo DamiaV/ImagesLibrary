@@ -19,6 +19,7 @@ import java.util.*;
  * Dialog that shows images that are similar to a given one.
  */
 public class SimilarImagesDialog extends DialogBase<Void> {
+  private final HBox imageViewBox;
   private final ImageView imageView = new ImageView();
   private final Label fileNameLabel = new Label();
   private final Label fileMetadataLabel = new Label();
@@ -26,6 +27,7 @@ public class SimilarImagesDialog extends DialogBase<Void> {
 
   public SimilarImagesDialog(@NotNull Config config) {
     super(config, "similar_images", true, false, ButtonTypes.CLOSE);
+    this.imageViewBox = new HBox(this.imageView);
     this.getDialogPane().setContent(this.createContent());
     final Stage stage = this.stage();
     stage.setMinWidth(800);
@@ -34,12 +36,11 @@ public class SimilarImagesDialog extends DialogBase<Void> {
   }
 
   private Node createContent() {
-    final HBox imageViewBox = new HBox(this.imageView);
-    imageViewBox.setAlignment(Pos.CENTER);
+    this.imageViewBox.setAlignment(Pos.CENTER);
+    this.imageViewBox.setMinHeight(200);
+    this.imageViewBox.heightProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
+    this.stage().widthProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
     this.imageView.setPreserveRatio(true);
-    this.imageView.fitHeightProperty().bind(imageViewBox.heightProperty().subtract(10));
-    this.imageView.fitWidthProperty().bind(this.stage().widthProperty().subtract(30));
-    imageViewBox.setMinHeight(200);
 
     final HBox fileNameBox = new HBox(this.fileNameLabel);
     fileNameBox.setAlignment(Pos.CENTER);
@@ -56,7 +57,7 @@ public class SimilarImagesDialog extends DialogBase<Void> {
     VBox.setVgrow(this.picturesList, Priority.ALWAYS);
 
     final SplitPane splitPane = new SplitPane(
-        imageViewBox,
+        this.imageViewBox,
         new VBox(5, fileNameBox, metadataBox, this.picturesList)
     );
     splitPane.setOrientation(Orientation.VERTICAL);
@@ -82,6 +83,16 @@ public class SimilarImagesDialog extends DialogBase<Void> {
     );
   }
 
+  private void updateImageViewSize() {
+    final Image image = this.imageView.getImage();
+    if (image != null) {
+      final double width = Math.min(image.getWidth(), this.stage().getWidth() - 20);
+      this.imageView.setFitWidth(width);
+      final double height = Math.min(image.getHeight(), this.imageViewBox.getHeight() - 10);
+      this.imageView.setFitHeight(height);
+    }
+  }
+
   private void setPicture(PictureView pictureView) {
     this.imageView.setImage(null);
     this.fileMetadataLabel.setText(null);
@@ -93,6 +104,7 @@ public class SimilarImagesDialog extends DialogBase<Void> {
       this.fileMetadataLabel.setText(
           pictureView.metadata().orElse(this.config.language().translate("image_preview.missing_file")));
       pictureView.image().ifPresent(this.imageView::setImage);
+      this.updateImageViewSize();
     } else {
       this.fileNameLabel.setText(null);
       this.fileNameLabel.setTooltip(new Tooltip(null));
@@ -110,8 +122,6 @@ public class SimilarImagesDialog extends DialogBase<Void> {
 
       final Path path = picture.path();
       final ImageView imageView = new ImageView();
-      imageView.setFitWidth(100);
-      imageView.setFitHeight(100);
       imageView.setPreserveRatio(true);
       final Label fileMetadataLabel = new Label();
       final Config config = SimilarImagesDialog.this.config;
@@ -131,6 +141,8 @@ public class SimilarImagesDialog extends DialogBase<Void> {
             image -> {
               this.image = image;
               imageView.setImage(image);
+              imageView.setFitWidth(Math.min(image.getWidth(), 100));
+              imageView.setFitHeight(Math.min(image.getHeight(), 100));
               this.metadata = FileUtils.formatImageMetadata(path, image, config);
               fileMetadataLabel.setText(this.metadata);
               fileMetadataLabel.setTooltip(new Tooltip(this.metadata));
