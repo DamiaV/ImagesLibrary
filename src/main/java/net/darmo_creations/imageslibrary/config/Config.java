@@ -17,7 +17,7 @@ import java.util.*;
  * All options except debug are mutable at runtime. But some will require the configuration to be saved to disk
  * and the application to be restarted to apply.
  */
-public final class Config implements Cloneable {
+public final class Config {
   /**
    * Array of all available language codes.
    */
@@ -29,6 +29,9 @@ public final class Config implements Cloneable {
   private static final String DEFAULT_LANGUAGE_CODE = LANGUAGE_CODES[0];
   private static final Map<String, Language> LANGUAGES = new HashMap<>();
   private static final String DEFAULT_DB_FILE = "db.sqlite3";
+  private static final int DEFAULT_SLIDESHOW_DELAY = 5; // s
+  public static final int MIN_SLIDESHOW_DELAY = 2;
+  public static final int MAX_SLIDESHOW_DELAY = 30;
 
   private static final Path SETTINGS_FILE = Path.of("settings.ini");
 
@@ -39,6 +42,9 @@ public final class Config implements Cloneable {
   private static final String QUERIES_SECTION = "Queries";
   private static final String CASE_SENSITIVITE_BY_DEFAULT = "case_sensitive_by_default";
   private static final String QUERY_SYNTAX_HIGHLIGHTING = "syntax_highlighting";
+  private static final String SLIDESHOW_SECTION = "Slideshow";
+  private static final String SHUFFLE_SLIDESHOW_IMAGES = "shuffle";
+  private static final String SLIDESHOW_DELAY = "delay";
 
   /**
    * Load the configuration from the settings file.
@@ -70,6 +76,13 @@ public final class Config implements Cloneable {
     final boolean caseSensitiveDefault = Optional.ofNullable(ini.get(QUERIES_SECTION, CASE_SENSITIVITE_BY_DEFAULT, Boolean.class)).orElse(false);
     final boolean querySH = Optional.ofNullable(ini.get(QUERIES_SECTION, QUERY_SYNTAX_HIGHLIGHTING, Boolean.class)).orElse(false);
 
+    final boolean shuffle = Optional.ofNullable(ini.get(SLIDESHOW_SECTION, SHUFFLE_SLIDESHOW_IMAGES, Boolean.class)).orElse(false);
+    int delay = Optional.ofNullable(ini.get(SLIDESHOW_SECTION, SLIDESHOW_DELAY, Integer.class)).orElse(DEFAULT_SLIDESHOW_DELAY);
+    if (delay < MIN_SLIDESHOW_DELAY)
+      delay = MIN_SLIDESHOW_DELAY;
+    else if (delay > MAX_SLIDESHOW_DELAY)
+      delay = MAX_SLIDESHOW_DELAY;
+
     try {
       return new Config(
           LANGUAGES.get(langCode),
@@ -77,6 +90,8 @@ public final class Config implements Cloneable {
           databaseFile,
           caseSensitiveDefault,
           querySH,
+          shuffle,
+          delay,
           debug
       );
     } catch (final IllegalArgumentException e) {
@@ -145,6 +160,8 @@ public final class Config implements Cloneable {
   private final boolean debug;
   private final BooleanProperty caseSensitiveQueriesByDefault = new SimpleBooleanProperty(this, "case_sensitive_by_default", false);
   private final BooleanProperty querySyntaxHighlighting = new SimpleBooleanProperty(this, "query_syntax_highlighting", false);
+  private final BooleanProperty shuffleSlideshows = new SimpleBooleanProperty(this, "shuffle_slideshows", false);
+  private final IntegerProperty slideshowDelay = new SimpleIntegerProperty(this, "slideshow_delay", DEFAULT_SLIDESHOW_DELAY);
 
   /**
    * Create a configuration object.
@@ -154,6 +171,8 @@ public final class Config implements Cloneable {
    * @param databaseFile                  Path to the database file.
    * @param caseSensitiveQueriesByDefault Whether pseudo-tag pattern should be treated as case sensitive when no flag is present.
    * @param querySyntaxHighlighting       Whether to perform syntax highlighting in the tag query search bar.
+   * @param shuffleSlideshows             Whether slideshow images should be shuffled.
+   * @param slideshowDelay                The delay between each image in slideshows in seconds.
    * @param debug                         Whether to run the app in debug mode.
    */
   public Config(
@@ -162,6 +181,8 @@ public final class Config implements Cloneable {
       @NotNull Path databaseFile,
       boolean caseSensitiveQueriesByDefault,
       boolean querySyntaxHighlighting,
+      boolean shuffleSlideshows,
+      int slideshowDelay,
       boolean debug
   ) {
     this.language = Objects.requireNonNull(language);
@@ -169,6 +190,8 @@ public final class Config implements Cloneable {
     this.databaseFile = databaseFile.toAbsolutePath();
     this.setCaseSensitiveQueriesByDefault(caseSensitiveQueriesByDefault);
     this.setQuerySyntaxHighlightingEnabled(querySyntaxHighlighting);
+    this.setShuffleSlideshowsEnabled(shuffleSlideshows);
+    this.setSlideshowDelay(slideshowDelay);
     this.debug = debug;
   }
 
@@ -233,6 +256,46 @@ public final class Config implements Cloneable {
     this.querySyntaxHighlighting.set(querySyntaxHighlighting);
   }
 
+  public BooleanProperty shuffleSlideshowsProperty() {
+    return this.shuffleSlideshows;
+  }
+
+  /**
+   * Whether slideshow images should be shuffled.
+   */
+  public boolean isShuffleSlideshowsEnabled() {
+    return this.shuffleSlideshows.get();
+  }
+
+  /**
+   * Set whether slideshow images should be shuffled.
+   *
+   * @param shuffleSlideshows The new value.
+   */
+  public void setShuffleSlideshowsEnabled(boolean shuffleSlideshows) {
+    this.shuffleSlideshows.set(shuffleSlideshows);
+  }
+
+  public IntegerProperty slideshowDelayProperty() {
+    return this.slideshowDelay;
+  }
+
+  /**
+   * The delay between each image in slideshows in seconds.
+   */
+  public int slideshowDelay() {
+    return this.slideshowDelay.get();
+  }
+
+  /**
+   * Set the delay between each image in slideshows in seconds.
+   *
+   * @param slideshowDelay The new value.
+   */
+  public void setSlideshowDelay(int slideshowDelay) {
+    this.slideshowDelay.set(slideshowDelay);
+  }
+
   /**
    * Whether the app is in debug mode.
    */
@@ -254,6 +317,8 @@ public final class Config implements Cloneable {
         this.databaseFile,
         this.caseSensitiveQueriesByDefault.get(),
         this.querySyntaxHighlighting.get(),
+        this.shuffleSlideshows.get(),
+        this.slideshowDelay.get(),
         this.debug
     );
   }
@@ -272,6 +337,8 @@ public final class Config implements Cloneable {
         this.databaseFile,
         this.caseSensitiveQueriesByDefault.get(),
         this.querySyntaxHighlighting.get(),
+        this.shuffleSlideshows.get(),
+        this.slideshowDelay.get(),
         this.debug
     );
   }
@@ -290,6 +357,8 @@ public final class Config implements Cloneable {
         path,
         this.caseSensitiveQueriesByDefault.get(),
         this.querySyntaxHighlighting.get(),
+        this.shuffleSlideshows.get(),
+        this.slideshowDelay.get(),
         this.debug
     );
   }
@@ -299,13 +368,17 @@ public final class Config implements Cloneable {
    *
    * @return A new deep copy of this object.
    */
-  @Override
-  public Config clone() {
-    try {
-      return (Config) super.clone();
-    } catch (final CloneNotSupportedException e) {
-      throw new RuntimeException(e);
-    }
+  public Config copy() {
+    return new Config(
+        this.language,
+        this.theme,
+        this.databaseFile,
+        this.caseSensitiveQueriesByDefault.get(),
+        this.querySyntaxHighlighting.get(),
+        this.shuffleSlideshows.get(),
+        this.slideshowDelay.get(),
+        this.debug
+    );
   }
 
   /**
@@ -319,6 +392,8 @@ public final class Config implements Cloneable {
     ini.put(APP_SECTION, DB_FILE, this.databaseFile);
     ini.put(QUERIES_SECTION, CASE_SENSITIVITE_BY_DEFAULT, this.caseSensitiveQueriesByDefault.get());
     ini.put(QUERIES_SECTION, QUERY_SYNTAX_HIGHLIGHTING, this.querySyntaxHighlighting.get());
+    ini.put(SLIDESHOW_SECTION, SHUFFLE_SLIDESHOW_IMAGES, this.shuffleSlideshows.get());
+    ini.put(SLIDESHOW_SECTION, SLIDESHOW_DELAY, this.slideshowDelay.get());
     ini.store();
     App.logger().info("Done.");
   }
@@ -331,6 +406,8 @@ public final class Config implements Cloneable {
     return this.debug == config.debug
            && this.caseSensitiveQueriesByDefault.get() == config.caseSensitiveQueriesByDefault.get()
            && this.querySyntaxHighlighting.get() == config.querySyntaxHighlighting.get()
+           && this.shuffleSlideshows.get() == config.shuffleSlideshows.get()
+           && this.slideshowDelay.get() == config.slideshowDelay.get()
            && Objects.equals(this.language, config.language)
            && Objects.equals(this.theme, config.theme)
            && Objects.equals(this.databaseFile, config.databaseFile);
@@ -344,7 +421,9 @@ public final class Config implements Cloneable {
         this.databaseFile,
         this.debug,
         this.caseSensitiveQueriesByDefault.get(),
-        this.querySyntaxHighlighting.get()
+        this.querySyntaxHighlighting.get(),
+        this.shuffleSlideshows.get(),
+        this.slideshowDelay.get()
     );
   }
 }

@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.ui.dialogs;
 
 import javafx.scene.control.*;
+import javafx.scene.input.*;
 import javafx.stage.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.utils.*;
@@ -58,6 +59,10 @@ public abstract class DialogBase<T> extends Dialog<T> {
     this.refreshTitle();
     this.getDialogPane().getButtonTypes().addAll(buttonTypes);
     config.theme().getAppIcon().ifPresent(this.stage().getIcons()::add);
+    this.stage().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+      if (event.getCode() == KeyCode.ESCAPE) // Avoid event being consumed by focused widget
+        this.hide();
+    });
   }
 
   protected void refreshTitle() {

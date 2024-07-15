@@ -36,6 +36,7 @@ public class AppController implements ResultsView.SearchListener {
   private final AboutDialog aboutDialog;
   private final ProgressDialog progressDialog;
   private final MovePicturesDialog movePicturesDialog;
+  private final ImageViewerDialog imageViewerDialog;
 
   private final Map<MenuItem, Boolean> menuItemStates = new HashMap<>();
   private MenuItem moveImagesMenuItem;
@@ -83,6 +84,7 @@ public class AppController implements ResultsView.SearchListener {
     this.aboutDialog = new AboutDialog(config);
     this.progressDialog = new ProgressDialog(config, "converting_python_db");
     this.movePicturesDialog = new MovePicturesDialog(config, db);
+    this.imageViewerDialog = new ImageViewerDialog(config);
 
     this.tagsView = new TagsView(
         config,
@@ -741,11 +743,16 @@ public class AppController implements ResultsView.SearchListener {
   // TODO dialog to manage files and directories: rename dirs, ?
 
   /**
-   * Open the slideshow dialog for the current query results.
+   * Open the slideshow dialog for the current query results or selected pictures.
    */
   private void onSlideshow(boolean onlySelected) {
-    // TODO
-    System.out.println("slideshow " + onlySelected);
+    final List<Picture> pictures = new LinkedList<>();
+    if (onlySelected)
+      pictures.addAll(this.selectedPictures);
+    else
+      pictures.addAll(this.resultsView.pictures());
+    this.imageViewerDialog.setPictures(pictures);
+    this.imageViewerDialog.showAndWait();
   }
 
   /**

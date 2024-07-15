@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.ui.dialogs;
 
+import javafx.geometry.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.util.*;
@@ -20,6 +21,8 @@ public class SettingsDialog extends DialogBase<Void> {
   private final ComboBox<Language> languageCombo = new ComboBox<>();
   private final ComboBox<Theme> themeCombo = new ComboBox<>();
   private final TextField dbFileField = new TextField();
+  private final CheckBox shuffleSlideshowsCheckBox = new CheckBox();
+  private final Spinner<Integer> slideshowDelayField = new Spinner<>();
 
   private Config initialConfig;
   private Config localConfig;
@@ -35,6 +38,8 @@ public class SettingsDialog extends DialogBase<Void> {
     final VBox content = new VBox(
         this.createInterfaceForm(),
         new Separator(),
+        this.createSlideshowsForm(),
+        new Separator(),
         this.createDatabaseForm()
     );
     content.setPrefWidth(450);
@@ -46,6 +51,9 @@ public class SettingsDialog extends DialogBase<Void> {
         if (changeType.changed()) {
           try {
             this.localConfig.save();
+            // Update global config
+            config.setShuffleSlideshowsEnabled(this.localConfig.isShuffleSlideshowsEnabled());
+            config.setSlideshowDelay(this.localConfig.slideshowDelay());
             if (changeType.needsRestart())
               Alerts.info(config, "dialog.settings.alert.needs_restart.header", null, null);
           } catch (final IOException e) {
@@ -72,6 +80,33 @@ public class SettingsDialog extends DialogBase<Void> {
         "dialog.settings.interface_box.title",
         new Pair<>("dialog.settings.interface_box.language.label", this.languageCombo),
         new Pair<>("dialog.settings.interface_box.theme.label", this.themeCombo)
+    );
+  }
+
+  private Pane createSlideshowsForm() {
+    this.shuffleSlideshowsCheckBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
+      this.localConfig.setShuffleSlideshowsEnabled(newValue);
+      this.updateState();
+    });
+    this.slideshowDelayField.valueProperty().addListener((observable, oldValue, newValue) -> {
+      if (this.localConfig != null) {
+        this.localConfig.setSlideshowDelay(newValue);
+        this.updateState();
+      }
+    });
+    this.slideshowDelayField.setValueFactory(
+        new SpinnerValueFactory.IntegerSpinnerValueFactory(Config.MIN_SLIDESHOW_DELAY, Config.MAX_SLIDESHOW_DELAY));
+
+    final Language language = this.config.language();
+    final Label unitLabel = new Label(language.translate("dialog.settings.slideshows_box.delay.seconds"));
+    final HBox hBox = new HBox(5, this.slideshowDelayField, unitLabel);
+    hBox.setAlignment(Pos.CENTER_LEFT);
+    //noinspection unchecked
+    return JavaFxUtils.newBorderPane(
+        this.config,
+        "dialog.settings.slideshows_box.title",
+        new Pair<>("dialog.settings.slideshows_box.shuffle.label", this.shuffleSlideshowsCheckBox),
+        new Pair<>("dialog.settings.slideshows_box.delay.label", hBox)
     );
   }
 
@@ -116,12 +151,14 @@ public class SettingsDialog extends DialogBase<Void> {
    * Reset the local {@link Config} object of this dialog.
    */
   public void resetLocalConfig() {
-    this.localConfig = this.config.clone();
-    this.initialConfig = this.localConfig.clone();
+    this.localConfig = this.config.copy();
+    this.initialConfig = this.config.copy();
 
     this.languageCombo.getSelectionModel().select(this.localConfig.language());
     this.themeCombo.getSelectionModel().select(this.localConfig.theme());
     this.dbFileField.setText(this.localConfig.databaseFile().toString());
+    this.shuffleSlideshowsCheckBox.setSelected(this.localConfig.isShuffleSlideshowsEnabled());
+    this.slideshowDelayField.getValueFactory().setValue(this.localConfig.slideshowDelay());
 
     this.updateState();
   }
