@@ -100,7 +100,6 @@ public class App extends Application {
       }
 
       Platform.runLater(() -> {
-        // FIXME never executed if splash is closed before DB is loaded
         splash.hide();
         final AppController controller;
         try {
