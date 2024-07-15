@@ -375,7 +375,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         .filter(tag -> parsedTags.stream().noneMatch(pair -> pair.getValue().equals(tag.label())))
         .collect(Collectors.toSet());
 
-    if (StringUtils.stripNullable(this.fileNameField.getText()).isEmpty())
+    final Optional<String> name = StringUtils.stripNullable(this.fileNameField.getText());
+    if (name.isEmpty() || !App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(Path.of(name.get()))))
       return Optional.empty();
 
     Hash hash = new Hash(0);
