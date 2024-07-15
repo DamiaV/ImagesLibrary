@@ -90,11 +90,11 @@ public class AutoCompleteField<T, S> extends AnchorPane {
     });
     styledArea.selectedTextProperty().addListener((observable, oldValue, newValue) -> {
       this.hideSuggestions();
-      this.highlight();
+      this.refreshHighlighting();
     });
     styledArea.textProperty().addListener((observableValue, oldValue, newValue) -> {
       this.canShowSuggestions = true;
-      this.highlight();
+      this.refreshHighlighting();
       if (!this.internalUpdate) {
         if (this.historyIndex >= 0) // Clear history after current index
           this.history.subList(this.historyIndex + 1, this.history.size()).clear();
@@ -182,7 +182,7 @@ public class AutoCompleteField<T, S> extends AnchorPane {
       this.historyIndex = -1;
     this.styledArea.replaceText(text);
     if (forceRefresh)
-      this.highlight();
+      this.refreshHighlighting();
   }
 
   public final ObservableValue<String> textProperty() {
@@ -194,7 +194,7 @@ public class AutoCompleteField<T, S> extends AnchorPane {
     this.styledArea.requestFocus();
   }
 
-  private void highlight() {
+  public void refreshHighlighting() {
     this.styledArea.clearStyle(0);
     if (this.syntaxHighlighter != null)
       this.syntaxHighlighter.highlight(this.getText())
@@ -209,7 +209,7 @@ public class AutoCompleteField<T, S> extends AnchorPane {
       this.previousHighlightClass = "highlight-" + syntaxHighlighter.cssClass();
       this.styledArea.getStyleClass().add(this.previousHighlightClass);
     }
-    this.highlight();
+    this.refreshHighlighting();
   }
 
   private void showSuggestions() {

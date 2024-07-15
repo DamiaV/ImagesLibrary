@@ -288,7 +288,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     if (!this.insert) {
       this.currentPictureTags.forEach(tag -> joiner.add(tag.label()));
       this.tagsField.setText(joiner.toString());
-    }
+    } else
+      this.tagsField.refreshHighlighting();
     this.updateState();
     List<Pair<Picture, Float>> similarPictures;
     try {
