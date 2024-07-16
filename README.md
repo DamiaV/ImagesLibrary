@@ -120,7 +120,7 @@ This value may be one of two types:
   You can disable them by putting a `\ ` before (e.g.: `\*` will match the character `*`
   literally). You also have to escape all single `\ ` by doubling them: `\\`.
   Double quotes must be escaped as well.
-- A RegEx, delimited by slashes `/` (e.g.: `/this is a RegEx/`). RegExs use the Java Pattern syntax).
+- A RegEx, delimited by slashes `/` (e.g.: `/this is a RegEx/`). RegExs use the Java Pattern syntax.
   Note that you have to escape all `/` too, as this is the delimiter.
 
 Both types support flags. Flags are specified before the value, without any spaces in-between (e.g. `i/regex/`
