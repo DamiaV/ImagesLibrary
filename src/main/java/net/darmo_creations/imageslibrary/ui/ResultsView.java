@@ -23,8 +23,9 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.*;
 
-// TODO add toggle button to toggle preview sidebar
 public class ResultsView extends VBox implements ClickableListCellFactory.ClickListener<ResultsView.PictureEntry> {
+  private static final int MAX_HISTORY_SIZE = 20;
+
   private final List<ImageClickListener> imageClickListeners = new ArrayList<>();
   private final List<ImageSelectionListener> imageSelectionListeners = new ArrayList<>();
   private final List<SearchListener> searchListeners = new ArrayList<>();
@@ -309,6 +310,8 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         this.searchField.requestFocus();
       });
       history.add(0, menuItem);
+      if (history.size() > MAX_HISTORY_SIZE)
+        history.remove(history.size() - 1);
       this.historyButton.setDisable(false);
     } else {
       // Put matching item on top
