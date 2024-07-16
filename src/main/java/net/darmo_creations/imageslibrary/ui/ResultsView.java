@@ -80,7 +80,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     searchButton.setGraphic(theme.getIcon(Icon.SEARCH, Icon.Size.BIG));
     searchButton.setTooltip(new Tooltip(language.translate("image_search_field.go")));
 
-    this.clearSearchButton.setOnAction(e -> this.searchField.requestFocus());
+    this.clearSearchButton.setOnAction(e -> {
+      this.searchField.setText("");
+      this.searchField.requestFocus();
+    });
     this.clearSearchButton.setGraphic(theme.getIcon(Icon.CLEAR_TEXT, Icon.Size.BIG));
     this.clearSearchButton.setTooltip(new Tooltip(language.translate("search_field.erase_search")));
     this.clearSearchButton.setDisable(true);
