@@ -142,20 +142,54 @@ public final class Alerts {
     return Optional.empty();
   }
 
+  /**
+   * Open an alert dialog to prompt the user to input some text.
+   *
+   * @param config        The app’s config.
+   * @param headerKey     Header text key.
+   * @param labelKey      Text field label text key.
+   * @param titleKey      Title key.
+   * @param defaultText   Text to put into the text field.
+   * @param textFormatter An optional text formatter to apply to the text field.
+   * @param contentArgs   Format arguments to apply to the header, label and title.
+   * @return The selected item.
+   */
+  public static Optional<String> textInput(
+      final @NotNull Config config,
+      @NotNull String headerKey,
+      @NotNull String labelKey,
+      String titleKey,
+      String defaultText,
+      TextFormatter<?> textFormatter,
+      final @NotNull FormatArg... contentArgs
+  ) {
+    final Alert alert = getAlert(config, Alert.AlertType.CONFIRMATION, headerKey, titleKey, contentArgs);
+    final TextField textField = new TextField();
+    textField.textProperty().addListener((observable, oldValue, newValue) ->
+        alert.getDialogPane().lookupButton(ButtonTypes.OK).setDisable(StringUtils.stripNullable(newValue).isEmpty()));
+    if (textFormatter != null)
+      textField.setTextFormatter(textFormatter);
+    textField.setText(defaultText);
+    final var buttonType = buildAndShow(config, labelKey, alert, textField, contentArgs);
+    if (buttonType.isPresent() && !buttonType.get().getButtonData().isCancelButton())
+      return StringUtils.stripNullable(textField.getText());
+    return Optional.empty();
+  }
+
   private static Optional<ButtonType> buildAndShow(
       final @NotNull Config config,
       @NotNull String labelKey,
       @NotNull Alert alert,
-      @NotNull Control choicesCombo,
+      @NotNull Control control,
       final @NotNull FormatArg... contentArgs
   ) {
     final HBox hBox = new HBox(4);
     final Label label = new Label(config.language().translate(labelKey, contentArgs));
-    hBox.getChildren().addAll(label, choicesCombo);
+    hBox.getChildren().addAll(label, control);
     hBox.setAlignment(Pos.CENTER);
     alert.getDialogPane().setContent(hBox);
     alert.setOnShown(e -> {
-      Platform.runLater(choicesCombo::requestFocus);
+      Platform.runLater(control::requestFocus);
       e.consume();
     });
     return alert.showAndWait();

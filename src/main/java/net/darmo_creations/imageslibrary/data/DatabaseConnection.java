@@ -1149,6 +1149,72 @@ public final class DatabaseConnection implements AutoCloseable {
     imageTags.forEach(imageTag -> this.tagsCounts.put(imageTag.id(), this.tagsCounts.get(imageTag.id()) - 1));
   }
 
+  @SQLite
+  private static final String SELECT_SAVED_QUERIES = """
+      SELECT name, `query`
+      FROM saved_queries
+      ORDER BY `order`
+      """;
+
+  /**
+   * Get an ordered list of all saved queries.
+   *
+   * @return A new list.
+   * @throws DatabaseOperationException If any database error occurs.
+   */
+  @Contract("-> new")
+  public List<SavedQuery> getSavedQueries() throws DatabaseOperationException {
+    try (final var statement = this.connection.createStatement();
+         final var resultSet = statement.executeQuery(SELECT_SAVED_QUERIES)) {
+      final List<SavedQuery> savedQueries = new LinkedList<>();
+      while (resultSet.next()) {
+        savedQueries.add(new SavedQuery(
+            resultSet.getString("name"),
+            resultSet.getString("query")
+        ));
+      }
+      return savedQueries;
+    } catch (final SQLException e) {
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
+    }
+  }
+
+  @SQLite
+  private static final String DELETE_SAVED_QUERIES = """
+      -- noinspection SqlWithoutWhere
+      DELETE FROM saved_queries
+      """;
+
+  @SQLite
+  private static final String INSERT_SAVED_QUERY = """
+      INSERT INTO saved_queries (name, `query`, `order`)
+      VALUES (?, ?, ?)
+      """;
+
+  /**
+   * Save a list of queries. All pre-existing saved queries are first deleted.
+   *
+   * @param queries The queries to save.
+   * @throws DatabaseOperationException If any database error occurs.
+   */
+  public void setSavedQueries(final @NotNull List<SavedQuery> queries) throws DatabaseOperationException {
+    try (final var clearStatement = this.connection.createStatement();
+         final var statement = this.connection.prepareStatement(INSERT_SAVED_QUERY)) {
+      clearStatement.executeUpdate(DELETE_SAVED_QUERIES);
+      for (int i = 0; i < queries.size(); i++) {
+        final SavedQuery savedQuery = queries.get(i);
+        statement.setString(1, savedQuery.name());
+        statement.setString(2, savedQuery.query());
+        statement.setInt(3, i);
+        statement.executeUpdate();
+      }
+    } catch (final SQLException e) {
+      this.rollback();
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
+    }
+    this.commit();
+  }
+
   @SuppressWarnings("SqlResolve")
   @SQLite
   private static final String SELECT_OBJECT_BY_ID_QUERY = """
@@ -1186,6 +1252,11 @@ public final class DatabaseConnection implements AutoCloseable {
     }
   }
 
+  /**
+   * Close this connection, rendering this object unusable.
+   *
+   * @throws DatabaseOperationException If any database error occurs.
+   */
   @Override
   public void close() throws DatabaseOperationException {
     try {

@@ -17,8 +17,8 @@ CREATE TABLE tag_types
     symbol   TEXT NOT NULL,
     color    INTEGER DEFAULT 0,
     updating INTEGER DEFAULT 0,
-    UNIQUE (label, updating),
-    UNIQUE (symbol, updating)
+    UNIQUE (label, updating), -- TODO check if still necessary
+    UNIQUE (symbol, updating) -- TODO check if still necessary
 ) STRICT;
 
 CREATE TABLE tags
@@ -28,7 +28,7 @@ CREATE TABLE tags
     type_id    INTEGER DEFAULT NULL,
     definition TEXT    DEFAULT NULL,
     updating   INTEGER DEFAULT 0,
-    UNIQUE (label, updating),
+    UNIQUE (label, updating), -- TODO check if still necessary
     FOREIGN KEY (type_id) REFERENCES tag_types (id) ON DELETE SET NULL
 ) STRICT;
 
@@ -39,4 +39,11 @@ CREATE TABLE image_tag
     PRIMARY KEY (image_id, tag_id),
     FOREIGN KEY (image_id) REFERENCES images (id) ON DELETE CASCADE,
     FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
+) STRICT;
+
+CREATE TABLE saved_queries
+(
+    name    TEXT    NOT NULL UNIQUE,
+    `query` TEXT    NOT NULL UNIQUE,
+    `order` INTEGER NOT NULL UNIQUE
 ) STRICT;

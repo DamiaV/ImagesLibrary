@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.ui.dialogs;
 
+import javafx.event.*;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
 import javafx.stage.*;
@@ -17,6 +18,7 @@ import java.util.*;
 public abstract class DialogBase<T> extends Dialog<T> {
   protected String name;
   protected final Config config;
+  private final EventHandler<KeyEvent> keyEventEventHandler;
 
   /**
    * Create a modal dialog.
@@ -59,10 +61,15 @@ public abstract class DialogBase<T> extends Dialog<T> {
     this.refreshTitle();
     this.getDialogPane().getButtonTypes().addAll(buttonTypes);
     config.theme().getAppIcon().ifPresent(this.stage().getIcons()::add);
-    this.stage().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+    this.keyEventEventHandler = event -> {
       if (event.getCode() == KeyCode.ESCAPE) // Avoid event being consumed by focused widget
         this.hide();
-    });
+    };
+    this.stage().addEventFilter(KeyEvent.KEY_PRESSED, this.keyEventEventHandler);
+  }
+
+  protected void removeGlobalEventFilter() {
+    this.stage().removeEventFilter(KeyEvent.KEY_PRESSED, this.keyEventEventHandler);
   }
 
   protected void refreshTitle() {

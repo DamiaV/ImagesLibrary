@@ -32,7 +32,9 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
 
   private final Config config;
   private final DatabaseConnection db;
+  private final SavedQueriesManager queriesManager;
 
+  private final Button saveQueryButton = new Button();
   private final MenuButton historyButton = new MenuButton();
   private final AutoCompleteField<Tag, Collection<String>> searchField;
   private final Button clearSearchButton = new Button();
@@ -41,10 +43,16 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final ImagePreviewPane imagePreviewPane;
   private final TextPopOver popup;
 
-  public ResultsView(@NotNull Config config, final @NotNull DatabaseConnection db) {
+  public ResultsView(
+      @NotNull Config config,
+      final @NotNull DatabaseConnection db,
+      @NotNull SavedQueriesManager queriesManager
+  ) {
     super(5);
     this.config = config;
     this.db = db;
+    this.queriesManager = queriesManager;
+    queriesManager.addQueriesUpdateListener(this::updateSearchButtons);
 
     final Language language = config.language();
     final Theme theme = config.theme();
@@ -53,6 +61,11 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.imagePreviewPane.addEditTagsListener(picture -> this.onItemDoubleClick(new PictureEntry(picture, Set.of(), config)));
 
     this.popup = new TextPopOver(PopOver.ArrowLocation.RIGHT_CENTER, config);
+
+    this.saveQueryButton.setTooltip(new Tooltip(language.translate("image_search_field.save_query")));
+    this.saveQueryButton.setGraphic(theme.getIcon(Icon.SAVE_QUERY, Icon.Size.BIG));
+    this.saveQueryButton.setOnAction(event -> this.onSaveQuery());
+    this.saveQueryButton.setDisable(true);
 
     this.historyButton.setTooltip(new Tooltip(language.translate("image_search_field.history")));
     this.historyButton.setGraphic(theme.getIcon(Icon.SEARCH_HISTORY, Icon.Size.BIG));
@@ -72,7 +85,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.searchField.textProperty().addListener((observable, oldValue, newValue) -> {
       if (this.popup.isShowing())
         this.popup.hide();
-      this.clearSearchButton.setDisable(StringUtils.stripNullable(newValue).isEmpty());
+      this.updateSearchButtons();
     });
 
     final Button searchButton = new Button();
@@ -138,6 +151,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     HBox.setHgrow(this.searchField, Priority.ALWAYS);
     final HBox searchBox = new HBox(
         5,
+        this.saveQueryButton,
         this.historyButton,
         this.searchField,
         searchButton,
@@ -215,6 +229,12 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    */
   public void searchImagesWithNoFile() {
     this.searchField.setText("#no_file");
+    this.searchField.requestFocus();
+    this.search(null);
+  }
+
+  public void searchQuery(@NotNull String query) {
+    this.searchField.setText(query);
     this.searchField.requestFocus();
     this.search(null);
   }
@@ -347,6 +367,38 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     }).start();
   }
 
+  private void onSaveQuery() {
+    final Optional<String> query = StringUtils.stripNullable(this.searchField.getText());
+    if (query.isPresent() && !this.queriesManager.isQuerySaved(query.get())) {
+      final Optional<String> nameOpt = Alerts.textInput(
+          this.config,
+          "alert.set_query_name.header",
+          "alert.set_query_name.name_label",
+          "alert.set_query_name.title",
+          this.config.language().translate("alert.set_query_name.default_name"),
+          null
+      );
+      nameOpt.ifPresent(name -> {
+        boolean proceed = true;
+        if (this.queriesManager.isNameSaved(name))
+          proceed = Alerts.confirmation(
+              this.config,
+              "alert.duplicate_query_name.header",
+              "alert.duplicate_query_name.content",
+              null,
+              new FormatArg("name", name),
+              new FormatArg("query", this.queriesManager.getQuery(name))
+          );
+        if (proceed)
+          try {
+            this.queriesManager.saveQuery(name, query.get());
+          } catch (final DatabaseOperationException e) {
+            Alerts.databaseError(this.config, e.errorCode());
+          }
+      });
+    }
+  }
+
   private interface Search {
     Set<Picture> run() throws DatabaseOperationException;
   }
@@ -365,6 +417,13 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private void onSearchError() {
     this.searchListeners.forEach(SearchListener::onSearchFail);
     this.searchField.requestFocus();
+  }
+
+  private void updateSearchButtons() {
+    final Optional<String> query = StringUtils.stripNullable(this.searchField.getText());
+    final boolean noQuery = query.isEmpty();
+    this.saveQueryButton.setDisable(noQuery || this.queriesManager.isQuerySaved(query.get()));
+    this.clearSearchButton.setDisable(noQuery);
   }
 
   @Override

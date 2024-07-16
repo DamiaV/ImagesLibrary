@@ -24,11 +24,14 @@ public enum Icon {
   SLIDESHOW_SELECTED("slideshow"),
   SEARCH_NO_TAGS("tag_blue_error"),
   SEARCH_NO_FILE("picture_error"),
-  CONVERT_PYTHON_DB("database_gear"),
+  SAVED_QUERIES("magnifier"),
+  MANAGE_SAVED_QUERIES("magnifier_gear"),
   FOCUS_SEARCH_BAR("search_field_go"),
+  CONVERT_PYTHON_DB("database_gear"),
   ABOUT("information"),
   HELP("help"),
 
+  SAVE_QUERY("diskette"),
   SEARCH_HISTORY("clock_history_frame"),
   CLEAR_TEXT("draw_eraser"),
   SEARCH("magnifier"),
@@ -49,6 +52,10 @@ public enum Icon {
 
   WARNING("error"),
   SELECT_DIRECTORY("folder"),
+
+  MOVE_UP("arrow_up"),
+  MOVE_DOWN("arrow_down"),
+  DELETE_QUERIES("delete"),
   ;
 
   private final String baseName;

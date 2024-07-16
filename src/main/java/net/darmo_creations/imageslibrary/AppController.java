@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary;
 
 import javafx.application.*;
+import javafx.collections.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
@@ -27,6 +28,7 @@ public class AppController implements ResultsView.SearchListener {
    */
   private final Stage stage;
   private final Config config;
+  private final SavedQueriesManager queriesManager;
 
   private final EditImagesDialog editImagesDialog;
   private final CreateTagTypeDialog createTagTypeDialog;
@@ -37,6 +39,7 @@ public class AppController implements ResultsView.SearchListener {
   private final ProgressDialog progressDialog;
   private final MovePicturesDialog movePicturesDialog;
   private final ImageViewerDialog imageViewerDialog;
+  private final ManageSavedQueriesDialog manageSavedQueriesDialog;
 
   private final Map<MenuItem, Boolean> menuItemStates = new HashMap<>();
   private MenuItem moveImagesMenuItem;
@@ -49,6 +52,7 @@ public class AppController implements ResultsView.SearchListener {
   private Button slideshowButton;
   private MenuItem slideshowSelectedMenuItem;
   private Button slideshowSelectedButton;
+  private Menu savedQueriesMenu;
 
   private final TagsView tagsView;
   private final ResultsView resultsView;
@@ -69,6 +73,9 @@ public class AppController implements ResultsView.SearchListener {
     this.stage = Objects.requireNonNull(stage);
     this.config = config;
     this.db = db;
+    this.queriesManager = SavedQueriesManager.load(db);
+    this.queriesManager.addQueriesUpdateListener(this::updateSavedQueries);
+
     final Theme theme = config.theme();
     theme.getAppIcon().ifPresent(icon -> stage.getIcons().add(icon));
     stage.setMinWidth(800);
@@ -85,6 +92,7 @@ public class AppController implements ResultsView.SearchListener {
     this.progressDialog = new ProgressDialog(config, "converting_python_db");
     this.movePicturesDialog = new MovePicturesDialog(config, db);
     this.imageViewerDialog = new ImageViewerDialog(config);
+    this.manageSavedQueriesDialog = new ManageSavedQueriesDialog(config, this.queriesManager);
 
     this.tagsView = new TagsView(
         config,
@@ -92,7 +100,7 @@ public class AppController implements ResultsView.SearchListener {
         this.db.getAllTagsCounts(),
         this.db.getAllTagTypes()
     );
-    this.resultsView = new ResultsView(config, db);
+    this.resultsView = new ResultsView(config, db, this.queriesManager);
     final Scene scene = new Scene(new VBox(this.createMenuBar(), this.createToolBar(), this.createContent()));
     stage.setScene(scene);
     theme.applyTo(scene);
@@ -112,6 +120,8 @@ public class AppController implements ResultsView.SearchListener {
       event.setDropCompleted(success);
       event.consume();
     });
+
+    this.updateSavedQueries();
   }
 
   private boolean isDragAndDropValid(final @NotNull Dragboard dragboard) {
@@ -212,41 +222,55 @@ public class AppController implements ResultsView.SearchListener {
     this.menuItemStates.put(this.slideshowSelectedMenuItem, this.slideshowSelectedMenuItem.isDisable());
     viewMenu.getItems().addAll(this.slideshowMenuItem, this.slideshowSelectedMenuItem);
 
-    final Menu toolsMenu = new Menu(language.translate("menu.tools"));
+    final Menu queriesMenu = new Menu(language.translate("menu.queries"));
     final MenuItem showNoTagsMenuItem = new MenuItem(
-        language.translate("menu.tools.show_images_with_no_tags"),
+        language.translate("menu.queries.show_images_with_no_tags"),
         theme.getIcon(Icon.SEARCH_NO_TAGS, Icon.Size.SMALL)
     );
     showNoTagsMenuItem.setOnAction(e -> this.onShowImagesWithNoTags());
     showNoTagsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN));
     this.menuItemStates.put(showNoTagsMenuItem, showNoTagsMenuItem.isDisable());
     final MenuItem showNoFileMenuItem = new MenuItem(
-        language.translate("menu.tools.show_images_with_no_file"),
+        language.translate("menu.queries.show_images_with_no_file"),
         theme.getIcon(Icon.SEARCH_NO_FILE, Icon.Size.SMALL)
     );
     showNoFileMenuItem.setOnAction(e -> this.onShowImagesWithNoFile());
     showNoFileMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
     this.menuItemStates.put(showNoFileMenuItem, showNoFileMenuItem.isDisable());
-    final MenuItem convertPythonDbMenuItem = new MenuItem(
-        language.translate("menu.tools.convert_python_db"),
-        theme.getIcon(Icon.CONVERT_PYTHON_DB, Icon.Size.SMALL)
+    this.savedQueriesMenu = new Menu(
+        language.translate("menu.queries.saved_queries"),
+        theme.getIcon(Icon.SAVED_QUERIES, Icon.Size.SMALL)
     );
-    convertPythonDbMenuItem.setOnAction(e -> this.onConvertPythonDbMenuItem());
+    final MenuItem manageSavedQueriesMenuItem = new MenuItem(
+        language.translate("menu.queries.saved_queries.manage"),
+        theme.getIcon(Icon.MANAGE_SAVED_QUERIES, Icon.Size.SMALL)
+    );
+    manageSavedQueriesMenuItem.setOnAction(event -> this.manageSavedQueriesDialog.showAndWait());
+    this.savedQueriesMenu.getItems().addAll(new SeparatorMenuItem(), manageSavedQueriesMenuItem);
     final MenuItem focusSearchBarMenuItem = new MenuItem(
-        language.translate("menu.tools.focus_search_bar"),
+        language.translate("menu.queries.focus_search_bar"),
         theme.getIcon(Icon.FOCUS_SEARCH_BAR, Icon.Size.SMALL)
     );
     focusSearchBarMenuItem.setOnAction(e -> this.onFocusSearchBar());
     focusSearchBarMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN));
     this.menuItemStates.put(focusSearchBarMenuItem, focusSearchBarMenuItem.isDisable());
-    this.menuItemStates.put(convertPythonDbMenuItem, convertPythonDbMenuItem.isDisable());
-    toolsMenu.getItems().addAll(
+    queriesMenu.getItems().addAll(
         showNoTagsMenuItem,
         showNoFileMenuItem,
         new SeparatorMenuItem(),
-        convertPythonDbMenuItem,
+        this.savedQueriesMenu,
         new SeparatorMenuItem(),
         focusSearchBarMenuItem
+    );
+
+    final Menu toolsMenu = new Menu(language.translate("menu.tools"));
+    final MenuItem convertPythonDbMenuItem = new MenuItem(
+        language.translate("menu.tools.convert_python_db"),
+        theme.getIcon(Icon.CONVERT_PYTHON_DB, Icon.Size.SMALL)
+    );
+    convertPythonDbMenuItem.setOnAction(e -> this.onConvertPythonDbMenuItem());
+    toolsMenu.getItems().addAll(
+        convertPythonDbMenuItem
     );
 
     final Menu helpMenu = new Menu(language.translate("menu.help"));
@@ -255,7 +279,6 @@ public class AppController implements ResultsView.SearchListener {
         theme.getIcon(Icon.ABOUT, Icon.Size.SMALL)
     );
     aboutMenuItem.setOnAction(e -> this.onAbout());
-    this.menuItemStates.put(aboutMenuItem, aboutMenuItem.isDisable());
     final MenuItem helpMenuItem = new MenuItem(
         language.translate("menu.help.help"),
         theme.getIcon(Icon.HELP, Icon.Size.SMALL)
@@ -265,7 +288,7 @@ public class AppController implements ResultsView.SearchListener {
     this.menuItemStates.put(helpMenuItem, helpMenuItem.isDisable());
     helpMenu.getItems().addAll(aboutMenuItem, helpMenuItem);
 
-    return new MenuBar(fileMenu, editMenu, viewMenu, toolsMenu, helpMenu);
+    return new MenuBar(fileMenu, editMenu, viewMenu, queriesMenu, toolsMenu, helpMenu);
   }
 
   private ToolBar createToolBar() {
@@ -811,6 +834,34 @@ public class AppController implements ResultsView.SearchListener {
    */
   private void onFocusSearchBar() {
     this.resultsView.focusSearchBar();
+  }
+
+  private static final KeyCode[] KEYCODES = {
+      KeyCode.NUMPAD1,
+      KeyCode.NUMPAD2,
+      KeyCode.NUMPAD3,
+      KeyCode.NUMPAD4,
+      KeyCode.NUMPAD5,
+      KeyCode.NUMPAD6,
+      KeyCode.NUMPAD7,
+      KeyCode.NUMPAD8,
+      KeyCode.NUMPAD9,
+      KeyCode.NUMPAD0,
+  };
+
+  private void updateSavedQueries() {
+    final ObservableList<MenuItem> menuItems = this.savedQueriesMenu.getItems();
+    menuItems.subList(0, menuItems.size() - 2).clear(); // Remove all items except separator and manage item
+    final List<SavedQuery> sortedQueries = this.queriesManager.entries();
+    for (int i = 0; i < sortedQueries.size(); i++) {
+      final SavedQuery savedQuery = sortedQueries.get(i);
+      final MenuItem item = new MenuItem(savedQuery.name());
+      item.setOnAction(event -> this.resultsView.searchQuery(savedQuery.query()));
+      if (i <= 10)
+        item.setAccelerator(new KeyCodeCombination(KEYCODES[i], KeyCombination.CONTROL_DOWN));
+      menuItems.add(menuItems.size() - 2, item);
+    }
+    this.savedQueriesMenu.setDisable(menuItems.size() == 2);
   }
 
   /**
