@@ -6,6 +6,10 @@
   -fx-opacity: 0.4;
 }
 
+.split-pane {
+  -fx-box-border: transparent;
+}
+
 /* RichTextFx */
 
 /* Adapted from modena.css */
