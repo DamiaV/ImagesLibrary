@@ -857,7 +857,7 @@ public class AppController implements ResultsView.SearchListener {
       final SavedQuery savedQuery = sortedQueries.get(i);
       final MenuItem item = new MenuItem(savedQuery.name());
       item.setOnAction(event -> this.resultsView.searchQuery(savedQuery.query()));
-      if (i <= 10)
+      if (i < KEYCODES.length)
         item.setAccelerator(new KeyCodeCombination(KEYCODES[i], KeyCombination.CONTROL_DOWN));
       menuItems.add(menuItems.size() - 2, item);
     }
