@@ -8,8 +8,10 @@ CREATE TABLE images
     hash INTEGER     NOT NULL
 ) STRICT;
 
-CREATE INDEX idx_images_hash ON images (hash); -- Speed up hash querying
+-- Speed up hash querying
+CREATE INDEX idx_images_hash ON images (hash);
 
+-- The `updating` column allows swapping the labels and/or symbols of several tag types in the same transaction.
 CREATE TABLE tag_types
 (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,10 +19,11 @@ CREATE TABLE tag_types
     symbol   TEXT NOT NULL,
     color    INTEGER DEFAULT 0,
     updating INTEGER DEFAULT 0,
-    UNIQUE (label, updating), -- TODO check if still necessary
-    UNIQUE (symbol, updating) -- TODO check if still necessary
+    UNIQUE (label, updating),
+    UNIQUE (symbol, updating)
 ) STRICT;
 
+-- The `updating` column allows swapping the labels of several tags in the same transaction.
 CREATE TABLE tags
 (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,7 +31,7 @@ CREATE TABLE tags
     type_id    INTEGER DEFAULT NULL,
     definition TEXT    DEFAULT NULL,
     updating   INTEGER DEFAULT 0,
-    UNIQUE (label, updating), -- TODO check if still necessary
+    UNIQUE (label, updating),
     FOREIGN KEY (type_id) REFERENCES tag_types (id) ON DELETE SET NULL
 ) STRICT;
 
