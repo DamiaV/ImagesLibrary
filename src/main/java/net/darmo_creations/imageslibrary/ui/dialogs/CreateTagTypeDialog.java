@@ -12,6 +12,8 @@ import java.util.*;
  * Dialog to create a new tag type.
  */
 public class CreateTagTypeDialog extends EditTagTypeDialogBase {
+  private final Random random = new Random();
+
   /**
    * Create a tag type creation dialog.
    *
@@ -42,6 +44,10 @@ public class CreateTagTypeDialog extends EditTagTypeDialogBase {
   public void reset() {
     this.labelField.setText("");
     this.symbolField.setText("");
-    this.colorField.setValue(Color.BLACK); // TODO random color
+    this.colorField.setValue(Color.color(
+        this.random.nextFloat(),
+        this.random.nextFloat(),
+        this.random.nextFloat()
+    ));
   }
 }
