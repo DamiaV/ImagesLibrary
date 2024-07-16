@@ -13,7 +13,6 @@ import org.jetbrains.annotations.*;
 import java.nio.file.*;
 import java.util.*;
 
-// TODO allow tag removal/insertion from the list directly
 public class ImagePreviewPane extends SplitPane implements ClickableListCellFactory.ClickListener<ImagePreviewPane.TagEntry> {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final List<EditTagsListener> editTagsListeners = new ArrayList<>();
