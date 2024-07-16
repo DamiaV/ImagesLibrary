@@ -39,8 +39,8 @@ below the button.
 
 If the application found similar images already registered, a button labelled *Show similar images…* will be available
 above the text area. It will show a list of similar images, ordered by decreasing estimated similarity. You can select
-one of these images and copy its tags by clicking on *Copy Tags* (**Warning**: it will replace all tags in the text
-box).
+one of these images and copy its tags by clicking on the button above the tags list (**Warning**: it will replace all
+tags in the text box).
 
 ## Searching for registered images
 
