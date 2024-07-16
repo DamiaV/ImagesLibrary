@@ -157,7 +157,7 @@ public final class TagQuery {
     final PseudoTag t = pseudoTags.get(tagName);
     if (t == null)
       throw new InvalidPseudoTagException(tagName, tagName);
-    if (!(t instanceof BooleanPseudoTag))
+    if (!(t instanceof BooleanFlag))
       throw new InvalidPseudoTagException(tagName, tagName);
     return t.sqlTemplate();
   }

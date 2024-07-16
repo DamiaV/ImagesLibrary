@@ -10,8 +10,8 @@ import java.util.*;
  *
  * @param sqlTemplate  The SQL query template for this pseudo-tag.
  * @param acceptsRegex If true, this pseudo-tag’s pattern may be a regex
- *                     and string literals interpret the "*" and "?" characters as wildcards;
- *                     otherwise, this pseudo-tag may only accept string literals.
+ *                     and string literals should interpret the "*" and "?" characters as wildcards;
+ *                     otherwise, this pseudo-tag may only accept plain string literals.
  */
 public record PatternPseudoTag(
     @SQLite @NotNull String sqlTemplate,

@@ -42,14 +42,14 @@ public final class DatabaseConnection implements AutoCloseable {
           """, true),
 
       "no_file",
-      new BooleanPseudoTag("""
+      new BooleanFlag("""
           SELECT id, path, hash
           FROM images
           WHERE NOT "FILE_EXISTS"(path)
           """),
 
       "no_tags",
-      new BooleanPseudoTag("""
+      new BooleanFlag("""
           SELECT i.id, i.path, i.hash
           FROM images AS i
           WHERE (
