@@ -13,7 +13,7 @@ import org.jetbrains.annotations.*;
 import java.nio.file.*;
 import java.util.*;
 
-public class ImagePreviewPane extends SplitPane implements ClickableListCellFactory.ClickListener<ImagePreviewPane.TagEntry> {
+public class ImagePreviewPane extends SplitPane implements ClickableListCellFactory.ClickListener<TagView> {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final List<EditTagsListener> editTagsListeners = new ArrayList<>();
 
@@ -23,7 +23,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   private final HBox imageViewBox;
   private final ImageView imageView = new ImageView();
   private final Button editTagsButton = new Button();
-  private final ListView<TagEntry> tagsList = new ListView<>();
+  private final ListView<TagView> tagsList = new ListView<>();
 
   private final Config config;
   @Nullable
@@ -149,7 +149,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
       }
       final var tagsEntries = tags.stream()
           .sorted(Comparator.comparing(Tag::label))
-          .map(TagEntry::new)
+          .map(TagView::new)
           .toList();
       this.tagsList.getItems().addAll(tagsEntries);
     }
@@ -169,30 +169,12 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   }
 
   @Override
-  public void onItemClick(@NotNull TagEntry item) {
+  public void onItemClick(@NotNull TagView item) {
   }
 
   @Override
-  public void onItemDoubleClick(@NotNull TagEntry item) {
+  public void onItemDoubleClick(@NotNull TagView item) {
     this.tagClickListeners.forEach(listener -> listener.onTagClick(item.tag()));
-  }
-
-  static class TagEntry extends HBox {
-    private final Tag tag;
-
-    private TagEntry(@NotNull Tag tag) {
-      this.tag = Objects.requireNonNull(tag);
-      final Label label = new Label(tag.label());
-      tag.type().ifPresent(tagType -> {
-        label.setText(tagType.symbol() + label.getText());
-        label.setStyle("-fx-text-fill: %s;".formatted(StringUtils.colorToCss(tagType.color())));
-      });
-      this.getChildren().add(label);
-    }
-
-    public Tag tag() {
-      return this.tag;
-    }
   }
 
   public interface EditTagsListener {

@@ -49,6 +49,7 @@ public enum Icon {
   OPEN_FILE_IN_EXPLORER("folder_go"),
 
   SHOW_SILIMAR_IMAGES("pictures"),
+  COPY_TAGS("three_tags_down"),
 
   WARNING("error"),
   SELECT_DIRECTORY("folder"),

@@ -68,7 +68,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.tagTypes = db.getAllTagTypes();
     this.allTags = db.getAllTags();
 
-    this.similarImagesDialog = new SimilarImagesDialog(config);
+    this.similarImagesDialog = new SimilarImagesDialog(config, db);
+    this.similarImagesDialog.addTagCopyListener(this::onCopyTags);
 
     this.tagsErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
     this.tagsField = new AutoCompleteField<>(
@@ -223,6 +224,15 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       this.tagsErrorPopup.show(this.tagsField);
   }
 
+  private void onCopyTags(final @NotNull Set<Tag> tags) {
+    final var joiner = new StringJoiner(" ");
+    tags.stream()
+        .map(Tag::label)
+        .sorted()
+        .forEach(joiner::add);
+    this.tagsField.setText(joiner.toString());
+  }
+
   /**
    * Set the list of pictures to insert or edit.
    * If inserting, this dialog will compute each picture’s hash.
@@ -299,7 +309,10 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     }
     final var joiner = new StringJoiner(" ");
     if (!this.insert) {
-      this.currentPictureTags.forEach(tag -> joiner.add(tag.label()));
+      this.currentPictureTags.stream()
+          .map(Tag::label)
+          .sorted()
+          .forEach(joiner::add);
       this.tagsField.setText(joiner.toString());
     } else
       this.tagsField.refreshHighlighting();
