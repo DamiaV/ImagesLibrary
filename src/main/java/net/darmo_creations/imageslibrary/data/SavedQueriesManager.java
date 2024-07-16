@@ -4,6 +4,9 @@ import org.jetbrains.annotations.*;
 
 import java.util.*;
 
+/**
+ * This class manages the tag queries saved by users.
+ */
 public class SavedQueriesManager {
   private final DatabaseConnection db;
   private final Map<String, String> queries = new HashMap<>();
