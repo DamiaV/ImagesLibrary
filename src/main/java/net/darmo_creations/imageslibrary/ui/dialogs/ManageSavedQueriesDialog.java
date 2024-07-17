@@ -191,6 +191,7 @@ public class ManageSavedQueriesDialog extends DialogBase<Void> {
       Alerts.databaseError(this.config, e.errorCode());
       this.queriesManager.rollback();
     }
+    this.updateButtons();
   }
 
   private class QueryEntry {
