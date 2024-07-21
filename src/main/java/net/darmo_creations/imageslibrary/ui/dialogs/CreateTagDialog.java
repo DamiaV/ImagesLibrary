@@ -11,7 +11,6 @@ import java.util.*;
  * Dialog to create a new tag.
  */
 public class CreateTagDialog extends EditTagDialogBase {
-
   /**
    * Create a tag creation dialog.
    *
