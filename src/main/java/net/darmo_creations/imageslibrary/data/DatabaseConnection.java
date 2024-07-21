@@ -928,7 +928,7 @@ public final class DatabaseConnection implements AutoCloseable {
       throw this.logThrownError(new IllegalArgumentException("Both pictures have the same path"));
 
     final var pic1Tags = this.getImageTags(picture1).stream()
-        .map(t -> new Pair<>(t.type().orElse(null), t.label()))
+        .map(t -> new ParsedTag(t.type(), t.label()))
         .collect(Collectors.toSet());
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
     try {
@@ -1004,6 +1004,10 @@ public final class DatabaseConnection implements AutoCloseable {
       if (tagType != null)
         this.ensureInDatabase(tagType);
       final String tagLabel = tagUpdate.getValue();
+      final Optional<TagType> tagType = tagUpdate.tagType();
+      if (tagType.isPresent())
+        this.ensureInDatabase(tagType.get());
+      final String tagLabel = tagUpdate.label();
       final var tagOpt = this.getTagForLabel(tagLabel);
       if (tagOpt.isPresent()) {
         final Tag tag = tagOpt.get();
@@ -1014,7 +1018,7 @@ public final class DatabaseConnection implements AutoCloseable {
           addedTags.add(new Pair<>(this.tagsCache.get(tag.id()), false));
         }
       } else
-        toInsert.add(new TagUpdate(0, tagLabel, tagType, null));
+        toInsert.add(new TagUpdate(0, tagLabel, tagType.orElse(null), null));
     }
     final var generatedIds = this.insertTagsNoCommit(toInsert);
 
@@ -1601,14 +1605,14 @@ public final class DatabaseConnection implements AutoCloseable {
           hash = new Hash(0);
         }
         // Fetch associated tags
-        final Set<Pair<TagType, String>> imageTags = new HashSet<>();
+        final Set<ParsedTag> imageTags = new HashSet<>();
         tagsStatement.setInt(1, id);
         try (final var tagsResultSet = tagsStatement.executeQuery()) {
           while (tagsResultSet.next()) {
             if (progressManager.isCancelled())
               return false;
             final Tag tag = tags.get(oldTagIds.get(tagsResultSet.getInt("tag_id")));
-            imageTags.add(new Pair<>(tag.type().orElse(null), tag.label()));
+            imageTags.add(new ParsedTag(tag.type(), tag.label()));
           }
         }
         db.insertPicture(new PictureUpdate(0, path.toAbsolutePath(), hash, imageTags, Set.of()));

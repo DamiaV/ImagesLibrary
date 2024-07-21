@@ -1,6 +1,6 @@
 package net.darmo_creations.imageslibrary.data;
 
-import javafx.util.*;
+import net.darmo_creations.imageslibrary.ui.*;
 import org.jetbrains.annotations.*;
 
 import java.nio.file.*;
@@ -19,14 +19,14 @@ public record PictureUpdate(
     int id,
     @NotNull Path path,
     @NotNull Hash hash,
-    @NotNull Set<Pair<@Nullable TagType, String>> tagsToAdd,
+    @NotNull Set<ParsedTag> tagsToAdd,
     @NotNull Set<Tag> tagsToRemove
 ) implements PictureLike {
   public PictureUpdate(
       int id,
       @NotNull Path path,
       @NotNull Hash hash,
-      @NotNull Set<Pair<@Nullable TagType, String>> tagsToAdd,
+      @NotNull Set<ParsedTag> tagsToAdd,
       @NotNull Set<Tag> tagsToRemove
   ) {
     this.id = id;

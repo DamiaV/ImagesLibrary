@@ -1,8 +1,8 @@
 package net.darmo_creations.imageslibrary.data;
 
-import javafx.util.*;
 import net.darmo_creations.imageslibrary.query_parser.*;
 import net.darmo_creations.imageslibrary.query_parser.ex.*;
+import net.darmo_creations.imageslibrary.ui.*;
 import org.junit.jupiter.api.*;
 import org.logicng.formulas.*;
 
@@ -488,7 +488,7 @@ class DatabaseConnectionTest {
         new TagUpdate(0, "test1", null, null)
     ));
     this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.png"), new Hash(0), Set.of(
-        new Pair<>(null, "test1")
+        new ParsedTag(Optional.empty(), "test1")
     ), Set.of()));
     assertThrows(DatabaseOperationException.class, () -> this.db.updateTags(Set.of(
         new TagUpdate(1, "test1", null, "c d")
@@ -554,12 +554,12 @@ class DatabaseConnectionTest {
 
   private FormulaFactory initQueryPicturesTest() throws DatabaseOperationException {
     this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.jpeg"), new Hash(0), Set.of(
-        new Pair<>(null, "test1"),
-        new Pair<>(null, "test2")
+        new ParsedTag(Optional.empty(), "test1"),
+        new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
     this.db.insertPicture(new PictureUpdate(0, Path.of("test_file_2.jpg"), new Hash(1), Set.of(
-        new Pair<>(null, "test1"),
-        new Pair<>(null, "test3")
+        new ParsedTag(Optional.empty(), "test1"),
+        new ParsedTag(Optional.empty(), "test3")
     ), Set.of()));
     this.db.insertPicture(new PictureUpdate(0, Path.of("test_file_3.png"), new Hash(-1), Set.of(), Set.of()));
     return new FormulaFactory();
@@ -727,8 +727,8 @@ class DatabaseConnectionTest {
   void getImageTags() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-        new Pair<>(null, "test"),
-        new Pair<>(null, "test2")
+        new ParsedTag(Optional.empty(), "test"),
+        new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
     final Set<Tag> imageTags = this.db.getImageTags(new Picture(1, path, new Hash(0)));
     assertEquals(this.db.getAllTags(), imageTags);
@@ -791,8 +791,8 @@ class DatabaseConnectionTest {
         new TagUpdate(0, "test2", null, null)
     ));
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-        new Pair<>(null, "test1"),
-        new Pair<>(null, "test2")
+        new ParsedTag(Optional.empty(), "test1"),
+        new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     final Tag t = this.db.getAllTags().stream()
@@ -813,7 +813,7 @@ class DatabaseConnectionTest {
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-        new Pair<>(tagType, "test1")
+        new ParsedTag(Optional.of(tagType), "test1")
     ), Set.of()));
     assertEquals(Set.of(
         new Tag(1, "test1", tagType, null)
@@ -824,8 +824,8 @@ class DatabaseConnectionTest {
   void insertPicture_updatesTagCounts() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-        new Pair<>(null, "test1"),
-        new Pair<>(null, "test2")
+        new ParsedTag(Optional.empty(), "test1"),
+        new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
     assertEquals(Map.of(
         1, 1,
@@ -840,7 +840,7 @@ class DatabaseConnectionTest {
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-        new Pair<>(tagType, "test1")
+        new ParsedTag(Optional.of(tagType), "test1")
     ), Set.of()));
     assertEquals(Map.of(
         1, 1
@@ -862,7 +862,7 @@ class DatabaseConnectionTest {
     final TagType tagType = new TagType(0, "test", '/', 0);
     assertThrows(DatabaseOperationException.class,
         () -> this.db.insertPicture(new PictureUpdate(0, path, Hash.computeForFile(path), Set.of(
-            new Pair<>(tagType, "test1")
+            new ParsedTag(Optional.of(tagType), "test1")
         ), Set.of()))
     );
   }
@@ -875,7 +875,7 @@ class DatabaseConnectionTest {
     ));
     assertThrows(DatabaseOperationException.class,
         () -> this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-            new Pair<>(null, "test1")
+            new ParsedTag(Optional.empty(), "test1")
         ), Set.of()))
     );
   }
@@ -897,8 +897,8 @@ class DatabaseConnectionTest {
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     assertThrows(DatabaseOperationException.class,
         () -> this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-            new Pair<>(tagType, "test"),
-            new Pair<>(null, "test")
+            new ParsedTag(Optional.of(tagType), "test"),
+            new ParsedTag(Optional.empty(), "test")
         ), Set.of()))
     );
   }
@@ -911,8 +911,8 @@ class DatabaseConnectionTest {
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     assertThrows(DatabaseOperationException.class,
         () -> this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-            new Pair<>(tagType, "test"),
-            new Pair<>(null, "test")
+            new ParsedTag(Optional.of(tagType), "test"),
+            new ParsedTag(Optional.empty(), "test")
         ), Set.of()))
     );
     assertTrue(this.db.getAllTags().isEmpty());
@@ -942,8 +942,8 @@ class DatabaseConnectionTest {
     ));
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     this.db.updatePicture(new PictureUpdate(1, path, new Hash(1), Set.of(
-        new Pair<>(null, "test1"),
-        new Pair<>(null, "test2")
+        new ParsedTag(Optional.empty(), "test1"),
+        new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     final Tag t = this.db.getAllTags().stream()
@@ -965,8 +965,8 @@ class DatabaseConnectionTest {
         new TagUpdate(0, "test2", null, null)
     ));
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-        new Pair<>(null, "test1"),
-        new Pair<>(null, "test2")
+        new ParsedTag(Optional.empty(), "test1"),
+        new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
     final Tag t = this.db.getAllTags().stream()
@@ -989,7 +989,7 @@ class DatabaseConnectionTest {
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     this.db.updatePicture(new PictureUpdate(1, path, new Hash(1), Set.of(
-        new Pair<>(tagType, "test1")
+        new ParsedTag(Optional.of(tagType), "test1")
     ), Set.of()));
     assertEquals(Set.of(
         new Tag(1, "test1", tagType, null)
@@ -1001,8 +1001,8 @@ class DatabaseConnectionTest {
     final Path path = Path.of("test_file.png");
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     this.db.updatePicture(new PictureUpdate(1, path, new Hash(1), Set.of(
-        new Pair<>(null, "test1"),
-        new Pair<>(null, "test2")
+        new ParsedTag(Optional.empty(), "test1"),
+        new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
     assertEquals(Map.of(
         1, 1,
@@ -1018,7 +1018,7 @@ class DatabaseConnectionTest {
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     this.db.updatePicture(new PictureUpdate(1, path, new Hash(1), Set.of(
-        new Pair<>(tagType, "test")
+        new ParsedTag(Optional.of(tagType), "test")
     ), Set.of()));
     assertEquals(Map.of(
         1, 1
@@ -1031,7 +1031,7 @@ class DatabaseConnectionTest {
     final TagType tagType = new TagType(0, "test", '/', 0);
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     assertThrows(DatabaseOperationException.class, () -> this.db.updatePicture(new PictureUpdate(1, path, new Hash(1), Set.of(
-        new Pair<>(tagType, "test")
+        new ParsedTag(Optional.of(tagType), "test")
     ), Set.of())));
   }
 
@@ -1054,8 +1054,8 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     assertThrows(DatabaseOperationException.class,
         () -> this.db.updatePicture(new PictureUpdate(1, path, new Hash(0), Set.of(
-            new Pair<>(tagType, "test"),
-            new Pair<>(null, "test")
+            new ParsedTag(Optional.of(tagType), "test"),
+            new ParsedTag(Optional.empty(), "test")
         ), Set.of()))
     );
   }
@@ -1069,7 +1069,7 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     assertThrows(DatabaseOperationException.class,
         () -> this.db.updatePicture(new PictureUpdate(1, path, new Hash(0), Set.of(
-            new Pair<>(null, "test1")
+            new ParsedTag(Optional.empty(), "test1")
         ), Set.of()))
     );
   }
@@ -1083,8 +1083,8 @@ class DatabaseConnectionTest {
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(), Set.of()));
     assertThrows(DatabaseOperationException.class,
         () -> this.db.updatePicture(new PictureUpdate(0, path, new Hash(1), Set.of(
-            new Pair<>(tagType, "test"),
-            new Pair<>(null, "test")
+            new ParsedTag(Optional.of(tagType), "test"),
+            new ParsedTag(Optional.empty(), "test")
         ), Set.of()))
     );
     assertTrue(this.db.getAllTags().isEmpty());
@@ -1244,10 +1244,10 @@ class DatabaseConnectionTest {
     final Path path = Path.of("test_file.png");
     final Path path1 = Path.of("test_file_2.png");
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-        new Pair<>(null, "test1")
+        new ParsedTag(Optional.empty(), "test1")
     ), Set.of()));
     this.db.insertPicture(new PictureUpdate(0, path1, new Hash(1), Set.of(
-        new Pair<>(null, "test2")
+        new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
     this.db.mergePictures(
         new Picture(1, path, new Hash(0)),
@@ -1326,10 +1326,10 @@ class DatabaseConnectionTest {
     final Path path = Path.of("test_file.png");
     final Path path1 = Path.of("test_file_2.png");
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-        new Pair<>(null, "test")
+        new ParsedTag(Optional.empty(), "test")
     ), Set.of()));
     this.db.insertPicture(new PictureUpdate(0, path1, new Hash(1), Set.of(
-        new Pair<>(null, "test")
+        new ParsedTag(Optional.empty(), "test")
     ), Set.of()));
     assertEquals(Map.of(1, 2), this.db.getAllTagsCounts());
     this.db.mergePictures(
@@ -1421,7 +1421,7 @@ class DatabaseConnectionTest {
   void deletePicture_updatesTagCount() throws DatabaseOperationException {
     final Path path = Path.of("test_file_2.png");
     this.db.insertPicture(new PictureUpdate(0, path, new Hash(0), Set.of(
-        new Pair<>(null, "test")
+        new ParsedTag(Optional.empty(), "test")
     ), Set.of()));
     assertEquals(Map.of(1, 1), this.db.getAllTagsCounts());
     this.db.deletePicture(new Picture(1, path, new Hash(0)), false);
