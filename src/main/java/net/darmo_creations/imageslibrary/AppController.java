@@ -1,6 +1,5 @@
 package net.darmo_creations.imageslibrary;
 
-import javafx.application.*;
 import javafx.collections.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
@@ -121,6 +120,16 @@ public class AppController implements ResultsView.SearchListener {
       event.consume();
     });
 
+    stage.setOnCloseRequest(event -> {
+      JavaFxUtils.checkNoOngoingTask(config, event, this.progressDialog);
+      if (!event.isConsumed())
+        try {
+          this.db.close();
+        } catch (final DatabaseOperationException e) {
+          Alerts.databaseError(config, e.errorCode());
+        }
+    });
+
     this.updateSavedQueries();
   }
 
@@ -160,7 +169,7 @@ public class AppController implements ResultsView.SearchListener {
         language.translate("menu.file.quit"),
         theme.getIcon(Icon.QUIT, Icon.Size.SMALL)
     );
-    quitMenuItem.setOnAction(e -> this.onQuit());
+    quitMenuItem.setOnAction(e -> this.stage.close());
     quitMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.Q, KeyCombination.CONTROL_DOWN));
     this.menuItemStates.put(quitMenuItem, quitMenuItem.isDisable());
     fileMenu.getItems().addAll(
@@ -378,10 +387,6 @@ public class AppController implements ResultsView.SearchListener {
    */
   public void show() {
     this.stage.show();
-    this.stage.setOnCloseRequest(event -> {
-      event.consume();
-      this.onQuit();
-    });
   }
 
   private void loadFiles(final @NotNull List<Path> filesOrDirs) {
@@ -652,18 +657,6 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   /**
-   * Release all resources and close the app.
-   */
-  private void onQuit() {
-    try {
-      this.db.close();
-    } catch (final DatabaseOperationException e) {
-      throw new RuntimeException(e);
-    }
-    Platform.exit();
-  }
-
-  /**
    * Open the dialog to edit selected tags/images.
    */
   private void onEdit() {
@@ -799,6 +792,7 @@ public class AppController implements ResultsView.SearchListener {
     final var path = FileChoosers.showDatabaseFileChooser(this.config, this.stage);
     if (path.isEmpty())
       return;
+    this.disableInteractions();
     this.progressDialog.show();
     DatabaseConnection.convertPythonDatabase(
         path.get(),
@@ -819,11 +813,13 @@ public class AppController implements ResultsView.SearchListener {
               Alerts.error(this.config, "dialog.settings.alert.save_error.header", null, null);
             }
           }
+          this.restoreInteractions();
         },
         e -> {
           App.logger().error("Unable to convert database file", e);
           this.progressDialog.hide();
           Alerts.databaseError(this.config, e.errorCode());
+          this.restoreInteractions();
         },
         this.progressDialog
     );

@@ -11,6 +11,7 @@ import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.themes.*;
+import net.darmo_creations.imageslibrary.ui.*;
 import org.jetbrains.annotations.*;
 
 import java.io.*;
@@ -89,6 +90,8 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
 
     this.setResultConverter(buttonType -> this.anyUpdate);
 
+    this.setOnCloseRequest(event -> JavaFxUtils.checkNoOngoingTask(config, event, this.progressDialog));
+
     this.updateButtons();
   }
 
@@ -128,6 +131,8 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
     if (this.destDir == null)
       return;
 
+    this.progressDialog.show();
+    this.disableInteractions();
     final boolean overwriteTarget = this.overwriteTargetFilesCheckBox.isSelected();
     new Thread(() -> {
       final List<Picture> errors = new LinkedList<>();
@@ -137,6 +142,7 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
       for (final Picture picture : this.pictures) {
         if (this.progressDialog.isCancelled()) {
           App.logger().info("File moving cancelled.");
+          Platform.runLater(this::restoreInteractions);
           return;
         }
         final Path newPath = this.destDir.get().resolve(picture.path().getFileName());
@@ -158,6 +164,7 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
   }
 
   private void onMoveDone(final @NotNull List<Picture> errors) {
+    this.progressDialog.hide();
     if (!errors.isEmpty()) {
       Alerts.warning(this.config, "alert.file_moving_errors.header", null, null);
       this.errorsListView.getItems().clear();
@@ -186,6 +193,7 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
       }
     this.pictures.retainAll(errors);
     this.anyUpdate = true;
+    this.restoreInteractions();
   }
 
   private void updateButtons() {

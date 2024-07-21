@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.ui;
 
+import javafx.event.*;
 import javafx.geometry.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
@@ -63,6 +64,37 @@ public final class JavaFxUtils {
     }
 
     return borderPane;
+  }
+
+  /**
+   * Check whether any background task is ongoing and, if there is one,
+   * ask the user if they wish to cancel it.
+   * <p>
+   * If the user dismisses the {@link Alert} or clicks CANCEL,
+   * the task keeps going and the passed {@link Event} is consumed.
+   *
+   * @param config         The app’s config.
+   * @param event          The event to consume if the user chooses to keep the task going.
+   * @param progressDialog A {@link ProgressDialog} that indicates whether a task is ongoing.
+   */
+  public static void checkNoOngoingTask(
+      @NotNull Config config,
+      @NotNull Event event,
+      @NotNull ProgressDialog progressDialog
+  ) {
+    if (progressDialog.isShowing()) {
+      final boolean quit = Alerts.confirmation(
+          config,
+          "alert.confirm_quit_while_bg_task.header",
+          null,
+          null
+      );
+      if (quit) {
+        progressDialog.setCancelled();
+        progressDialog.hide();
+      } else
+        event.consume();
+    }
   }
 
   private JavaFxUtils() {

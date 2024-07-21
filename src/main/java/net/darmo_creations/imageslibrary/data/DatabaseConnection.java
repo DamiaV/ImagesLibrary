@@ -620,23 +620,66 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Set<Picture> queryPictures(final @NotNull TagQuery query) throws DatabaseOperationException {
+  public Set<Picture> queryPictures(@NotNull TagQuery query) throws DatabaseOperationException {
     final var sql = query.asSQL();
     if (sql.isEmpty())
       return Set.of();
-    return this.getPictures(sql.get());
+    try {
+      return this.getPictures(sql.get()).collect(Collectors.toSet());
+    } catch (final DatabaseOperationException e) {
+      throw this.logThrownError(new DatabaseOperationException(e.errorCode(), e));
+    }
   }
 
-  private Set<Picture> getPictures(@SQLite @NotNull String query) throws DatabaseOperationException {
-    final Set<Picture> pictures = new HashSet<>();
-    try (final var statement = this.connection.prepareStatement(query);
-         final var resultSet = statement.executeQuery()) {
-      while (resultSet.next())
-        pictures.add(newPicture(resultSet));
+  @SQLite
+  private static final String SELECT_ALL_IMAGES_QUERY = """
+      SELECT id, path, hash
+      FROM images
+      """;
+
+  /**
+   * Fetch all registered pictures.
+   * The returned stream may throw {@link DatabaseOperationRuntimeException}s
+   * when iterating if any database error occurs.
+   *
+   * @return An unordered stream of all registered pictures.
+   * @throws DatabaseOperationException If any database error occurs.
+   */
+  public Stream<Picture> getAllPictures() throws DatabaseOperationException {
+    return this.getPictures(SELECT_ALL_IMAGES_QUERY);
+  }
+
+  private Stream<Picture> getPictures(@SQLite @NotNull String query) throws DatabaseOperationException {
+    try {
+      final var statement = this.connection.prepareStatement(query);
+      final var resultSet = statement.executeQuery();
+      final var iterator = new ResultSetIterator<>(statement, resultSet, DatabaseConnection::newPicture);
+      return StreamSupport
+          .stream(Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false)
+          .onClose(() -> {
+            try {
+              statement.close();
+              resultSet.close();
+            } catch (final SQLException e) {
+              throw new DatabaseOperationRuntimeException(getErrorCode(e), e);
+            }
+          });
     } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
-    return pictures;
+  }
+
+  /**
+   * Check whether the given picture matches the specified tag query.
+   *
+   * @param picture  The picture to check.
+   * @param tagQuery A tag query.
+   * @return True if the picture matches the query, false otherwise.
+   * @throws DatabaseOperationException If any database error occurs.
+   */
+  public boolean pictureMatchesQuery(@NotNull Picture picture, @NotNull TagQuery tagQuery)
+      throws DatabaseOperationException {
+    return false; // TODO
   }
 
   @SQLite

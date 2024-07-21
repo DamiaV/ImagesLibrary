@@ -54,4 +54,11 @@ public class ProgressDialog extends DialogBase<Void> implements ProgressManager 
   public boolean isCancelled() {
     return this.cancelled;
   }
+
+  /**
+   * Mark the process this dialog is managed by as cancelled.
+   */
+  public void setCancelled() {
+    this.cancelled = true;
+  }
 }

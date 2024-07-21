@@ -85,6 +85,20 @@ public abstract class DialogBase<T> extends Dialog<T> {
   }
 
   /**
+   * Disable all interactions with this dialog’s content.
+   */
+  protected void disableInteractions() {
+    this.stage().getScene().getRoot().setDisable(true);
+  }
+
+  /**
+   * Restore all interactions with this dialog’s content.
+   */
+  protected void restoreInteractions() {
+    this.stage().getScene().getRoot().setDisable(false);
+  }
+
+  /**
    * This dialog’s stage.
    */
   protected Stage stage() {
