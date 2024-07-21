@@ -1507,6 +1507,7 @@ public final class DatabaseConnection implements AutoCloseable {
    *
    * @param file            The path to the file to convert.
    * @param onSuccess       A callback invoked when the file has been converted.
+   * @param onCancel        A callback invoked when the conversion is cancelled by the user.
    * @param onError         A callback invoked when any error occurs and the conversion is aborted.
    * @param progressManager An object that can receive progress updates
    *                        and indicates whether the process should be cancelled.
@@ -1514,13 +1515,17 @@ public final class DatabaseConnection implements AutoCloseable {
   public static void convertPythonDatabase(
       final @NotNull Path file,
       @NotNull Consumer<Path> onSuccess,
+      @NotNull Runnable onCancel,
       @NotNull Consumer<DatabaseOperationException> onError,
       @NotNull ProgressManager progressManager
   ) {
     new Thread(() -> {
       try {
-        convertPythonDb(file, progressManager)
-            .ifPresent(outputFile -> Platform.runLater(() -> onSuccess.accept(outputFile)));
+        final Optional<Path> path = convertPythonDb(file, progressManager);
+        if (path.isPresent())
+          Platform.runLater(() -> onSuccess.accept(path.get()));
+        else
+          Platform.runLater(onCancel);
       } catch (final DatabaseOperationException e) {
         Platform.runLater(() -> onError.accept(e));
       }

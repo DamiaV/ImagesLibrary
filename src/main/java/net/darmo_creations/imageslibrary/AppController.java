@@ -822,6 +822,10 @@ public class AppController implements ResultsView.SearchListener {
           }
           this.restoreInteractions();
         },
+        () -> {
+          this.progressDialog.hide();
+          this.restoreInteractions();
+        },
         e -> {
           App.logger().error("Unable to convert database file", e);
           this.progressDialog.hide();
