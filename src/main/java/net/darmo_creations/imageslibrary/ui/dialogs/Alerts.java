@@ -29,9 +29,8 @@ public final class Alerts {
     error(
         config,
         "alert.database_error.header",
-        "alert.database_error.content",
-        null,
-        new FormatArg("error", code) // TODO translate error code
+        config.language().translate("error_code." + code.name().toLowerCase()), // TODO translate error codes
+        null
     );
   }
 
@@ -51,7 +50,7 @@ public final class Alerts {
       String titleKey,
       final @NotNull FormatArg... contentArgs
   ) {
-    alert(config, Alert.AlertType.INFORMATION, headerKey, contentKey, titleKey, contentArgs);
+    alert(config, AlertType.INFORMATION, headerKey, contentKey, titleKey, contentArgs);
   }
 
   /**
@@ -70,7 +69,7 @@ public final class Alerts {
       String titleKey,
       final @NotNull FormatArg... contentArgs
   ) {
-    alert(config, Alert.AlertType.WARNING, headerKey, contentKey, titleKey, contentArgs);
+    alert(config, AlertType.WARNING, headerKey, contentKey, titleKey, contentArgs);
   }
 
   /**
@@ -89,7 +88,7 @@ public final class Alerts {
       String titleKey,
       final @NotNull FormatArg... contentArgs
   ) {
-    alert(config, Alert.AlertType.ERROR, headerKey, contentKey, titleKey, contentArgs);
+    alert(config, AlertType.ERROR, headerKey, contentKey, titleKey, contentArgs);
   }
 
   /**
@@ -109,8 +108,32 @@ public final class Alerts {
       String titleKey,
       final @NotNull FormatArg... contentArgs
   ) {
-    final var result = alert(config, Alert.AlertType.CONFIRMATION, headerKey, contentKey, titleKey, contentArgs);
+    final var result = alert(config, AlertType.CONFIRMATION, headerKey, contentKey, titleKey, contentArgs);
     return result.isPresent() && !result.get().getButtonData().isCancelButton();
+  }
+
+  /**
+   * Open an alert dialog to prompt the user for confirmation.
+   *
+   * @param config      The current config.
+   * @param headerKey   Header text key.
+   * @param contentKey  Content text key.
+   * @param titleKey    Title key.
+   * @param contentArgs Format arguments to apply to the header, content and title.
+   * @return True if the user clicked YES, false if they clicked NO,
+   * an empty {@link Optional} if they clicked CANCEL or dismissed the dialog.
+   */
+  public static Optional<Boolean> confirmationWithCancel(
+      final @NotNull Config config,
+      @NotNull String headerKey,
+      String contentKey,
+      String titleKey,
+      final @NotNull FormatArg... contentArgs
+  ) {
+    final var result = alert(config, AlertType.CONFIRMATION_CANCEL, headerKey, contentKey, titleKey, contentArgs);
+    if (result.isEmpty() || result.get() == ButtonTypes.CANCEL)
+      return Optional.empty();
+    return Optional.of(!result.get().getButtonData().isCancelButton());
   }
 
   /**
@@ -133,7 +156,7 @@ public final class Alerts {
       boolean checked,
       final @NotNull FormatArg... contentArgs
   ) {
-    final Alert alert = getAlert(config, Alert.AlertType.CONFIRMATION, headerKey, titleKey, contentArgs);
+    final Alert alert = getAlert(config, AlertType.CONFIRMATION, headerKey, titleKey, contentArgs);
     final CheckBox checkBox = new CheckBox();
     checkBox.setSelected(checked);
     final var buttonType = buildAndShow(config, labelKey, alert, checkBox, contentArgs);
@@ -152,7 +175,7 @@ public final class Alerts {
    * @param defaultText   Text to put into the text field.
    * @param textFormatter An optional text formatter to apply to the text field.
    * @param contentArgs   Format arguments to apply to the header, label and title.
-   * @return The selected item.
+   * @return The text typed by the user, stripped of any leading and trailing whitespace.
    */
   public static Optional<String> textInput(
       final @NotNull Config config,
@@ -163,7 +186,7 @@ public final class Alerts {
       TextFormatter<?> textFormatter,
       final @NotNull FormatArg... contentArgs
   ) {
-    final Alert alert = getAlert(config, Alert.AlertType.CONFIRMATION, headerKey, titleKey, contentArgs);
+    final Alert alert = getAlert(config, AlertType.TEXT, headerKey, titleKey, contentArgs);
     final TextField textField = new TextField();
     textField.textProperty().addListener((observable, oldValue, newValue) ->
         alert.getDialogPane().lookupButton(ButtonTypes.OK).setDisable(StringUtils.stripNullable(newValue).isEmpty()));
@@ -197,7 +220,7 @@ public final class Alerts {
 
   private static Optional<ButtonType> alert(
       final @NotNull Config config,
-      @NotNull Alert.AlertType type,
+      @NotNull AlertType type,
       @NotNull String headerKey,
       String contentKey,
       String titleKey,
@@ -213,7 +236,7 @@ public final class Alerts {
    * Create a basic alert dialog.
    *
    * @param config      The current config.
-   * @param type        Alert type. {@link Alert.AlertType#NONE} is not allowed.
+   * @param type        Alert type.
    * @param headerKey   Header text key.
    * @param titleKey    Title key.
    * @param contentArgs Format arguments to apply to the header and title.
@@ -221,24 +244,23 @@ public final class Alerts {
    */
   private static Alert getAlert(
       final @NotNull Config config,
-      @NotNull Alert.AlertType type,
+      @NotNull AlertType type,
       @NotNull String headerKey,
       String titleKey,
       final @NotNull FormatArg... contentArgs
   ) {
-    if (type == Alert.AlertType.NONE)
-      throw new IllegalArgumentException(type.name());
-    final Alert alert = new Alert(type);
+    final Alert alert = new Alert(type.type());
     final DialogPane dialogPane = alert.getDialogPane();
     // Replace default buttons to have proper translations
     dialogPane.getButtonTypes().setAll(switch (type) {
       case INFORMATION, WARNING, ERROR -> List.of(ButtonTypes.OK);
-      case CONFIRMATION -> List.of(ButtonTypes.OK, ButtonTypes.CANCEL);
-      case NONE -> throw new IllegalArgumentException(type.name()); // Should never happen
+      case CONFIRMATION -> List.of(ButtonTypes.YES, ButtonTypes.NO);
+      case CONFIRMATION_CANCEL -> List.of(ButtonTypes.YES, ButtonTypes.NO, ButtonTypes.CANCEL);
+      case TEXT -> List.of(ButtonTypes.OK, ButtonTypes.CANCEL);
     });
     config.theme().applyTo(dialogPane);
     if (titleKey == null)
-      titleKey = "alert.%s.title".formatted(type.name().toLowerCase());
+      titleKey = "alert.%s.title".formatted(type.key());
     final Language language = config.language();
     alert.setTitle(language.translate(titleKey));
     alert.setHeaderText(language.translate(headerKey, contentArgs));
@@ -248,5 +270,31 @@ public final class Alerts {
   }
 
   private Alerts() {
+  }
+
+  public enum AlertType {
+    CONFIRMATION(Alert.AlertType.CONFIRMATION, "confirmation"),
+    CONFIRMATION_CANCEL(Alert.AlertType.CONFIRMATION, "confirmation"),
+    INFORMATION(Alert.AlertType.INFORMATION, "information"),
+    ERROR(Alert.AlertType.ERROR, "error"),
+    WARNING(Alert.AlertType.ERROR, "warning"),
+    TEXT(Alert.AlertType.CONFIRMATION, "text"),
+    ;
+
+    private final Alert.AlertType type;
+    private final String key;
+
+    AlertType(@NotNull Alert.AlertType type, String key) {
+      this.type = type;
+      this.key = key;
+    }
+
+    public Alert.AlertType type() {
+      return this.type;
+    }
+
+    public String key() {
+      return this.key;
+    }
   }
 }
