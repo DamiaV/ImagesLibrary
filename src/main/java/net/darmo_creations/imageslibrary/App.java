@@ -93,7 +93,12 @@ public class App extends Application {
         generateCrashReport(e);
         Platform.runLater(() -> {
           splash.hide();
-          Alerts.databaseError(config, e.errorCode());
+          Alerts.error(
+              config,
+              "alert.fatal_error.header",
+              config.language().translate("error_code." + e.errorCode().name().toLowerCase()),
+              "alert.fatal_error.title"
+          );
           System.exit(3);
         });
         return;
@@ -106,7 +111,12 @@ public class App extends Application {
           controller = new AppController(stage, config, db);
         } catch (final DatabaseOperationException e) {
           generateCrashReport(e);
-          Alerts.databaseError(config, e.errorCode());
+          Alerts.error(
+              config,
+              "alert.fatal_error.header",
+              config.language().translate("error_code." + e.errorCode().name().toLowerCase()),
+              "alert.fatal_error.title"
+          );
           System.exit(4);
           return;
         }
@@ -122,6 +132,12 @@ public class App extends Application {
       config = Config.loadConfig(parsedArgs.debug());
     } catch (final IOException | ParseException | ConfigException e) {
       generateCrashReport(e);
+      Alerts.error(
+          config,
+          "alert.fatal_error.header",
+          null,
+          "alert.fatal_error.title"
+      );
       System.exit(1);
     }
     if (config.isDebug())
@@ -132,6 +148,12 @@ public class App extends Application {
       launch();
     } catch (final Exception e) {
       generateCrashReport(e.getCause()); // JavaFX wraps exceptions into a RuntimeException
+      Alerts.error(
+          config,
+          "alert.fatal_error.header",
+          null,
+          "alert.fatal_error.title"
+      );
       System.exit(2);
     }
   }
