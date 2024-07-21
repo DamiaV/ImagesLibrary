@@ -552,6 +552,7 @@ public class AppController implements ResultsView.SearchListener {
     try {
       this.db.updateTags(updates);
       this.tagsView.refresh();
+      this.resultsView.refresh();
     } catch (final DatabaseOperationException e) {
       App.logger().error("Error updating tags", e);
     }
