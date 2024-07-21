@@ -999,11 +999,6 @@ public final class DatabaseConnection implements AutoCloseable {
     final Set<Pair<Tag, Boolean>> addedTags = new HashSet<>();
     final List<TagUpdate> toInsert = new LinkedList<>();
     for (final var tagUpdate : pictureUpdate.tagsToAdd()) {
-      @Nullable
-      final TagType tagType = tagUpdate.getKey();
-      if (tagType != null)
-        this.ensureInDatabase(tagType);
-      final String tagLabel = tagUpdate.getValue();
       final Optional<TagType> tagType = tagUpdate.tagType();
       if (tagType.isPresent())
         this.ensureInDatabase(tagType.get());
