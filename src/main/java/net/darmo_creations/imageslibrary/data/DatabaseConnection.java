@@ -99,9 +99,13 @@ public final class DatabaseConnection implements AutoCloseable {
   private final Connection connection;
 
   private final Map<Integer, TagType> tagTypesCache = new HashMap<>();
+  private final Set<TagType> tagTypesView = new MapValuesSetView<>(this.tagTypesCache);
   private final Map<Integer, Integer> tagTypesCounts = new HashMap<>();
+  private final Map<Integer, Integer> tagTypesCountsView = Collections.unmodifiableMap(this.tagTypesCounts);
   private final Map<Integer, Tag> tagsCache = new HashMap<>();
+  private final Set<Tag> tagsView = new MapValuesSetView<>(this.tagsCache);
   private final Map<Integer, Integer> tagsCounts = new HashMap<>();
+  private final Map<Integer, Integer> tagsCountsView = Collections.unmodifiableMap(this.tagsCounts);
 
   /**
    * Create a new connection to the given SQLite database file.
@@ -226,23 +230,23 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * A view to the set of all tag types defined in the database.
    *
-   * @return A new view of the set.
+   * @return A view of the set. This method does not create a new object.
    */
-  @Contract(pure = true, value = "-> new")
+  @Contract(pure = true)
   @UnmodifiableView
   public Set<TagType> getAllTagTypes() {
-    return new MapValuesSetView<>(this.tagTypesCache);
+    return this.tagTypesView;
   }
 
   /**
    * A view to the map containing the use counts of all tag types.
    *
-   * @return A new view of the map.
+   * @return A view of the map. This method does not create a new object.
    */
-  @Contract(pure = true, value = "-> new")
+  @Contract(pure = true)
   @UnmodifiableView
   public Map<Integer, Integer> getAllTagTypesCounts() {
-    return Collections.unmodifiableMap(this.tagTypesCounts);
+    return this.tagTypesCountsView;
   }
 
   @SQLite
@@ -368,23 +372,23 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * A view to the set of all tag defined in the database.
    *
-   * @return A new view of the set.
+   * @return A view of the set. This method does not create a new object.
    */
-  @Contract(pure = true, value = "-> new")
+  @Contract(pure = true)
   @UnmodifiableView
   public Set<Tag> getAllTags() {
-    return new MapValuesSetView<>(this.tagsCache);
+    return this.tagsView;
   }
 
   /**
    * A view to the map containing the use counts of all tags.
    *
-   * @return A new view of the map.
+   * @return A view of the map. This method does not create a new object.
    */
-  @Contract(pure = true, value = "-> new")
+  @Contract(pure = true)
   @UnmodifiableView
   public Map<Integer, Integer> getAllTagsCounts() {
-    return Collections.unmodifiableMap(this.tagsCounts);
+    return this.tagsCountsView;
   }
 
   @SQLite
@@ -1702,5 +1706,58 @@ public final class DatabaseConnection implements AutoCloseable {
     } catch (final IOException | SecurityException ex) {
       App.logger().error("Failed to delete incomplete database file {}", file, ex);
     }
+  }
+
+  @SuppressWarnings("ClassCanBeRecord")
+  private static class ResultSetIterator<T> implements Iterator<T> {
+    private final Statement statement;
+    private final ResultSet resultSet;
+    private final RowMapper<T> mapper;
+
+    public ResultSetIterator(
+        @NotNull Statement statement,
+        @NotNull ResultSet resultSet,
+        @NotNull RowMapper<T> mapper
+    ) {
+      this.statement = Objects.requireNonNull(statement);
+      this.resultSet = Objects.requireNonNull(resultSet);
+      this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    @Override
+    public boolean hasNext() {
+      try {
+        return this.resultSet.next();
+      } catch (final SQLException e) {
+        this.close();
+        throw new DatabaseOperationRuntimeException(getErrorCode(e), e);
+      }
+    }
+
+    @Override
+    public T next() {
+      try {
+        return this.mapper.apply(this.resultSet);
+      } catch (final SQLException e) {
+        this.close();
+        throw new DatabaseOperationRuntimeException(getErrorCode(e), e);
+      }
+    }
+
+    private void close() {
+      try {
+        try {
+          this.statement.close();
+        } catch (final SQLException ignored) {
+        }
+        this.resultSet.close();
+      } catch (final SQLException e) {
+        throw new DatabaseOperationRuntimeException(getErrorCode(e), e);
+      }
+    }
+  }
+
+  private interface RowMapper<T> {
+    T apply(ResultSet resultSet) throws SQLException;
   }
 }

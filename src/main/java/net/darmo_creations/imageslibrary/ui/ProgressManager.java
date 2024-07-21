@@ -16,6 +16,13 @@ public interface ProgressManager {
   void notifyProgress(@NotNull String messageKey, int total, int progress);
 
   /**
+   * Notify this object that the current progress is undeterminate.
+   *
+   * @param messageKey A translation key to the current progress’ message.
+   */
+  void notifyIndeterminateProgress(@NotNull String messageKey);
+
+  /**
    * Indicates whether the current process should be cancelled.
    *
    * @return True if cancellation is demanded, false otherwise.

@@ -51,6 +51,14 @@ public class ProgressDialog extends DialogBase<Void> implements ProgressManager 
   }
 
   @Override
+  public void notifyIndeterminateProgress(@NotNull String messageKey) {
+    final Language language = this.config.language();
+    this.messageLabel.setText(language.translate(messageKey));
+    this.progressLabel.setText(null);
+    this.progressBar.setProgress(-1);
+  }
+
+  @Override
   public boolean isCancelled() {
     return this.cancelled;
   }

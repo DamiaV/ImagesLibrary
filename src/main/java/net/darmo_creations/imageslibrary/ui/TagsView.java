@@ -22,9 +22,7 @@ public class TagsView extends VBox {
   private final Set<EditTagsTypeListener> editTagsTypeListeners = new HashSet<>();
 
   private final Config config;
-  private final Set<Tag> tags;
-  private final Map<Integer, Integer> tagsCounts;
-  private final Set<TagType> tagTypes;
+  private final DatabaseConnection db;
 
   private final TabPane tabPane = new TabPane();
   private final TextField searchField = new TextField();
@@ -33,21 +31,12 @@ public class TagsView extends VBox {
   /**
    * Create a new tag tree view.
    *
-   * @param config     The app’s config.
-   * @param tags       A view to the available tags.
-   * @param tagsCounts A view to the existing tags use counts.
-   * @param tagTypes   A view to the available tag types.
+   * @param config The app’s config.
+   * @param db     The database to pull tags from.
    */
-  public TagsView(
-      final @NotNull Config config,
-      final @NotNull Set<Tag> tags,
-      final @NotNull Map<Integer, Integer> tagsCounts,
-      final @NotNull Set<TagType> tagTypes
-  ) {
+  public TagsView(final @NotNull Config config, @NotNull final DatabaseConnection db) {
     this.config = config;
-    this.tags = Objects.requireNonNull(tags);
-    this.tagsCounts = Objects.requireNonNull(tagsCounts);
-    this.tagTypes = Objects.requireNonNull(tagTypes);
+    this.db = db;
 
     this.setMinWidth(200);
 
@@ -112,12 +101,12 @@ public class TagsView extends VBox {
     };
 
     createTab.accept(null);
-    this.tagTypes.stream()
+    this.db.getAllTagTypes().stream()
         .sorted(Comparator.comparing(TagType::label))
         .forEach(createTab);
-    this.tags.forEach(tag -> {
+    this.db.getAllTags().forEach(tag -> {
       final var tab = tagTypeTabs.get(tag.type().orElse(null));
-      tabTags.get(tab).add(new TagsTab.TagEntry(tag, this.tagsCounts.get(tag.id()), this.config));
+      tabTags.get(tab).add(new TagsTab.TagEntry(tag, this.db.getAllTagsCounts().get(tag.id()), this.config));
     });
     tabTags.forEach(TagsTab::setTags);
     this.hookDragAndDrop();
@@ -144,7 +133,7 @@ public class TagsView extends VBox {
           final var tags = ((List<Integer>) event.getDragboard().getContent(TagsTab.DRAG_DATA_FORMAT))
               .stream()
               // Remove tags whose type is already the target one
-              .flatMap(id -> this.tags.stream()
+              .flatMap(id -> this.db.getAllTags().stream()
                   .filter(tag -> tag.id() == id && !tag.type().equals(targetTagType))
                   .findFirst()
                   .stream())

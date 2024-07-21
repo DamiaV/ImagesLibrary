@@ -93,12 +93,7 @@ public class AppController implements ResultsView.SearchListener {
     this.imageViewerDialog = new ImageViewerDialog(config);
     this.manageSavedQueriesDialog = new ManageSavedQueriesDialog(config, this.queriesManager);
 
-    this.tagsView = new TagsView(
-        config,
-        this.db.getAllTags(),
-        this.db.getAllTagsCounts(),
-        this.db.getAllTagTypes()
-    );
+    this.tagsView = new TagsView(config, this.db);
     this.resultsView = new ResultsView(config, db, this.queriesManager);
     final Scene scene = new Scene(new VBox(this.createMenuBar(), this.createToolBar(), this.createContent()));
     stage.setScene(scene);

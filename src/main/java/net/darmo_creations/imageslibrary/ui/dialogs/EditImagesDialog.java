@@ -50,9 +50,6 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private boolean areTagsValid = false;
 
   private final DatabaseConnection db;
-  // Local caches to avoid creating unnecessary new set views.
-  private final Set<TagType> tagTypes;
-  private final Set<Tag> allTags;
 
   private final Queue<Picture> pictures = new LinkedList<>();
   private final Set<Tag> currentPictureTags = new HashSet<>();
@@ -65,8 +62,6 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   public EditImagesDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
     super(config, "edit_images", true, ButtonTypes.FINISH, ButtonTypes.SKIP, ButtonTypes.NEXT, ButtonTypes.CANCEL);
     this.db = db;
-    this.tagTypes = db.getAllTagTypes();
-    this.allTags = db.getAllTags();
 
     this.similarImagesDialog = new SimilarImagesDialog(config, db);
     this.similarImagesDialog.addTagCopyListener(this::onCopyTags);
@@ -76,7 +71,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         new InlineCssTextArea(),
         this.db.getAllTags(),
         Tag::label,
-        new TagListSyntaxHighlighter(this.allTags, this.tagTypes),
+        new TagListSyntaxHighlighter(db.getAllTags(), db.getAllTagTypes()),
         Function.identity()
     );
 
@@ -177,7 +172,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       if (!newValue.isBlank()) {
         this.areTagsValid = false;
         try {
-          this.parseTags();
+          JavaFxUtils.parseTags(this.tagsField, this.db);
           this.areTagsValid = true;
         } catch (final TagParseException e) {
           this.tagsErrorPopup.setText(language.translate(e.translationKey(), e.formatArgs()));
