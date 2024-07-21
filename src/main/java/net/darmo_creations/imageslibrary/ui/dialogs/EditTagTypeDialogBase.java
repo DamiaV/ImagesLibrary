@@ -42,21 +42,15 @@ public abstract class EditTagTypeDialogBase extends DialogBase<TagType> {
     final Language language = this.config.language();
 
     this.labelField.textProperty().addListener((observable, oldValue, newValue) -> {
-      final var styleClass = this.labelField.getStyleClass();
       if (!TagTypeLike.isLabelValid(newValue)) {
         this.labelErrorPopup.setText(language.translate("dialog.edit_tag_type.label.invalid"));
         this.showLabelErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
         this.isLabelValid = false;
       } else if (this.isLabelAlreadyUsed(newValue)) {
         this.labelErrorPopup.setText(language.translate("dialog.edit_tag_type.label.duplicate"));
         this.showLabelErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
         this.isLabelValid = false;
       } else {
-        styleClass.remove("invalid");
         this.labelErrorPopup.hide();
         this.isLabelValid = true;
       }
@@ -64,21 +58,15 @@ public abstract class EditTagTypeDialogBase extends DialogBase<TagType> {
     });
 
     this.symbolField.textProperty().addListener((observable, oldValue, newValue) -> {
-      final var styleClass = this.symbolField.getStyleClass();
       if (newValue.length() != 1 || !TagTypeLike.isSymbolValid(newValue.charAt(0))) {
         this.symbolErrorPopup.setText(language.translate("dialog.edit_tag_type.symbol.invalid"));
         this.showSymbolErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
         this.isSymbolValid = false;
       } else if (this.isSymbolAlreadyUsed(newValue)) {
         this.symbolErrorPopup.setText(language.translate("dialog.edit_tag_type.symbol.duplicate"));
         this.showSymbolErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
         this.isSymbolValid = false;
       } else {
-        styleClass.remove("invalid");
         this.symbolErrorPopup.hide();
         this.isSymbolValid = true;
       }
@@ -106,11 +94,13 @@ public abstract class EditTagTypeDialogBase extends DialogBase<TagType> {
   }
 
   private void showLabelErrorPopup() {
-    this.labelErrorPopup.show(this.labelField);
+    if (this.getDialogPane().getScene() != null && this.stage().isShowing()) // Fix an NPE that sometimes occur
+      this.labelErrorPopup.show(this.labelField);
   }
 
   private void showSymbolErrorPopup() {
-    this.symbolErrorPopup.show(this.symbolField);
+    if (this.getDialogPane().getScene() != null && this.stage().isShowing()) // Fix an NPE that sometimes occur
+      this.symbolErrorPopup.show(this.symbolField);
   }
 
   protected Optional<TagTypeUpdate> getTagTypeUpdate() {

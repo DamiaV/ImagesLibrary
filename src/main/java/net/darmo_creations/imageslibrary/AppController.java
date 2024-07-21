@@ -30,6 +30,7 @@ public class AppController implements ResultsView.SearchListener {
   private final SavedQueriesManager queriesManager;
 
   private final EditImagesDialog editImagesDialog;
+  private final CreateTagDialog createTagDialog;
   private final CreateTagTypeDialog createTagTypeDialog;
   private final EditTagTypeDialog editTagTypeDialog;
   private final EditTagDialog editTagDialog;
@@ -83,6 +84,7 @@ public class AppController implements ResultsView.SearchListener {
     stage.setMaximized(true);
 
     this.editImagesDialog = new EditImagesDialog(config, db);
+    this.createTagDialog = new CreateTagDialog(config, db);
     this.createTagTypeDialog = new CreateTagTypeDialog(config, db);
     this.editTagTypeDialog = new EditTagTypeDialog(config, db);
     this.editTagDialog = new EditTagDialog(config, db);
@@ -361,6 +363,7 @@ public class AppController implements ResultsView.SearchListener {
     final SplitPane splitPane = new SplitPane();
     this.tagsView.addTagClickListener(this::onTagClick);
     this.tagsView.addTagSelectionListener(this::onTagSelectionChange);
+    this.tagsView.addCreateTagListener(this::onCreateTag);
     this.tagsView.addEditTagTypeListener(this::onEditTagType);
     this.tagsView.addDeleteTagTypeListener(this::onDeleteTagType);
     this.tagsView.addCreateTagTypeListener(this::onCreateTagType);
@@ -475,7 +478,7 @@ public class AppController implements ResultsView.SearchListener {
     }
   }
 
-  private void onTagClick(Tag tag) {
+  private void onTagClick(@NotNull Tag tag) {
     this.resultsView.searchTag(tag);
   }
 
@@ -510,7 +513,15 @@ public class AppController implements ResultsView.SearchListener {
     this.deleteButton.setTooltip(new Tooltip(language.translate("toolbar.edit.delete_tags")));
   }
 
-  private void onEditTagType(TagType tagType) {
+  private void onCreateTag(TagType tagType) {
+    this.createTagDialog.reset();
+    this.createTagDialog.showAndWait().ifPresent(tag -> {
+      this.tagsView.refresh();
+      this.tagsView.selectTagType(tagType);
+    });
+  }
+
+  private void onEditTagType(@NotNull TagType tagType) {
     this.editTagTypeDialog.setTagType(tagType);
     this.editTagTypeDialog.showAndWait().ifPresent(type -> {
       this.tagsView.refresh();
@@ -518,7 +529,7 @@ public class AppController implements ResultsView.SearchListener {
     });
   }
 
-  private void onDeleteTagType(TagType tagType) {
+  private void onDeleteTagType(@NotNull TagType tagType) {
     final boolean proceed = Alerts.confirmation(
         this.config,
         "alert.delete_tag_type.header",

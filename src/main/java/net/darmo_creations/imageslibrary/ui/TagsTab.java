@@ -22,6 +22,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
 
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final Set<TagSelectionListener> tagSelectionListeners = new HashSet<>();
+  private final Set<CreateTagListener> createTagListeners = new HashSet<>();
   private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
   private final Set<DeleteTagTypeListener> deleteTagTypeListeners = new HashSet<>();
   private final Set<CreateTagTypeListener> createTagTypeListeners = new HashSet<>();
@@ -60,6 +61,12 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
 
     final HBox top = new HBox(5, this.label);
     top.setPadding(new Insets(5, 2, 5, 5));
+
+    final Button createTagButton = new Button(null, theme.getIcon(Icon.CREATE_TAG, Icon.Size.SMALL));
+    createTagButton.setOnAction(event -> this.createTagListeners.forEach(l -> l.onCreateTag(tagType)));
+    createTagButton.setTooltip(new Tooltip(language.translate("tags_tab.create_tag")));
+    top.getChildren().addAll(new HorizontalSpacer(), createTagButton);
+
     if (tagType != null) {
       final Button editTagTypeButton = new Button(null, theme.getIcon(Icon.EDIT_TAG_TYPE, Icon.Size.SMALL));
       editTagTypeButton.setOnAction(e -> this.editTagTypeListeners.forEach(l -> l.onEditTagType(tagType)));
@@ -67,14 +74,12 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
       final Button deleteTagTypeButton = new Button(null, theme.getIcon(Icon.DELETE_TAG_TYPE, Icon.Size.SMALL));
       deleteTagTypeButton.setOnAction(e -> this.deleteTagTypeListeners.forEach(l -> l.onDeleteTagType(tagType)));
       deleteTagTypeButton.setTooltip(new Tooltip(language.translate("tags_tab.delete")));
-      top.getChildren().addAll(new HorizontalSpacer(), editTagTypeButton, deleteTagTypeButton);
+      top.getChildren().addAll(editTagTypeButton, deleteTagTypeButton);
     }
 
     final Button createTagTypeButton = new Button(null, theme.getIcon(Icon.CREATE_TAG_TYPE, Icon.Size.SMALL));
     createTagTypeButton.setOnAction(e -> this.createTagTypeListeners.forEach(CreateTagTypeListener::onCreateTagType));
     createTagTypeButton.setTooltip(new Tooltip(language.translate("tags_tab.create")));
-    if (tagType == null)
-      top.getChildren().add(new HorizontalSpacer());
     top.getChildren().add(createTagTypeButton);
 
     VBox.setVgrow(this.tagsList, Priority.ALWAYS);
@@ -146,6 +151,10 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
 
   public void addTagSelectionListener(@NotNull TagSelectionListener listener) {
     this.tagSelectionListeners.add(Objects.requireNonNull(listener));
+  }
+
+  public void addCreateTagListener(@NotNull CreateTagListener listener) {
+    this.createTagListeners.add(Objects.requireNonNull(listener));
   }
 
   public void addEditTagTypeListener(@NotNull EditTagTypeListener listener) {

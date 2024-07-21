@@ -53,21 +53,15 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
     final Language language = this.config.language();
 
     this.labelField.textProperty().addListener((observable, oldValue, newValue) -> {
-      final var styleClass = this.labelField.getStyleClass();
       if (!TagLike.isLabelValid(newValue)) {
         this.labelErrorPopup.setText(language.translate("dialog.edit_tag.label.invalid"));
         this.showLabelErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
         this.isLabelValid = false;
       } else if (this.isLabelAlreadyUsed(newValue)) {
         this.labelErrorPopup.setText(language.translate("dialog.edit_tag.label.duplicate"));
         this.showLabelErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
         this.isLabelValid = false;
       } else {
-        styleClass.remove("invalid");
         this.labelErrorPopup.hide();
         this.isLabelValid = true;
       }
@@ -84,7 +78,6 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
     this.refreshTypesCombo();
 
     this.definitionField.textProperty().addListener((observable, oldValue, newValue) -> {
-      final var styleClass = this.tagTypeComboBox.getStyleClass();
       if (!newValue.isBlank()) {
         this.isDefinitionValid = false;
         try {
@@ -100,14 +93,10 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
       } else
         this.isDefinitionValid = true;
 
-      if (!this.isDefinitionValid) {
+      if (!this.isDefinitionValid)
         this.showDefinitionErrorPopup();
-        if (!styleClass.contains("invalid"))
-          styleClass.add("invalid");
-      } else {
+      else
         this.definitionErrorPopup.hide();
-        styleClass.remove("invalid");
-      }
       this.updateState();
     });
 
@@ -135,11 +124,13 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
   }
 
   private void showLabelErrorPopup() {
-    this.labelErrorPopup.show(this.labelField);
+    if (this.getDialogPane().getScene() != null && this.stage().isShowing()) // Fix an NPE that sometimes occur
+      this.labelErrorPopup.show(this.labelField);
   }
 
   private void showDefinitionErrorPopup() {
-    this.definitionErrorPopup.show(this.definitionField);
+    if (this.getDialogPane().getScene() != null && this.stage().isShowing()) // Fix an NPE that sometimes occur
+      this.definitionErrorPopup.show(this.definitionField);
   }
 
   protected Optional<TagUpdate> getTagUpdate() {

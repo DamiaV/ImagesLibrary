@@ -16,6 +16,7 @@ import java.util.function.*;
 public class TagsView extends VBox {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final Set<TagSelectionListener> tagSelectionListeners = new HashSet<>();
+  private final Set<CreateTagListener> createTagListeners = new HashSet<>();
   private final Set<EditTagTypeListener> editTagTypeListeners = new HashSet<>();
   private final Set<DeleteTagTypeListener> deleteTagTypeListeners = new HashSet<>();
   private final Set<CreateTagTypeListener> createTagTypeListeners = new HashSet<>();
@@ -38,7 +39,7 @@ public class TagsView extends VBox {
     this.config = config;
     this.db = db;
 
-    this.setMinWidth(200);
+    this.setMinWidth(250);
 
     final Language language = config.language();
     final Theme theme = config.theme();
@@ -95,6 +96,7 @@ public class TagsView extends VBox {
       tabTags.put(tab, new HashSet<>());
       tab.addTagClickListener(this::onTagClick);
       tab.addTagSelectionListener(this::onTagSelectionChange);
+      tab.addCreateTagListener(this::onCreateTag);
       tab.addEditTagTypeListener(this::onEditTagType);
       tab.addDeleteTagTypeListener(this::onDeleteTagType);
       tab.addCreateTagTypeListener(this::onCreateTagType);
@@ -167,6 +169,10 @@ public class TagsView extends VBox {
     this.tagSelectionListeners.add(Objects.requireNonNull(listener));
   }
 
+  public void addCreateTagListener(@NotNull CreateTagListener listener) {
+    this.createTagListeners.add(Objects.requireNonNull(listener));
+  }
+
   public void addEditTagTypeListener(@NotNull EditTagTypeListener listener) {
     this.editTagTypeListeners.add(Objects.requireNonNull(listener));
   }
@@ -205,6 +211,10 @@ public class TagsView extends VBox {
 
   private void onTagSelectionChange(final @NotNull List<Tag> tags) {
     this.tagSelectionListeners.forEach(listener -> listener.onSelectionChanged(tags));
+  }
+
+  private void onCreateTag(TagType tagType) {
+    this.createTagListeners.forEach(l -> l.onCreateTag(tagType));
   }
 
   private void onEditTagType(@NotNull TagType tagType) {

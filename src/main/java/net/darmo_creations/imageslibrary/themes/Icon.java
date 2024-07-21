@@ -17,6 +17,7 @@ public enum Icon {
   DELETE_IMAGES("picture_delete"),
   EDIT_TAG("tag_blue_edit"),
   DELETE_TAGS("tag_blue_delete"),
+  CREATE_TAG("tag_blue_add"),
   EDIT_TAG_TYPE("pencil"),
   DELETE_TAG_TYPE("delete"),
   CREATE_TAG_TYPE("add"),
