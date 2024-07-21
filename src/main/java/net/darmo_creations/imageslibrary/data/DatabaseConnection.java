@@ -391,6 +391,19 @@ public final class DatabaseConnection implements AutoCloseable {
     return this.tagsCountsView;
   }
 
+  /**
+   * Get a the definitions of all compound tags.
+   *
+   * @return A new {@link Map} associating each compound tag name to its definition.
+   */
+  @Contract(pure = true, value = "-> new")
+  @Unmodifiable
+  public Map<String, String> getTagDefinitions() {
+    return this.getAllTags().stream()
+        .filter(tag -> tag.definition().isPresent())
+        .collect(Collectors.toMap(Tag::label, tag -> tag.definition().get()));
+  }
+
   @SQLite
   public static final String INSERT_TAGS_QUERY = """
       INSERT INTO tags (label, type_id, definition)

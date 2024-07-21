@@ -21,7 +21,6 @@ import org.jetbrains.annotations.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
-import java.util.stream.*;
 
 public class ResultsView extends VBox implements ClickableListCellFactory.ClickListener<ResultsView.PictureEntry> {
   private static final int MAX_HISTORY_SIZE = 20;
@@ -305,13 +304,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       return;
 
     final String query = queryString.get();
-    final var tagDefinitions = this.db.getAllTags().stream()
-        .filter(tag -> tag.definition().isPresent())
-        .collect(Collectors.toMap(Tag::label, tag -> tag.definition().get()));
     final Language language = this.config.language();
     final TagQuery tagQuery;
     try {
-      tagQuery = TagQueryParser.parse(query, tagDefinitions, DatabaseConnection.PSEUDO_TAGS, this.config);
+      tagQuery = TagQueryParser.parse(query, this.db.getTagDefinitions(), DatabaseConnection.PSEUDO_TAGS, this.config);
     } catch (final TagQueryTooLargeException e) {
       this.showPopup(language.translate("image_search_field.recursive_loop_error"));
       return;

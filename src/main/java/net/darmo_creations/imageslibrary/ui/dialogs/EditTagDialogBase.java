@@ -88,7 +88,7 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
       if (!newValue.isBlank()) {
         this.isDefinitionValid = false;
         try {
-          TagQueryParser.parse(newValue, Map.of(), DatabaseConnection.PSEUDO_TAGS, this.config);
+          TagQueryParser.parse(newValue, this.db.getTagDefinitions(), DatabaseConnection.PSEUDO_TAGS, this.config);
           this.isDefinitionValid = true;
         } catch (final InvalidPseudoTagException e) {
           this.definitionErrorPopup.setText(language.translate("image_search_field.invalid_pseudo_tag", new FormatArg("tag", e.pseudoTag())));
