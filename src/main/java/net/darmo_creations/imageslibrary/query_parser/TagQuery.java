@@ -41,14 +41,6 @@ public final class TagQuery {
   }
 
   /**
-   * This query’s underlying formula.
-   * Package-only access for tests.
-   */
-  Formula formula() {
-    return this.formula;
-  }
-
-  /**
    * Return the SQL query equivalent of this tag query.
    *
    * @return An {@link Optional} containing the SQL query,
@@ -253,5 +245,17 @@ public final class TagQuery {
   @Override
   public String toString() {
     return this.formula.toString();
+  }
+
+  /*
+   * For tests
+   */
+
+  /**
+   * This query’s underlying formula.
+   * Package-only access for tests.
+   */
+  Formula formula() {
+    return this.formula;
   }
 }
