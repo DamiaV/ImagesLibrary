@@ -55,8 +55,8 @@ public class AboutDialog extends DialogBase<Void> {
     HBox.setHgrow(vBox, Priority.ALWAYS);
 
     final ImageView logo = new ImageView(config.theme().getAppIcon().orElse(null));
-    logo.setFitHeight(100);
-    logo.setFitWidth(100);
+    logo.setFitHeight(32);
+    logo.setFitWidth(32);
 
     final HBox content = new HBox(10, logo, vBox);
     content.setPrefWidth(600);
