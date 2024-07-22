@@ -128,6 +128,14 @@ public class ManageSavedQueriesDialog extends DialogBase<Void> {
   }
 
   private void deletedSelectedItems() {
+    final boolean proceed = Alerts.confirmation(
+        this.config,
+        "alert.delete_queries.header",
+        null,
+        null
+    );
+    if (!proceed)
+      return;
     this.changes = true;
     this.tableView.getItems().removeAll(this.tableView.getSelectionModel().getSelectedItems());
   }
