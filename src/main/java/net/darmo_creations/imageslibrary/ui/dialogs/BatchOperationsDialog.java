@@ -22,7 +22,8 @@ import java.util.stream.*;
 /**
  * This dialog allows applying batches of operations to many images at once.
  */
-public class BatchOperationsDialog extends DialogBase<Boolean> implements OperationView.OperationUpdateListener {
+public class BatchOperationsDialog extends DialogBase<Boolean>
+    implements OperationView.OperationUpdateListener, ClickableListCellFactory.ClickListener<String> {
   private final RadioButton applyToSelectedRadio = new RadioButton();
   private final RadioButton applyToResultsRadio = new RadioButton();
   private final RadioButton applyToAllRadio = new RadioButton();
@@ -113,6 +114,7 @@ public class BatchOperationsDialog extends DialogBase<Boolean> implements Operat
 
     this.operationBatchList.setPrefHeight(200);
     VBox.setVgrow(this.operationBatchList, Priority.ALWAYS);
+    this.savedOperationBatchesList.setCellFactory(param -> ClickableListCellFactory.forListener(this));
     this.savedOperationBatchesList.setPrefHeight(200);
     this.savedOperationBatchesList.getSelectionModel().selectedItemProperty()
         .addListener((observable, oldValue, newValue) -> this.updateButtons());
@@ -465,6 +467,15 @@ public class BatchOperationsDialog extends DialogBase<Boolean> implements Operat
         this.config.language().translate("alert.operation_name.default_name"),
         null
     );
+  }
+
+  @Override
+  public void onItemClick(@NotNull String item) {
+  }
+
+  @Override
+  public void onItemDoubleClick(@NotNull String item) {
+    this.loadSelectedOperationBatch();
   }
 
   private void updateButtons() {
