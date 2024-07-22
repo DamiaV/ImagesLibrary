@@ -1078,17 +1078,18 @@ public final class DatabaseConnection implements AutoCloseable {
     final var generatedIds = this.insertTagsNoCommit(toInsert);
 
     // Remove tags
+    final Set<Tag> removedTags = new HashSet<>();
     try (final var statement = this.connection.prepareStatement(REMOVE_TAG_FROM_IMAGE_QUERY)) {
       statement.setInt(1, pictureUpdate.id());
       for (final var toRemove : pictureUpdate.tagsToRemove()) {
         final int tagId = toRemove.id();
         this.ensureInDatabase(toRemove);
         statement.setInt(2, tagId);
-        statement.executeUpdate();
+        if (statement.executeUpdate() != 0)
+          removedTags.add(toRemove);
       }
     }
 
-    final Set<Tag> removedTags = new HashSet<>();
     for (int i = 0, generatedIdsSize = generatedIds.size(); i < generatedIdsSize; i++) {
       final var generatedId = generatedIds.get(i);
       final var tagUpdate = toInsert.get(i);
