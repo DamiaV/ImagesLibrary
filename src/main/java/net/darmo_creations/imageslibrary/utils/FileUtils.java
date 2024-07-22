@@ -6,6 +6,7 @@ import javafx.scene.image.*;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
+import net.darmo_creations.imageslibrary.data.*;
 import org.jetbrains.annotations.*;
 
 import javax.imageio.*;
@@ -174,4 +175,19 @@ public class FileUtils {
    */
   @Unmodifiable
   private static final List<String> JAVAFX_FILE_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif");
+
+  /**
+   * Delete the parent directory of the given picture if it is empty.
+   *
+   * @param picture The picture whose parent directory is to be deleted.
+   */
+  public static void deleteDirectoryIfEmpty(@NotNull Picture picture) {
+    final Path sourceDir = picture.path().getParent();
+    try (final var stream = Files.newDirectoryStream(sourceDir)) {
+      if (!stream.iterator().hasNext())
+        Files.delete(sourceDir);
+    } catch (final IOException | SecurityException e) {
+      App.logger().error("Failed to delete empty source directory {}", sourceDir, e);
+    }
+  }
 }

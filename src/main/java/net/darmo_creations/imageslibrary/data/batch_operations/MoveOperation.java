@@ -1,10 +1,9 @@
 package net.darmo_creations.imageslibrary.data.batch_operations;
 
-import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.data.*;
+import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
 
-import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
@@ -42,15 +41,8 @@ public final class MoveOperation extends Operation {
   protected void execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
     final Path picPath = picture.path();
     db.moveOrRenamePicture(picture, this.targetDirectory.resolve(picPath.getFileName()), this.overwriteTarget);
-    if (this.deleteEmptySourceDirectory) {
-      final Path sourceDir = picPath.getParent();
-      try (final var stream = Files.newDirectoryStream(sourceDir)) {
-        if (!stream.iterator().hasNext())
-          Files.delete(sourceDir);
-      } catch (final IOException | SecurityException e) {
-        App.logger().error("Failed to delete empty source directory {}", sourceDir, e);
-      }
-    }
+    if (this.deleteEmptySourceDirectory)
+      FileUtils.deleteDirectoryIfEmpty(picture);
   }
 
   public Path targetPath() {
@@ -72,7 +64,7 @@ public final class MoveOperation extends Operation {
 
   @Override
   public String serialize() {
-    return "%b,%b,%s".formatted(
+    return "%s,%s,%s".formatted(
         this.deleteEmptySourceDirectory ? "1" : "0",
         this.overwriteTarget ? "1" : "0",
         this.targetDirectory

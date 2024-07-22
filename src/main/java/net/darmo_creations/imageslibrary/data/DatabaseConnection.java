@@ -1252,7 +1252,6 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param fromDisk If true, the associated files will be deleted from the disk.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  // TODO option to delete directory if it ends up empty
   public void deletePicture(final @NotNull Picture picture, boolean fromDisk) throws DatabaseOperationException {
     this.ensureInDatabase(picture);
     if (fromDisk) {

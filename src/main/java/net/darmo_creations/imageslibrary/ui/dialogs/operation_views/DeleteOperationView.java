@@ -2,6 +2,7 @@ package net.darmo_creations.imageslibrary.ui.dialogs.operation_views;
 
 import javafx.scene.*;
 import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.data.batch_operations.*;
@@ -14,6 +15,7 @@ import java.util.*;
  */
 public class DeleteOperationView extends OperationView<DeleteOperation> {
   private CheckBox deleteFromDiskCheckBox;
+  private CheckBox deleteEmptySourceDirectoryCheckBox;
 
   /**
    * Create a new view.
@@ -31,6 +33,7 @@ public class DeleteOperationView extends OperationView<DeleteOperation> {
   ) {
     super(operation, expanded, db, config);
     this.deleteFromDiskCheckBox.setSelected(operation != null && operation.deleteFromDisk());
+    this.deleteEmptySourceDirectoryCheckBox.setSelected(operation != null && operation.deleteEmptySourceDirectory());
   }
 
   @Override
@@ -40,11 +43,29 @@ public class DeleteOperationView extends OperationView<DeleteOperation> {
 
   @Override
   protected Optional<Node> setupContent(@NotNull Config config) {
+    final Language language = config.language();
+
     this.deleteFromDiskCheckBox = new CheckBox();
-    this.deleteFromDiskCheckBox.setText(config.language().translate("operation_view.delete.from_disk"));
+    this.deleteFromDiskCheckBox.setText(language.translate("operation_view.delete.from_disk"));
     this.deleteFromDiskCheckBox.selectedProperty()
         .addListener((observable, oldValue, newValue) -> this.notifyUpdateListeners());
-    return Optional.of(this.deleteFromDiskCheckBox);
+    this.deleteFromDiskCheckBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
+      this.deleteEmptySourceDirectoryCheckBox.setDisable(newValue);
+      if (newValue)
+        this.deleteEmptySourceDirectoryCheckBox.setSelected(false);
+    });
+
+    this.deleteEmptySourceDirectoryCheckBox = new CheckBox(
+        language.translate("operation_view.move.delete_source_directory_if_empty")
+    );
+    this.deleteEmptySourceDirectoryCheckBox.selectedProperty()
+        .addListener((observable, oldValue, newValue) -> this.notifyUpdateListeners());
+
+    return Optional.of(new VBox(
+        5,
+        this.deleteFromDiskCheckBox,
+        this.deleteEmptySourceDirectoryCheckBox
+    ));
   }
 
   @Override
@@ -54,6 +75,10 @@ public class DeleteOperationView extends OperationView<DeleteOperation> {
 
   @Override
   public DeleteOperation getOperation() {
-    return new DeleteOperation(this.deleteFromDiskCheckBox.isSelected(), this.getCondition().orElse(null));
+    return new DeleteOperation(
+        this.deleteFromDiskCheckBox.isSelected(),
+        this.deleteEmptySourceDirectoryCheckBox.isSelected(),
+        this.getCondition().orElse(null)
+    );
   }
 }
