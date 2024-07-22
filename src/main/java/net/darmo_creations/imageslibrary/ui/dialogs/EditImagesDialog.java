@@ -312,13 +312,13 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     } else
       this.tagsField.refreshHighlighting();
     this.updateState();
-    List<Pair<Picture, Float>> similarPictures;
-    try {
-      similarPictures = this.db.getSimilarImages(this.currentPicture.hash(), this.currentPicture);
-    } catch (final DatabaseOperationException e) {
-      App.logger().error("Error fetching similar pictures", e);
-      similarPictures = List.of();
-    }
+    List<Pair<Picture, Float>> similarPictures = List.of();
+    if (this.currentPicture.hash().isPresent())
+      try {
+        similarPictures = this.db.getSimilarImages(this.currentPicture.hash().get(), this.currentPicture);
+      } catch (final DatabaseOperationException e) {
+        App.logger().error("Error fetching similar pictures", e);
+      }
     this.viewSimilarImagesButton.setDisable(similarPictures.isEmpty());
     this.similarImagesDialog.setPictures(similarPictures);
   }
@@ -387,15 +387,11 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     if (name.isEmpty() || !App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(Path.of(name.get()))))
       return Optional.empty();
 
-    Hash hash = new Hash(0);
+    Optional<Hash> hash = Optional.empty();
     if (this.insert)
       hash = this.currentPicture.hash();
     else if (recomputeHash)
-      try {
-        hash = Hash.computeForFile(this.currentPicture.path());
-      } catch (final Exception e) {
-        App.logger().error("Error computing hash for file {}", this.currentPicture.path(), e);
-      }
+      hash = Hash.computeForFile(this.currentPicture.path());
 
     return Optional.of(new PictureUpdate(
         this.insert ? 0 : this.currentPicture.id(),

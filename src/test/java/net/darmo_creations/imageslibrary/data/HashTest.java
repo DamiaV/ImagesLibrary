@@ -4,8 +4,8 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.params.provider.*;
 
-import java.io.*;
 import java.nio.file.*;
+import java.util.*;
 import java.util.stream.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -73,17 +73,21 @@ class HashTest {
   }
 
   @Test
-  void computeForFile_identicalForSameFile() throws IOException {
+  void computeForFile_identicalForSameFile() {
     final Path path = Path.of("test_file.png");
-    final Hash hash1 = Hash.computeForFile(path);
-    final Hash hash2 = Hash.computeForFile(path);
+    final Optional<Hash> hash1 = Hash.computeForFile(path);
+    final Optional<Hash> hash2 = Hash.computeForFile(path);
+    assertTrue(hash1.isPresent());
+    assertTrue(hash2.isPresent());
     assertEquals(hash1, hash2);
   }
 
   @Test
-  void computeForFile_differentForDifferentImages() throws IOException {
-    final Hash hash1 = Hash.computeForFile(Path.of("test_file.png"));
-    final Hash hash2 = Hash.computeForFile(Path.of("test_file_2.png"));
+  void computeForFile_differentForDifferentImages() {
+    final Optional<Hash> hash1 = Hash.computeForFile(Path.of("test_file.png"));
+    final Optional<Hash> hash2 = Hash.computeForFile(Path.of("test_file_2.png"));
+    assertTrue(hash1.isPresent());
+    assertTrue(hash2.isPresent());
     assertNotEquals(hash1, hash2);
   }
 }

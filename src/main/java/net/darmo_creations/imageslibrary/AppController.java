@@ -245,6 +245,17 @@ public class AppController implements ResultsView.SearchListener {
     showNoFileMenuItem.setOnAction(e -> this.onShowImagesWithNoFile());
     showNoFileMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
     this.menuItemStates.put(showNoFileMenuItem, showNoFileMenuItem.isDisable());
+    final MenuItem showNoHashMenuItem = new MenuItem(
+        language.translate("menu.queries.show_images_with_no_hash"),
+        theme.getIcon(Icon.SEARCH_NO_HASH, Icon.Size.SMALL)
+    );
+    showNoHashMenuItem.setOnAction(e -> this.onShowImagesWithNoHash());
+    showNoHashMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
+    this.menuItemStates.put(showNoHashMenuItem, showNoHashMenuItem.isDisable());
+    this.savedQueriesMenu = new Menu(
+        language.translate("menu.queries.saved_queries"),
+        theme.getIcon(Icon.SAVED_QUERIES, Icon.Size.SMALL)
+    );
     this.savedQueriesMenu = new Menu(
         language.translate("menu.queries.saved_queries"),
         theme.getIcon(Icon.SAVED_QUERIES, Icon.Size.SMALL)
@@ -265,6 +276,7 @@ public class AppController implements ResultsView.SearchListener {
     queriesMenu.getItems().addAll(
         showNoTagsMenuItem,
         showNoFileMenuItem,
+        showNoHashMenuItem,
         new SeparatorMenuItem(),
         this.savedQueriesMenu,
         new SeparatorMenuItem(),
@@ -351,6 +363,9 @@ public class AppController implements ResultsView.SearchListener {
     final Button showNoFileButton = new Button(null, theme.getIcon(Icon.SEARCH_NO_FILE, Icon.Size.BIG));
     showNoFileButton.setOnAction(e -> this.onShowImagesWithNoFile());
     showNoFileButton.setTooltip(new Tooltip(language.translate("toolbar.queries.show_images_with_no_file")));
+    final Button showNoHashButton = new Button(null, theme.getIcon(Icon.SEARCH_NO_HASH, Icon.Size.BIG));
+    showNoHashButton.setOnAction(e -> this.onShowImagesWithNoHash());
+    showNoHashButton.setTooltip(new Tooltip(language.translate("toolbar.queries.show_images_with_no_hash")));
 
     final Button helpButton = new Button(null, theme.getIcon(Icon.HELP, Icon.Size.BIG));
     helpButton.setOnAction(e -> this.onHelp());
@@ -368,6 +383,7 @@ public class AppController implements ResultsView.SearchListener {
         new Separator(),
         showNoTagsButton,
         showNoFileButton,
+        showNoHashButton,
         new Separator(),
         this.slideshowButton,
         this.slideshowSelectedButton,
@@ -475,7 +491,7 @@ public class AppController implements ResultsView.SearchListener {
           if (this.db.isFileRegistered(fileOrDir))
             skipped.add(fileOrDir);
           else
-            pictures.add(new Picture(0, fileOrDir, Hash.computeForFile(fileOrDir)));
+            pictures.add(new Picture(0, fileOrDir, Hash.computeForFile(fileOrDir).orElse(null)));
         } catch (final Exception e) {
           errors.add(fileOrDir);
         }
@@ -807,14 +823,21 @@ public class AppController implements ResultsView.SearchListener {
    * Launch a search for images with no tags.
    */
   private void onShowImagesWithNoTags() {
-    this.resultsView.searchImagesWithNoTags();
+    this.resultsView.searchImagesWithFlag("#no_tags");
   }
 
   /**
    * Launch a search for images with no file.
    */
   private void onShowImagesWithNoFile() {
-    this.resultsView.searchImagesWithNoFile();
+    this.resultsView.searchImagesWithFlag("#no_file");
+  }
+
+  /**
+   * Launch a search for images with no hash.
+   */
+  private void onShowImagesWithNoHash() {
+    this.resultsView.searchImagesWithFlag("#no_hash");
   }
 
   /**

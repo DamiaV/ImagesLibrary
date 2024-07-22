@@ -216,18 +216,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   /**
-   * Search for all images that are not associated to any tag.
+   * Search for all images that match the given flag.
    */
-  public void searchImagesWithNoTags() {
-    this.searchField.setText("#no_tags");
-    this.search(null);
-  }
-
-  /**
-   * Search for all images whose file is missing.
-   */
-  public void searchImagesWithNoFile() {
-    this.searchField.setText("#no_file");
+  public void searchImagesWithFlag(@NotNull String flag) {
+    this.searchField.setText(flag);
     this.searchField.requestFocus();
     this.search(null);
   }

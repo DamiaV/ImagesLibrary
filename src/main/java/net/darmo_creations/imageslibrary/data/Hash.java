@@ -1,12 +1,13 @@
 package net.darmo_creations.imageslibrary.data;
 
+import net.darmo_creations.imageslibrary.*;
 import org.jetbrains.annotations.*;
 
 import javax.imageio.*;
 import java.awt.*;
 import java.awt.image.*;
-import java.io.*;
 import java.nio.file.*;
+import java.util.*;
 
 /**
  * This class represents the 64-bit dHash of an image.
@@ -84,16 +85,23 @@ public record Hash(long bytes) {
    * for more information.
    *
    * @param file The image file to compute the hash of.
-   * @return The computed hash.
-   * @throws IOException If any file error occurs.
+   * @return An {@link Optional} containing the computed hash,
+   * or an empty {@link Optional} if the file could not be read.
    */
   @Contract(pure = true, value = "_ -> new")
-  public static Hash computeForFile(final @NotNull Path file) throws IOException {
-    @Nullable
-    final var image = ImageIO.read(file.toFile());
-    if (image == null)
-      throw new IOException("Could not read file at %s".formatted(file));
-    return new Hash(computeDifferenceHash(toGrayscale(resizeTo9By8(image))));
+  public static Optional<Hash> computeForFile(final @NotNull Path file) {
+    final @Nullable BufferedImage image;
+    try {
+      image = ImageIO.read(file.toFile());
+    } catch (final Exception e) {
+      App.logger().error("Failed to compute hash for {}", file, e);
+      return Optional.empty();
+    }
+    if (image == null) {
+      App.logger().error("Failed to compute hash for {}", file);
+      return Optional.empty();
+    }
+    return Optional.of(new Hash(computeDifferenceHash(toGrayscale(resizeTo9By8(image)))));
   }
 
   /**

@@ -11,6 +11,7 @@ import java.util.*;
  */
 public final class Picture extends DatabaseObject implements PictureLike {
   private final Path path;
+  @Nullable
   private final Hash hash;
 
   /**
@@ -20,10 +21,10 @@ public final class Picture extends DatabaseObject implements PictureLike {
    * @param path The path to the picture’s file.
    * @param hash The hash of the file.
    */
-  public Picture(int id, final @NotNull Path path, @NotNull Hash hash) {
+  public Picture(int id, final @NotNull Path path, Hash hash) {
     super(id);
     this.path = path.toAbsolutePath();
-    this.hash = Objects.requireNonNull(hash);
+    this.hash = hash;
   }
 
   /**
@@ -38,8 +39,8 @@ public final class Picture extends DatabaseObject implements PictureLike {
    * The hash of this picture’s file.
    */
   @Override
-  public Hash hash() {
-    return this.hash;
+  public Optional<Hash> hash() {
+    return Optional.ofNullable(this.hash);
   }
 
   @Override

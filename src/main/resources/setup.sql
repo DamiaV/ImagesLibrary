@@ -5,7 +5,7 @@ CREATE TABLE images
 (
     id   INTEGER PRIMARY KEY AUTOINCREMENT,
     path TEXT UNIQUE NOT NULL,
-    hash INTEGER     NOT NULL
+    hash INTEGER DEFAULT NULL
 ) STRICT;
 
 -- Speed up hash querying

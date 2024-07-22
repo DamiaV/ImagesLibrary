@@ -84,6 +84,16 @@ public final class DatabaseConnection implements AutoCloseable {
           (picture, tags, db) -> tags.isEmpty()
       ),
 
+      "no_hash",
+      new BooleanFlag(
+          """
+              SELECT id, path, hash
+              FROM images
+              WHERE hash IS NULL
+              """,
+          (picture, tags, db) -> picture.hash().isEmpty()
+      ),
+
       "name",
       new PatternPseudoTag(
           """
@@ -135,20 +145,22 @@ public final class DatabaseConnection implements AutoCloseable {
                 ))
               """,
           (pattern, flags) -> (picture, tags, db) -> {
+            if (picture.hash().isEmpty())
+              return false;
             final Hash hash;
             try {
               final Optional<Hash> hashOpt = db.getPictures("""
                   SELECT id, path, hash
                   FROM images
                   WHERE path = '%s'
-                  """).findFirst().map(Picture::hash);
+                  """).findFirst().flatMap(Picture::hash);
               if (hashOpt.isEmpty())
                 return false;
               hash = hashOpt.get();
             } catch (final DatabaseOperationException e) {
               return false;
             }
-            return hash.computeSimilarity(picture.hash()).hammingDistance() <= Hash.SIM_DIST_THRESHOLD;
+            return hash.computeSimilarity(picture.hash().get()).hammingDistance() <= Hash.SIM_DIST_THRESHOLD;
           },
           false
       )
@@ -918,7 +930,10 @@ public final class DatabaseConnection implements AutoCloseable {
     final int newId;
     try (final var statement = this.connection.prepareStatement(INSERT_IMAGE_QUERY, Statement.RETURN_GENERATED_KEYS)) {
       statement.setString(1, pictureUpdate.path().toString());
-      statement.setLong(2, pictureUpdate.hash().bytes());
+      if (pictureUpdate.hash().isPresent())
+        statement.setLong(2, pictureUpdate.hash().get().bytes());
+      else
+        statement.setNull(2, Types.INTEGER);
       statement.executeUpdate();
       final var id = getFirstGeneratedId(statement);
       if (id.isEmpty())
@@ -947,10 +962,11 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   private static Picture newPicture(final @NotNull ResultSet resultSet) throws SQLException {
+    final boolean hashIsNull = resultSet.getString("hash") == null;
     return new Picture(
         resultSet.getInt("id"),
         Path.of(resultSet.getString("path")),
-        new Hash(resultSet.getLong("hash"))
+        hashIsNull ? null : new Hash(resultSet.getLong("hash"))
     );
   }
 
@@ -974,7 +990,10 @@ public final class DatabaseConnection implements AutoCloseable {
     this.ensureInDatabase(pictureUpdate);
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
     try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_HASH_QUERY)) {
-      statement.setLong(1, pictureUpdate.hash().bytes());
+      if (pictureUpdate.hash().isPresent())
+        statement.setLong(1, pictureUpdate.hash().get().bytes());
+      else
+        statement.setNull(1, Types.INTEGER);
       statement.setInt(2, pictureUpdate.id());
       statement.executeUpdate();
       result = this.updatePictureTagsNoCommit(pictureUpdate);
@@ -1868,13 +1887,7 @@ public final class DatabaseConnection implements AutoCloseable {
           return false;
         final int id = resultSet.getInt("id");
         final Path path = Path.of(resultSet.getString("path"));
-        Hash hash;
-        try {
-          hash = Hash.computeForFile(path);
-        } catch (final Exception e) {
-          App.logger().error("Failed to compute hash for {}", path, e);
-          hash = new Hash(0);
-        }
+        final Optional<Hash> hash = Hash.computeForFile(path);
         // Fetch associated tags
         final Set<ParsedTag> imageTags = new HashSet<>();
         tagsStatement.setInt(1, id);

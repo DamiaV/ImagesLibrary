@@ -18,14 +18,15 @@ import java.util.*;
 public record PictureUpdate(
     int id,
     @NotNull Path path,
-    @NotNull Hash hash,
+    Optional<Hash> hash,
     @NotNull Set<ParsedTag> tagsToAdd,
     @NotNull Set<Tag> tagsToRemove
 ) implements PictureLike {
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   public PictureUpdate(
       int id,
       @NotNull Path path,
-      @NotNull Hash hash,
+      Optional<Hash> hash,
       @NotNull Set<ParsedTag> tagsToAdd,
       @NotNull Set<Tag> tagsToRemove
   ) {

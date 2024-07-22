@@ -25,6 +25,7 @@ public enum Icon {
   SLIDESHOW_SELECTED("slideshow_valid"),
   SEARCH_NO_TAGS("tag_blue_error"),
   SEARCH_NO_FILE("picture_error"),
+  SEARCH_NO_HASH("tag_hash_error"),
   SAVED_QUERIES("magnifier"),
   MANAGE_SAVED_QUERIES("magnifier_gear"),
   FOCUS_SEARCH_BAR("search_field_go"),

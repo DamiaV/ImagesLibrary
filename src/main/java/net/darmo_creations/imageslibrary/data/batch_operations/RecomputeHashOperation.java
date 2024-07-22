@@ -3,7 +3,6 @@ package net.darmo_creations.imageslibrary.data.batch_operations;
 import net.darmo_creations.imageslibrary.data.*;
 import org.jetbrains.annotations.*;
 
-import java.io.*;
 import java.util.*;
 
 /**
@@ -23,12 +22,7 @@ public final class RecomputeHashOperation extends Operation {
 
   @Override
   protected void execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
-    final Hash hash;
-    try {
-      hash = Hash.computeForFile(picture.path());
-    } catch (final IOException | SecurityException e) {
-      throw new DatabaseOperationException(DatabaseConnection.getErrorCode(e), e);
-    }
+    final Optional<Hash> hash = Hash.computeForFile(picture.path());
     db.updatePicture(new PictureUpdate(picture.id(), picture.path(), hash, Set.of(), Set.of()));
   }
 
