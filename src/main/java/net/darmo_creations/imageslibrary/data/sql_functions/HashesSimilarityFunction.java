@@ -13,9 +13,9 @@ import java.sql.*;
 public class HashesSimilarityFunction extends org.sqlite.Function {
   @Override
   protected void xFunc() throws SQLException {
-    final Hash blob1 = new Hash(this.value_long(0));
-    final Hash blob2 = new Hash(this.value_long(1));
-    final var similarity = blob1.computeSimilarity(blob2);
+    final Hash hash1 = new Hash(this.value_long(0));
+    final Hash hash2 = new Hash(this.value_long(1));
+    final var similarity = hash1.computeSimilarity(hash2);
     this.result(similarity.confidence());
   }
 }

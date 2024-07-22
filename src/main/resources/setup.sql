@@ -46,7 +46,24 @@ CREATE TABLE image_tag
 
 CREATE TABLE saved_queries
 (
-    name    TEXT    NOT NULL UNIQUE,
+    name    TEXT PRIMARY KEY,
     `query` TEXT    NOT NULL UNIQUE,
     `order` INTEGER NOT NULL UNIQUE
+) STRICT;
+
+CREATE TABLE batch_operations
+(
+    name TEXT PRIMARY KEY
+) STRICT;
+
+CREATE TABLE image_operation
+(
+    type           TEXT    NOT NULL,
+    data           TEXT DEFAULT NULL,
+    condition_type TEXT DEFAULT NULL,
+    condition_data TEXT DEFAULT NULL,
+    `order`        INTEGER NOT NULL,
+    batch_name     TEXT    NOT NULL,
+    UNIQUE (batch_name, `order`),
+    FOREIGN KEY (batch_name) REFERENCES batch_operations (name) ON DELETE CASCADE
 ) STRICT;

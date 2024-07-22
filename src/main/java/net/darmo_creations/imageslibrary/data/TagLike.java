@@ -1,6 +1,5 @@
 package net.darmo_creations.imageslibrary.data;
 
-import javafx.util.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.intellij.lang.annotations.*;
 import org.jetbrains.annotations.*;
@@ -10,7 +9,7 @@ import java.util.*;
 /**
  * Base interface for classes representing picture tags.
  */
-public interface TagLike extends DatabaseElement {
+public interface TagLike extends DatabaseElement, Comparable<TagLike> {
   @Language("RegExp")
   String LABEL_PATTERN = "[\\p{IsL}\\p{IsN}_]+";
   @Language("RegExp")
@@ -30,6 +29,11 @@ public interface TagLike extends DatabaseElement {
    * This tag’s definition.
    */
   Optional<String> definition();
+
+  @Override
+  default int compareTo(@NotNull TagLike o) {
+    return this.label().compareToIgnoreCase(o.label());
+  }
 
   /**
    * Raise an exception if the given tag label is invalid.
@@ -64,14 +68,21 @@ public interface TagLike extends DatabaseElement {
    * @return A pair containing the tag type symbol and the tag label.
    * @throws TagParseException If the label is invalid.
    */
-  static Pair<Optional<Character>, String> splitLabel(@NotNull String tag) throws TagParseException {
+  static TagParts splitLabel(@NotNull String tag) throws TagParseException {
     final char firstChar = tag.charAt(0);
     if (TagTypeLike.isSymbolValid(firstChar)) {
       final String tagLabel = tag.substring(1);
       ensureValidLabel(tagLabel);
-      return new Pair<>(Optional.of(firstChar), tagLabel);
+      return new TagParts(Optional.of(firstChar), tagLabel);
     }
     ensureValidLabel(tag);
-    return new Pair<>(Optional.empty(), tag);
+    return new TagParts(Optional.empty(), tag);
+  }
+
+  record TagParts(@NotNull Optional<Character> typeSymbol, @NotNull String label) {
+    public TagParts {
+      Objects.requireNonNull(typeSymbol);
+      Objects.requireNonNull(label);
+    }
   }
 }

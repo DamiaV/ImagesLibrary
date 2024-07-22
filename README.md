@@ -199,7 +199,7 @@ Here’s how to interpret it:
 - `-(d + e) ext=i"jp?g"` = `-d -e ext=i"jp?g"` returns the set of JPG images without tags `d` nor `e`; note the `?` to
   match both `jpg` and `jpeg` extensions, and the `i` flag to disregard case.
 
-The result is the union of both image sets.
+The parseResult is the union of both image sets.
 
 ### Tag definitions
 

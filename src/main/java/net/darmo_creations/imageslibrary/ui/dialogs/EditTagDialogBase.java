@@ -114,7 +114,7 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
     this.tagTypeComboBox.getItems().clear();
     this.tagTypeComboBox.getItems().add(new TagTypeEntry(null));
     this.db.getAllTagTypes().stream()
-        .sorted(Comparator.comparing(TagType::label))
+        .sorted()
         .forEach(tagType -> this.tagTypeComboBox.getItems().add(new TagTypeEntry(tagType)));
     this.tagTypeComboBox.getSelectionModel().select(0);
   }

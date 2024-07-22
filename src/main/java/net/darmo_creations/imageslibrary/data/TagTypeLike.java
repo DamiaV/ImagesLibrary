@@ -5,7 +5,7 @@ import org.jetbrains.annotations.*;
 /**
  * Base interface for classes representing tag types.
  */
-public interface TagTypeLike extends DatabaseElement {
+public interface TagTypeLike extends DatabaseElement, Comparable<TagTypeLike> {
   /**
    * This tag type’s label.
    */
@@ -20,6 +20,11 @@ public interface TagTypeLike extends DatabaseElement {
    * This tag type’s RGB color.
    */
   int color();
+
+  @Override
+  default int compareTo(@NotNull TagTypeLike o) {
+    return this.label().compareToIgnoreCase(o.label());
+  }
 
   /**
    * Raise an exception if the given tag type label is invalid.

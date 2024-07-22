@@ -12,6 +12,8 @@ public enum DatabaseErrorCode {
   INVALID_SCHEMA_VERSION,
   PYTHON_DATABASE,
 
+  DESERIALIZATION_ERROR,
+
   // Assertion-related errors
   OBJECT_DOES_NOT_EXIST,
   BOUND_TAG_HAS_DEFINITION,

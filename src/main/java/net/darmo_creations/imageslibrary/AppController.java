@@ -40,6 +40,7 @@ public class AppController implements ResultsView.SearchListener {
   private final MovePicturesDialog movePicturesDialog;
   private final ImageViewerDialog imageViewerDialog;
   private final ManageSavedQueriesDialog manageSavedQueriesDialog;
+  private final BatchOperationsDialog batchOperationsDialog;
 
   private final Map<MenuItem, Boolean> menuItemStates = new HashMap<>();
   private MenuItem moveImagesMenuItem;
@@ -94,6 +95,7 @@ public class AppController implements ResultsView.SearchListener {
     this.movePicturesDialog = new MovePicturesDialog(config, db);
     this.imageViewerDialog = new ImageViewerDialog(config);
     this.manageSavedQueriesDialog = new ManageSavedQueriesDialog(config, this.queriesManager);
+    this.batchOperationsDialog = new BatchOperationsDialog(config, db, BatchOperationsManager.load(db));
 
     this.tagsView = new TagsView(config, this.db);
     this.resultsView = new ResultsView(config, db, this.queriesManager);
@@ -270,12 +272,21 @@ public class AppController implements ResultsView.SearchListener {
     );
 
     final Menu toolsMenu = new Menu(language.translate("menu.tools"));
+    final MenuItem operationsMenuItem = new MenuItem(
+        language.translate("menu.tools.batch_operations"),
+        theme.getIcon(Icon.BATCH_OPERATIONS, Icon.Size.SMALL)
+    );
+    operationsMenuItem.setOnAction(e -> this.onOperationsAction());
+    operationsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN));
+    this.menuItemStates.put(operationsMenuItem, operationsMenuItem.isDisable());
     final MenuItem convertPythonDbMenuItem = new MenuItem(
         language.translate("menu.tools.convert_python_db"),
         theme.getIcon(Icon.CONVERT_PYTHON_DB, Icon.Size.SMALL)
     );
     convertPythonDbMenuItem.setOnAction(e -> this.onConvertPythonDbMenuItem());
     toolsMenu.getItems().addAll(
+        operationsMenuItem,
+        new SeparatorMenuItem(),
         convertPythonDbMenuItem
     );
 
@@ -321,6 +332,10 @@ public class AppController implements ResultsView.SearchListener {
     this.moveImagesButton.setTooltip(new Tooltip(language.translate("toolbar.edit.move_images")));
     this.moveImagesButton.setDisable(true);
 
+    final Button operationsButton = new Button(null, theme.getIcon(Icon.BATCH_OPERATIONS, Icon.Size.BIG));
+    operationsButton.setOnAction(e -> this.onOperationsAction());
+    operationsButton.setTooltip(new Tooltip(language.translate("toolbar.tools.batch_operations")));
+
     this.slideshowButton = new Button(null, theme.getIcon(Icon.SLIDESHOW, Icon.Size.BIG));
     this.slideshowButton.setOnAction(e -> this.onSlideshow(false));
     this.slideshowButton.setTooltip(new Tooltip(language.translate("toolbar.view.slideshow")));
@@ -332,10 +347,10 @@ public class AppController implements ResultsView.SearchListener {
 
     final Button showNoTagsButton = new Button(null, theme.getIcon(Icon.SEARCH_NO_TAGS, Icon.Size.BIG));
     showNoTagsButton.setOnAction(e -> this.onShowImagesWithNoTags());
-    showNoTagsButton.setTooltip(new Tooltip(language.translate("toolbar.tools.show_images_with_no_tags")));
+    showNoTagsButton.setTooltip(new Tooltip(language.translate("toolbar.queries.show_images_with_no_tags")));
     final Button showNoFileButton = new Button(null, theme.getIcon(Icon.SEARCH_NO_FILE, Icon.Size.BIG));
     showNoFileButton.setOnAction(e -> this.onShowImagesWithNoFile());
-    showNoFileButton.setTooltip(new Tooltip(language.translate("toolbar.tools.show_images_with_no_file")));
+    showNoFileButton.setTooltip(new Tooltip(language.translate("toolbar.queries.show_images_with_no_file")));
 
     final Button helpButton = new Button(null, theme.getIcon(Icon.HELP, Icon.Size.BIG));
     helpButton.setOnAction(e -> this.onHelp());
@@ -349,11 +364,13 @@ public class AppController implements ResultsView.SearchListener {
         this.deleteButton,
         this.moveImagesButton,
         new Separator(),
-        this.slideshowButton,
-        this.slideshowSelectedButton,
+        operationsButton,
         new Separator(),
         showNoTagsButton,
         showNoFileButton,
+        new Separator(),
+        this.slideshowButton,
+        this.slideshowSelectedButton,
         new Separator(),
         helpButton
     );
@@ -763,7 +780,15 @@ public class AppController implements ResultsView.SearchListener {
     });
   }
 
-  // TODO dialog to manage files and directories: rename dirs, ?
+  private void onOperationsAction() {
+    this.batchOperationsDialog.setPictures(this.resultsView.pictures(), this.selectedPictures);
+    this.batchOperationsDialog.showAndWait().ifPresent(anyUpdate -> {
+      if (anyUpdate) {
+        this.resultsView.refresh();
+        this.tagsView.refresh();
+      }
+    });
+  }
 
   /**
    * Open the slideshow dialog for the current query results or selected pictures.

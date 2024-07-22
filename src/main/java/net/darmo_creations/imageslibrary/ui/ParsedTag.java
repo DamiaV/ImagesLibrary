@@ -11,9 +11,14 @@ import java.util.*;
  * @param tagType The tag’s optional type.
  * @param label   The tag’s label.
  */
-public record ParsedTag(@NotNull Optional<TagType> tagType, @NotNull String label) {
+public record ParsedTag(@NotNull Optional<TagType> tagType, @NotNull String label) implements Comparable<ParsedTag> {
   public ParsedTag {
     Objects.requireNonNull(tagType);
     Objects.requireNonNull(label);
+  }
+
+  @Override
+  public int compareTo(@NotNull ParsedTag o) {
+    return this.label().compareToIgnoreCase(o.label());
   }
 }

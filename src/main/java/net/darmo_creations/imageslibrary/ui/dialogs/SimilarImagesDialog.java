@@ -157,7 +157,7 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
       this.updateImageViewSize();
       try {
         this.db.getImageTags(picture).stream()
-            .sorted(Comparator.comparing(Tag::label))
+            .sorted()
             .forEach(tag -> this.tagsList.getItems().add(new TagView(tag)));
       } catch (final DatabaseOperationException e) {
         Alerts.databaseError(this.config, e.errorCode());

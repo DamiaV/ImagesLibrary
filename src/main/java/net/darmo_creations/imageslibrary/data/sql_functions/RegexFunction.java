@@ -3,7 +3,6 @@ package net.darmo_creations.imageslibrary.data.sql_functions;
 import net.darmo_creations.imageslibrary.data.*;
 
 import java.sql.*;
-import java.util.regex.*;
 
 /**
  * This function returns 1 if the given string matches the given Java-compatible regex, 0 otherwise.
@@ -14,23 +13,7 @@ public class RegexFunction extends org.sqlite.Function {
   protected void xFunc() throws SQLException {
     final String string = this.value_text(0);
     final String pattern = this.value_text(1);
-    final String flag = this.value_text(2);
-    if (flag == null || !flag.contains(String.valueOf(PatternPseudoTag.CASE_SENSITIVE_FLAG))
-                        && !flag.contains(String.valueOf(PatternPseudoTag.CASE_INSENSITIVE_FLAG)))
-      throw new SQLException("Missing case sensitivity flag");
-    if (flag.contains(String.valueOf(PatternPseudoTag.CASE_SENSITIVE_FLAG))
-        && flag.contains(String.valueOf(PatternPseudoTag.CASE_INSENSITIVE_FLAG)))
-      throw new SQLException("Both case sensitivity flags present");
-    boolean caseSensitive = true;
-    for (int i = 0; i < flag.length(); i++) {
-      final char c = flag.charAt(i);
-      switch (c) {
-        case PatternPseudoTag.CASE_SENSITIVE_FLAG -> caseSensitive = true;
-        case PatternPseudoTag.CASE_INSENSITIVE_FLAG -> caseSensitive = false;
-        default -> throw new SQLException("Invalid regex flag: " + c);
-      }
-    }
-    final Pattern regex = Pattern.compile(pattern, caseSensitive ? 0 : Pattern.CASE_INSENSITIVE);
-    this.result(regex.matcher(string).find() ? 1 : 0);
+    final String flags = this.value_text(2);
+    this.result(PatternPseudoTag.getPattern(pattern, flags).matcher(string).find() ? 1 : 0);
   }
 }

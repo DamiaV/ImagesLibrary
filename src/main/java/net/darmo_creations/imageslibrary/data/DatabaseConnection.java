@@ -3,6 +3,7 @@ package net.darmo_creations.imageslibrary.data;
 import javafx.application.*;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
+import net.darmo_creations.imageslibrary.data.batch_operations.*;
 import net.darmo_creations.imageslibrary.data.sql_functions.*;
 import net.darmo_creations.imageslibrary.query_parser.*;
 import net.darmo_creations.imageslibrary.ui.*;
@@ -19,6 +20,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.*;
+import java.util.regex.Pattern;
 import java.util.stream.*;
 
 /**
@@ -35,55 +37,121 @@ public final class DatabaseConnection implements AutoCloseable {
   @Unmodifiable
   public static final Map<String, PseudoTag> PSEUDO_TAGS = Map.of(
       "ext",
-      new PatternPseudoTag("""
-          SELECT id, path, hash
-          FROM images
-          WHERE "REGEX"(SUBSTR(path, "RINSTR"(path, '.') + 1), '%s', '%s')
-          """, true),
+      new PatternPseudoTag(
+          """
+              SELECT id, path, hash
+              FROM images
+              WHERE "REGEX"(SUBSTR(path, "RINSTR"(path, '.') + 1), '%s', '%s')
+              """,
+          (pattern, flags) -> {
+            final Pattern p;
+            try {
+              p = PatternPseudoTag.getPattern(pattern, flags);
+            } catch (final SQLException e) {
+              return (picture, tags, db) -> false;
+            }
+            return (picture, tags, db) -> p.matcher(FileUtils.getExtension(picture.path().getFileName())).matches();
+          },
+          true
+      ),
 
       "no_file",
-      new BooleanFlag("""
-          SELECT id, path, hash
-          FROM images
-          WHERE NOT "FILE_EXISTS"(path)
-          """),
+      new BooleanFlag(
+          """
+              SELECT id, path, hash
+              FROM images
+              WHERE NOT "FILE_EXISTS"(path)
+              """,
+          (picture, tags, db) -> {
+            try {
+              return Files.exists(picture.path());
+            } catch (final SecurityException e) {
+              return false;
+            }
+          }),
 
       "no_tags",
-      new BooleanFlag("""
-          SELECT i.id, i.path, i.hash
-          FROM images AS i
-          WHERE (
-            SELECT COUNT(*)
-            FROM image_tag AS it
-            WHERE it.image_id = i.id
-          ) = 0
-          """),
+      new BooleanFlag(
+          """
+              SELECT i.id, i.path, i.hash
+              FROM images AS i
+              WHERE (
+                SELECT COUNT(*)
+                FROM image_tag AS it
+                WHERE it.image_id = i.id
+              ) = 0
+              """,
+          (picture, tags, db) -> tags.isEmpty()
+      ),
 
       "name",
-      new PatternPseudoTag("""
-          SELECT id, path, hash
-          FROM images
-          WHERE "REGEX"(SUBSTR(path, "RINSTR"(path, '/') + 1), '%s', '%s')
-          """.replace("/", File.separator), true),
+      new PatternPseudoTag(
+          """
+              SELECT id, path, hash
+              FROM images
+              WHERE "REGEX"(SUBSTR(path, "RINSTR"(path, '/') + 1), '%s', '%s')
+              """.replace("/", File.separator),
+          (pattern, flags) -> {
+            final Pattern p;
+            try {
+              p = PatternPseudoTag.getPattern(pattern, flags);
+            } catch (final SQLException e) {
+              return (picture, tags, db) -> false;
+            }
+            return (picture, tags, db) -> p.matcher(picture.path().getFileName().toString()).matches();
+          },
+          true
+      ),
 
       "path",
-      new PatternPseudoTag("""
-          SELECT id, path, hash
-          FROM images
-          WHERE "REGEX"(path, '%s', '%s')
-          """, true),
+      new PatternPseudoTag(
+          """
+              SELECT id, path, hash
+              FROM images
+              WHERE "REGEX"(path, '%s', '%s')
+              """,
+          (pattern, flags) -> {
+            final Pattern p;
+            try {
+              p = PatternPseudoTag.getPattern(pattern, flags);
+            } catch (final SQLException e) {
+              return (picture, tags, db) -> false;
+            }
+            return (picture, tags, db) -> p.matcher(picture.path().toString()).matches();
+          },
+          true
+      ),
 
       "similar_to",
-      new PatternPseudoTag("""
-          SELECT id, path, hash
-          FROM images
-          WHERE hash IS NOT NULL
-            AND "SIMILAR_HASHES"(hash, (
-              SELECT hash
+      new PatternPseudoTag(
+          """
+              SELECT id, path, hash
               FROM images
-              WHERE path = '%s'
-            ))
-          """, false)
+              WHERE hash IS NOT NULL
+                AND "SIMILAR_HASHES"(hash, (
+                  SELECT hash
+                  FROM images
+                  WHERE path = '%s'
+                ))
+              """,
+          (pattern, flags) -> (picture, tags, db) -> {
+            final Hash hash;
+            try {
+              final Optional<Hash> hashOpt = db.getPictures("""
+                  SELECT id, path, hash
+                  FROM images
+                  WHERE path = '%s'
+                  """).findFirst().map(Picture::hash);
+              if (hashOpt.isEmpty())
+                return false;
+              hash = hashOpt.get();
+            } catch (final DatabaseOperationException e) {
+              return false;
+            }
+            return hash.computeSimilarity(picture.hash()).hammingDistance() <= Hash.SIM_DIST_THRESHOLD;
+          },
+          false
+      )
   );
 
   /**
@@ -696,7 +764,7 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   public boolean pictureMatchesQuery(@NotNull Picture picture, @NotNull TagQuery tagQuery)
       throws DatabaseOperationException {
-    return false; // TODO
+    return tagQuery.predicate().test(picture, this.getImageTags(picture), this);
   }
 
   @SQLite
@@ -1184,6 +1252,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param fromDisk If true, the associated files will be deleted from the disk.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
+  // TODO option to delete directory if it ends up empty
   public void deletePicture(final @NotNull Picture picture, boolean fromDisk) throws DatabaseOperationException {
     this.ensureInDatabase(picture);
     if (fromDisk) {
@@ -1267,6 +1336,148 @@ public final class DatabaseConnection implements AutoCloseable {
         statement.setString(2, savedQuery.query());
         statement.setInt(3, i);
         statement.executeUpdate();
+      }
+    } catch (final SQLException e) {
+      this.rollback();
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
+    }
+    this.commit();
+  }
+
+  @SQLite
+  private static final String SELECT_BATCHES_QUERY = """
+      SELECT name
+      FROM batch_operations
+      """;
+
+  @SQLite
+  private static final String SELECT_BATCH_OPERATIONS_QUERY = """
+      SELECT type, data, condition_type, condition_data
+      FROM image_operation
+      WHERE batch_name = ?
+      ORDER BY `order`
+      """;
+
+  /**
+   * Get a map of all saved batch operations.
+   *
+   * @return A new map.
+   * @throws DatabaseOperationException If any database error occurs.
+   */
+  @Contract("-> new")
+  public Map<String, List<Operation>> getSavedBatchOperations() throws DatabaseOperationException {
+    final Map<String, List<Operation>> savedBatchOperations = new HashMap<>();
+
+    try (final var statement = this.connection.createStatement();
+         final var resultSet = statement.executeQuery(SELECT_BATCHES_QUERY)) {
+      while (resultSet.next()) {
+        final String batchName = resultSet.getString("name");
+        savedBatchOperations.put(batchName, this.queryOperations(batchName));
+      }
+    } catch (final SQLException e) {
+      throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
+    }
+
+    return savedBatchOperations;
+  }
+
+  private List<Operation> queryOperations(@NotNull String batchName) throws SQLException {
+    final List<Operation> operations = new LinkedList<>();
+    try (final var operationsStatement = this.connection.prepareStatement(SELECT_BATCH_OPERATIONS_QUERY)) {
+      operationsStatement.setString(1, batchName);
+      try (final var operationsResultSet = operationsStatement.executeQuery()) {
+        while (operationsResultSet.next())
+          this.parseOperation(operationsResultSet)
+              .ifPresent(operations::add);
+      }
+    }
+    return operations;
+  }
+
+  private Optional<Operation> parseOperation(@NotNull ResultSet resultSet) throws SQLException {
+    final String type = resultSet.getString("type");
+    final String data = resultSet.getString("data");
+    final String condType = resultSet.getString("condition_type");
+    final String condData = resultSet.getString("condition_data");
+
+    final Condition condition;
+    if (condType != null) {
+      //noinspection SwitchStatementWithTooFewBranches
+      condition = switch (condType) {
+        case TagQueryCondition.KEY -> new TagQueryCondition(condData);
+        default -> {
+          this.logger.error("Unsupported condition type: {}", condType);
+          yield null;
+        }
+      };
+    } else
+      condition = null;
+
+    try {
+      return Optional.ofNullable(switch (type) {
+        case DeleteOperation.KEY -> DeleteOperation.deserialize(data, condition);
+        case MoveOperation.KEY -> MoveOperation.deserialize(data, condition);
+        case RecomputeHashOperation.KEY -> new RecomputeHashOperation(condition);
+        case UpdateTagsOperation.KEY -> UpdateTagsOperation.deserialize(data, condition, this);
+        default -> {
+          this.logger.error("Unsupported operation type: {}", condType);
+          yield null;
+        }
+      });
+    } catch (final IllegalArgumentException e) {
+      this.logger.error("Malformed serialized operation string: {}", data, e);
+      return Optional.empty();
+    }
+  }
+
+  @SQLite
+  private static final String DELETE_SAVED_BATCHES = """
+      -- noinspection SqlWithoutWhere
+      DELETE FROM batch_operations;
+      -- noinspection SqlWithoutWhere
+      DELETE FROM image_operation;
+      """;
+
+  @SQLite
+  private static final String INSERT_SAVED_BATCH = """
+      INSERT INTO batch_operations (name)
+      VALUES (?)
+      """;
+
+  @SQLite
+  private static final String INSERT_BATCH_OPERATIONS = """
+      INSERT INTO image_operation (type, data, condition_type, condition_data, `order`, batch_name)
+      VALUES (?, ?, ?, ?, ?, ?)
+      """;
+
+  /**
+   * Save a map of operation batches. All pre-existing batches are first deleted.
+   *
+   * @param batches The batches to save.
+   * @throws DatabaseOperationException If any database error occurs.
+   */
+  public void setSavedBatchOperations(final @NotNull Map<String, List<? extends Operation>> batches)
+      throws DatabaseOperationException {
+    try (final var clearStatement = this.connection.createStatement();
+         final var statement = this.connection.prepareStatement(INSERT_SAVED_BATCH)) {
+      clearStatement.executeUpdate(DELETE_SAVED_BATCHES);
+      for (final var entry : batches.entrySet()) {
+        final String batchName = entry.getKey();
+        statement.setString(1, batchName);
+        statement.executeUpdate();
+        final List<? extends Operation> operations = entry.getValue();
+        try (final var operationsStatement = this.connection.prepareStatement(INSERT_BATCH_OPERATIONS)) {
+          for (int i = 0; i < operations.size(); i++) {
+            final Operation operation = operations.get(i);
+            operationsStatement.setString(1, operation.key());
+            operationsStatement.setString(2, operation.serialize());
+            operationsStatement.setString(3, operation.condition().map(Condition::key).orElse(null));
+            operationsStatement.setString(4, operation.condition().map(Condition::serialize).orElse(null));
+            operationsStatement.setInt(5, i);
+            operationsStatement.setString(6, batchName);
+            operationsStatement.executeUpdate();
+          }
+        }
       }
     } catch (final SQLException e) {
       this.rollback();
@@ -1471,7 +1682,7 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param e The exception to get a code for.
    * @return The code for that exception.
    */
-  private static DatabaseErrorCode getErrorCode(final @NotNull Exception e) {
+  public static DatabaseErrorCode getErrorCode(final @NotNull Exception e) {
     if (e instanceof org.sqlite.SQLiteException ex)
       return DatabaseErrorCode.forSQLiteCode(ex.getResultCode());
     if (e instanceof FileAlreadyExistsException)

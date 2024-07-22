@@ -116,7 +116,7 @@ public final class JavaFxUtils {
 
     final Set<ParsedTag> tags = new HashSet<>();
     for (final String tag : text.get().split("\\s+")) {
-      final Pair<Optional<Character>, String> splitTag;
+      final TagLike.TagParts splitTag;
       try {
         splitTag = TagLike.splitLabel(tag);
       } catch (final TagParseException e) {
@@ -126,8 +126,8 @@ public final class JavaFxUtils {
             e.formatArgs()
         );
       }
-      final var tagTypeSymbol = splitTag.getKey();
-      final String tagLabel = splitTag.getValue();
+      final var tagTypeSymbol = splitTag.typeSymbol();
+      final String tagLabel = splitTag.label();
       final var tagOpt = db.getAllTags().stream()
           .filter(t -> t.label().equals(tagLabel))
           .findFirst();

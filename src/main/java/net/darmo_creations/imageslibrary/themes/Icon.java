@@ -59,6 +59,14 @@ public enum Icon {
   MOVE_UP("arrow_up"),
   MOVE_DOWN("arrow_down"),
   DELETE_QUERIES("delete"),
+
+  NEW_OPERATION_BATCH("add"),
+  ADD_OPERATION("plus"),
+  DELETE_OPERATION("cross"),
+  SAVE_OPERATION_BATCH("diskette"),
+  LOAD_OPERATION_BATCH("arrow_up"),
+  DELETE_OPERATION_BATCH("delete"),
+  RENAME_OPERATION_BATCH("pencil"),
   ;
 
   private final String baseName;
