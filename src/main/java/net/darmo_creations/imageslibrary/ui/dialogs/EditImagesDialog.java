@@ -256,6 +256,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.pictures.clear();
     this.pictures.addAll(pictures);
     this.totalPictures = pictures.size();
+    this.currentPictureTags.clear();
     this.tagsField.setText("");
     this.anyUpdate = false;
     this.clearTargetPath();
