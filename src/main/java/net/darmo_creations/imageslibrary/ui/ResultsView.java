@@ -3,6 +3,7 @@ package net.darmo_creations.imageslibrary.ui;
 import javafx.application.*;
 import javafx.geometry.*;
 import javafx.scene.control.*;
+import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.*;
 import net.darmo_creations.imageslibrary.*;
@@ -142,8 +143,11 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.resultsLabel.getStyleClass().add("results-label");
     this.resultsLabel.setPadding(new Insets(0, 2, 0, 2));
 
-    // TODO copy paths of selected images on Ctrl+C
     this.imagesList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+    this.imagesList.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+      if (event.getCode() == KeyCode.C && event.isShortcutDown())
+        this.copySelectedPaths();
+    });
     this.imagesList.getSelectionModel().selectedItemProperty().addListener(
         (observable, oldValue, newValue) -> this.onSelectionChange());
     this.imagesList.setCellFactory(item -> ClickableListCellFactory.forListener(this));
@@ -422,6 +426,15 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   @Override
   public void onItemDoubleClick(@NotNull PictureEntry pictureEntry) {
     this.imageClickListeners.forEach(listener -> listener.onImageClick(pictureEntry.picture()));
+  }
+
+  private void copySelectedPaths() {
+    final var selectedItems = this.imagesList.getSelectionModel().getSelectedItems();
+    final var joiner = new StringJoiner("\n");
+    selectedItems.forEach(e -> joiner.add(e.picture().path().toString()));
+    final var clipboardContent = new ClipboardContent();
+    clipboardContent.putString(joiner.toString());
+    Clipboard.getSystemClipboard().setContent(clipboardContent);
   }
 
   private void onSelectionChange() {
