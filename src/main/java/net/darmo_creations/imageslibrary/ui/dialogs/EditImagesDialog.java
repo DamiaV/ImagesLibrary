@@ -403,9 +403,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       return Optional.empty();
 
     Optional<Hash> hash = Optional.empty();
-    if (this.insert)
-      hash = this.currentPicture.hash();
-    else if (recomputeHash)
+    if (recomputeHash)
       hash = Hash.computeForFile(this.currentPicture.path());
 
     return Optional.of(new PictureUpdate(
