@@ -40,9 +40,11 @@ public final class TransformPathOperation extends Operation {
   }
 
   @Override
-  protected void execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
-    final Path newPath = Path.of(this.pattern.matcher(picture.path().toString()).replaceAll(this.substitute));
+  protected boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+    final Path oldPath = picture.path();
+    final Path newPath = Path.of(this.pattern.matcher(oldPath.toString()).replaceAll(this.substitute));
     db.updatePicture(new PictureUpdate(picture.id(), newPath, picture.hash(), Set.of(), Set.of()));
+    return !oldPath.equals(newPath);
   }
 
   public String pattern() {

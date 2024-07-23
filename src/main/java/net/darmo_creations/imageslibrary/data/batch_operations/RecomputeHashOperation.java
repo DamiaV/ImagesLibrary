@@ -21,9 +21,11 @@ public final class RecomputeHashOperation extends Operation {
   }
 
   @Override
-  protected void execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+  protected boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+    final Optional<Hash> currentHash = picture.hash();
     final Optional<Hash> hash = Hash.computeForFile(picture.path());
     db.updatePicture(new PictureUpdate(picture.id(), picture.path(), hash, Set.of(), Set.of()));
+    return !currentHash.equals(hash);
   }
 
   @Override

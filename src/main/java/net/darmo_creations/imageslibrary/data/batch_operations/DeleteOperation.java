@@ -27,10 +27,11 @@ public final class DeleteOperation extends Operation {
   }
 
   @Override
-  protected void execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+  protected boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
     db.deletePicture(picture, this.fromDisk);
     if (this.fromDisk && this.deleteEmptySourceDirectory)
       FileUtils.deleteDirectoryIfEmpty(picture);
+    return true;
   }
 
   public boolean deleteFromDisk() {

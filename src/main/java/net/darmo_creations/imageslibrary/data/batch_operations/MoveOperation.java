@@ -38,11 +38,15 @@ public final class MoveOperation extends Operation {
   }
 
   @Override
-  protected void execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
-    final Path picPath = picture.path();
-    db.moveOrRenamePicture(picture, this.targetDirectory.resolve(picPath.getFileName()), this.overwriteTarget);
+  protected boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+    final boolean updated = db.moveOrRenamePicture(
+        picture,
+        this.targetDirectory.resolve(picture.path().getFileName()),
+        this.overwriteTarget
+    );
     if (this.deleteEmptySourceDirectory)
       FileUtils.deleteDirectoryIfEmpty(picture);
+    return updated;
   }
 
   public Path targetPath() {

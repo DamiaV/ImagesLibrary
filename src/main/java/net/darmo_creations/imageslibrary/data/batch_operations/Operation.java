@@ -38,9 +38,9 @@ public abstract sealed class Operation implements StringSerializable
    */
   public final boolean apply(@NotNull Picture picture, @NotNull DatabaseConnection db, @NotNull Config config)
       throws DatabaseOperationException {
-    final boolean apply = this.condition == null || this.condition.test(picture, db, config);
+    boolean apply = this.condition == null || this.condition.test(picture, db, config);
     if (apply)
-      this.execute(picture, db);
+      apply = this.execute(picture, db);
     return apply;
   }
 
@@ -49,9 +49,10 @@ public abstract sealed class Operation implements StringSerializable
    *
    * @param picture The picture to apply this operation to.
    * @param db      A database to apply changes to.
+   * @return True if this operation updated the given picture, false otherwise.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  protected abstract void execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+  protected abstract boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
       throws DatabaseOperationException;
 
   /**

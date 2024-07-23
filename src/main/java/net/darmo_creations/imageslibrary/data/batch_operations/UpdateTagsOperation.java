@@ -30,8 +30,11 @@ public final class UpdateTagsOperation extends Operation {
   }
 
   @Override
-  protected void execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+  protected boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+    final Set<Tag> oldTags = db.getImageTags(picture);
     db.updatePicture(new PictureUpdate(picture.id(), picture.path(), picture.hash(), this.tagsToAdd, this.tagsToRemove));
+    final Set<Tag> newTags = db.getImageTags(picture);
+    return !oldTags.equals(newTags);
   }
 
   @UnmodifiableView

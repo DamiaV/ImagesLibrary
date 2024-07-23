@@ -1024,14 +1024,15 @@ public final class DatabaseConnection implements AutoCloseable {
    * @param picture              The picture to move/rename.
    * @param newPath              The destination path.
    * @param overwriteDestination Indicate whether to overwrite any pre-existing file with the same name as the target.
+   * @return True if the file was moved or renamed, false otherwise.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  public void moveOrRenamePicture(@NotNull Picture picture, @NotNull Path newPath, boolean overwriteDestination)
+  public boolean moveOrRenamePicture(@NotNull Picture picture, @NotNull Path newPath, boolean overwriteDestination)
       throws DatabaseOperationException {
     this.ensureInDatabase(picture);
 
     if (picture.path().equals(newPath))
-      return;
+      return false;
     try {
       if (!overwriteDestination && Files.exists(picture.path()) && Files.exists(newPath))
         throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
@@ -1055,6 +1056,7 @@ public final class DatabaseConnection implements AutoCloseable {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     this.commit();
+    return true;
   }
 
   /**
