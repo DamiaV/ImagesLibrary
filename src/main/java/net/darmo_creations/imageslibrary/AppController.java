@@ -490,8 +490,8 @@ public class AppController implements ResultsView.SearchListener {
         try {
           if (this.db.isFileRegistered(fileOrDir))
             skipped.add(fileOrDir);
-          else
-            pictures.add(new Picture(0, fileOrDir, Hash.computeForFile(fileOrDir).orElse(null)));
+          else // Gain time by not computing hashes now as the EditImagesDialog will do when needed
+            pictures.add(new Picture(0, fileOrDir, null));
         } catch (final Exception e) {
           errors.add(fileOrDir);
         }

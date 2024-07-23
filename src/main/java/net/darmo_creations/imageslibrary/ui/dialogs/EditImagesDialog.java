@@ -324,9 +324,12 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       this.tagsField.refreshHighlighting();
     this.updateState();
     List<Pair<Picture, Float>> similarPictures = List.of();
-    if (this.currentPicture.hash().isPresent())
+    final Optional<Hash> hash = this.currentPicture.hash()
+        // Try to compute missing hash
+        .or(() -> Hash.computeForFile(path));
+    if (hash.isPresent())
       try {
-        similarPictures = this.db.getSimilarImages(this.currentPicture.hash().get(), this.currentPicture);
+        similarPictures = this.db.getSimilarImages(hash.get(), this.currentPicture);
       } catch (final DatabaseOperationException e) {
         App.logger().error("Error fetching similar pictures", e);
       }
