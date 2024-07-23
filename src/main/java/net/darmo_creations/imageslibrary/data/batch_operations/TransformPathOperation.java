@@ -80,7 +80,7 @@ public final class TransformPathOperation extends Operation {
    */
   @Contract(pure = true, value = "_, _ -> new")
   public static TransformPathOperation deserialize(@NotNull String serialized, Condition condition) {
-    final String[] parts = serialized.split("\n", 2);
+    final String[] parts = serialized.split("\n", 3);
     if (parts.length != 3)
       throw new IllegalArgumentException("Invalid serialized data");
     return new TransformPathOperation(
