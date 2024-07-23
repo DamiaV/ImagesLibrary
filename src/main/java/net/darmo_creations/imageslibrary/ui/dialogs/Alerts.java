@@ -19,18 +19,47 @@ public final class Alerts {
   /**
    * Open an error alert dialog to show the given database error code.
    *
-   * @param config The current config.
+   * @param config The app’s config.
    * @param code   The error code.
    */
   public static void databaseError(
       final @NotNull Config config,
       @NotNull DatabaseErrorCode code
   ) {
+    databaseError(
+        config,
+        code,
+        "alert.database_error.header",
+        null
+    );
+  }
+
+  /**
+   * Open an error alert dialog to show the given database error code
+   * with custom header, title and {@link FormatArg}s.
+   *
+   * @param config      The app’s config.
+   * @param code        The error code.
+   * @param headerKey   Header text key.
+   * @param titleKey    Title key.
+   * @param contentArgs Format arguments to apply to the header, content and title.
+   */
+  public static void databaseError(
+      final @NotNull Config config,
+      @NotNull DatabaseErrorCode code,
+      String headerKey,
+      String titleKey,
+      final @NotNull FormatArg... contentArgs
+  ) {
+    final FormatArg[] formatArgs = new FormatArg[contentArgs.length + 1];
+    formatArgs[0] = new FormatArg("code", code.name());
+    System.arraycopy(contentArgs, 0, formatArgs, 1, contentArgs.length);
     error(
         config,
-        "alert.database_error.header",
-        config.language().translate("error_code." + code.name().toLowerCase()), // TODO translate error codes
-        null
+        headerKey,
+        config.language().translate("error_code." + code.name().toLowerCase()),
+        titleKey,
+        formatArgs
     );
   }
 

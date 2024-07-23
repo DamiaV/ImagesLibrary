@@ -596,15 +596,16 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
 
     private void onAbort(int count, @NotNull DatabaseErrorCode errorCode) {
       Platform.runLater(() -> {
-        this.dialog().progressDialog.hide();
-        Alerts.error(
-            BatchOperationsDialog.this.config,
+        final var dialog = this.dialog();
+        dialog.progressDialog.hide();
+        Alerts.databaseError(
+            dialog.config,
+            errorCode,
             "alert.batch_operation_aborted.header",
-            this.dialog().config.language().translate("error_code." + errorCode.name().toLowerCase()),
             null,
             new FormatArg("count", count)
         );
-        this.dialog().restoreInteractions();
+        dialog.restoreInteractions();
       });
     }
 

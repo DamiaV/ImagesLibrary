@@ -93,10 +93,10 @@ public class App extends Application {
         generateCrashReport(e);
         Platform.runLater(() -> {
           splash.hide();
-          Alerts.error(
+          Alerts.databaseError(
               config,
+              e.errorCode(),
               "alert.fatal_error.header",
-              config.language().translate("error_code." + e.errorCode().name().toLowerCase()),
               "alert.fatal_error.title"
           );
           System.exit(3);
@@ -111,10 +111,10 @@ public class App extends Application {
           controller = new AppController(stage, config, db);
         } catch (final DatabaseOperationException e) {
           generateCrashReport(e);
-          Alerts.error(
+          Alerts.databaseError(
               config,
+              e.errorCode(),
               "alert.fatal_error.header",
-              config.language().translate("error_code." + e.errorCode().name().toLowerCase()),
               "alert.fatal_error.title"
           );
           System.exit(4);
