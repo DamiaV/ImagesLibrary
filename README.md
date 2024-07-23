@@ -5,12 +5,12 @@ This is a full re-implementation of my [Python-based application](https://github
 
 Main features:
 
-- Tag images
-- Search tagged images
+- Image tagging
+- Tagged images searching with a simple querying language
 - Replace/move image files while keeping all associated tags
-- Manage tags (create, remove, associate a type)
+- Manage tags (create, remove, organize with types)
 - Tag completion in queries and image tags editor
-- Apply pattern-based transformations to images paths and tags (TODO)
+- Apply pattern-based transformations to images paths and tags
 - List similar images (hash-based)
 - Fully translated interface, available in English, French, and Esperanto
 
@@ -58,7 +58,7 @@ Tag names can contain any Unicode letters and digits, as well as underscores `_`
 
 ### Flags
 
-Flags are special tags that represent a specific property.
+Flags are special tags that represent a specific image property.
 
 #### Syntax
 
@@ -82,6 +82,10 @@ Where `<name>` is the flag’s name.
     <tr>
         <td><code>no_file</code></td>
         <td>Match images whose file is missing</td>
+    </tr>
+    <tr>
+        <td><code>no_hash</code></td>
+        <td>Match images whose hash could not be computed</td>
     </tr>
 </table>
 
@@ -125,6 +129,7 @@ This value may be one of two types:
 
 Both types support flags. Flags are specified before the value, without any spaces in-between (e.g. `i/regex/`
 and `i"text"`).
+
 Available flags are:
 
 - `s` to force case-sensitive matching
