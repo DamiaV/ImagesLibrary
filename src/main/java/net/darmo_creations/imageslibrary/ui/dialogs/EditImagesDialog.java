@@ -53,6 +53,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
   private int totalPictures;
   private final Queue<Picture> pictures = new LinkedList<>();
+  @Nullable
+  private Hash computedHash;
   private final Set<Tag> currentPictureTags = new HashSet<>();
   private Path targetPath;
   private Picture currentPicture;
@@ -326,7 +328,11 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     List<Pair<Picture, Float>> similarPictures = List.of();
     final Optional<Hash> hash = this.currentPicture.hash()
         // Try to compute missing hash
-        .or(() -> Hash.computeForFile(path));
+        .or(() -> {
+          final Optional<Hash> h = Hash.computeForFile(path);
+          this.computedHash = h.orElse(null);
+          return h;
+        });
     if (hash.isPresent())
       try {
         similarPictures = this.db.getSimilarImages(hash.get(), this.currentPicture);
@@ -402,8 +408,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     if (name.isEmpty() || !App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(Path.of(name.get()))))
       return Optional.empty();
 
-    Optional<Hash> hash = Optional.empty();
-    if (recomputeHash)
+    Optional<Hash> hash = Optional.ofNullable(this.computedHash);
+    if (recomputeHash && hash.isEmpty())
       hash = Hash.computeForFile(this.currentPicture.path());
 
     return Optional.of(new PictureUpdate(
