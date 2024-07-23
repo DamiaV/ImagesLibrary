@@ -193,7 +193,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       this.updateState();
     });
     this.tagsField.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-      if (event.getCode() == KeyCode.ENTER && event.isControlDown()) {
+      if (event.getCode() == KeyCode.ENTER && event.isShortcutDown()) {
         if (!this.nextButton.isDisabled())
           this.nextButton.fire();
         else

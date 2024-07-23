@@ -117,15 +117,15 @@ public class AutoCompleteField<T, S> extends AnchorPane {
       this.canShowSuggestions = false;
     });
     styledArea.setOnKeyPressed(event -> {
-      if (event.getCode() == KeyCode.SPACE && event.isControlDown()
+      if (event.getCode() == KeyCode.SPACE && event.isShortcutDown()
           && !event.isAltDown() && !event.isMetaDown() && !event.isShiftDown())
         this.fillAndShowSuggestions(entries, stringConverter, styledArea.getCaretPosition());
     });
     styledArea.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-      if (event.getCode() == KeyCode.Z && event.isControlDown()) {
+      if (event.getCode() == KeyCode.Z && event.isShortcutDown()) {
         this.undoText();
         event.consume();
-      } else if (event.getCode() == KeyCode.Y && event.isControlDown()) {
+      } else if (event.getCode() == KeyCode.Y && event.isShortcutDown()) {
         this.redoText();
         event.consume();
       }
