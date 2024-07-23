@@ -6,6 +6,7 @@ import javafx.util.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.ui.dialogs.*;
+import net.darmo_creations.imageslibrary.utils.*;
 import org.apache.commons.cli.*;
 import org.jetbrains.annotations.*;
 import org.slf4j.*;
@@ -119,6 +120,17 @@ public class App extends Application {
           );
           System.exit(4);
           return;
+        } catch (final Exception e) {
+          generateCrashReport(e);
+          Alerts.error(
+              config,
+              "alert.fatal_error.header",
+              null,
+              "alert.fatal_error.title",
+              new FormatArg("code", DatabaseErrorCode.UNKNOWN_ERROR)
+          );
+          System.exit(5);
+          return;
         }
         controller.show();
       });
@@ -136,7 +148,8 @@ public class App extends Application {
           config,
           "alert.fatal_error.header",
           null,
-          "alert.fatal_error.title"
+          "alert.fatal_error.title",
+          new FormatArg("code", DatabaseErrorCode.UNKNOWN_ERROR)
       );
       System.exit(1);
     }
@@ -152,7 +165,8 @@ public class App extends Application {
           config,
           "alert.fatal_error.header",
           null,
-          "alert.fatal_error.title"
+          "alert.fatal_error.title",
+          new FormatArg("code", DatabaseErrorCode.UNKNOWN_ERROR)
       );
       System.exit(2);
     }
@@ -182,20 +196,20 @@ public class App extends Application {
    * @param e The throwable object that caused the unrecoverable crash.
    */
   public static void generateCrashReport(@NotNull Throwable e) {
-    final var date = LocalDateTime.now();
+    final var date = LocalDateTime.now().withNano(0); // Remove nano information
     final var stackTrace = new StringWriter();
     try (final var writer = new PrintWriter(stackTrace)) {
       e.printStackTrace(writer);
     }
     final String template = """
         --- %s (v%s) Crash Report ---
-        .
+                
         Time: %s
         Description: %s
-        .
+                
         -- Detailled Stack Trace --
         %s
-        .
+                
         -- Technical Information --
         System properties:
         %s
