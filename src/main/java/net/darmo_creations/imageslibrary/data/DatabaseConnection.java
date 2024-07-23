@@ -64,9 +64,9 @@ public final class DatabaseConnection implements AutoCloseable {
               """,
           (picture, tags, db) -> {
             try {
-              return Files.exists(picture.path());
+              return !Files.exists(picture.path());
             } catch (final SecurityException e) {
-              return false;
+              return true;
             }
           }),
 
