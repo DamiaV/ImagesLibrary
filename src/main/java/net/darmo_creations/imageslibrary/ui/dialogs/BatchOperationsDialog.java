@@ -277,6 +277,8 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
         operationView = new DeleteOperationView(o, false, this.db, this.config);
       else if (operation instanceof RecomputeHashOperation o)
         operationView = new RecomputeHashOperationView(o, false, this.db, this.config);
+      else if (operation instanceof TransformPathOperation o)
+        operationView = new TransformPathOperationView(o, false, this.db, this.config);
       else
         throw new IllegalArgumentException("Unknown operation type: " + operation.getClass().getSimpleName());
       operationView.addUpdateListener(this);
@@ -367,6 +369,7 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
       case MOVE -> new MoveOperationView(null, true, this.db, this.config);
       case DELETE -> new DeleteOperationView(null, true, this.db, this.config);
       case RECOMPUTE_HASH -> new RecomputeHashOperationView(null, true, this.db, this.config);
+      case TRANSFORM_PATH -> new TransformPathOperationView(null, true, this.db, this.config);
     };
     view.addUpdateListener(this);
     this.operationBatchList.getItems().add(view);
@@ -619,5 +622,6 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
     MOVE,
     DELETE,
     RECOMPUTE_HASH,
+    TRANSFORM_PATH,
   }
 }

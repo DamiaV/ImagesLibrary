@@ -12,7 +12,7 @@ import java.util.*;
  * {@link Operation}s may feature a {@link Condition} that restricts which {@link Picture}s it should be applied to.
  */
 public abstract sealed class Operation implements StringSerializable
-    permits UpdateTagsOperation, MoveOperation, DeleteOperation, RecomputeHashOperation {
+    permits UpdateTagsOperation, MoveOperation, DeleteOperation, RecomputeHashOperation, TransformPathOperation {
   private final Condition condition;
 
   /**

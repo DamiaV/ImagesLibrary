@@ -142,6 +142,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.resultsLabel.getStyleClass().add("results-label");
     this.resultsLabel.setPadding(new Insets(0, 2, 0, 2));
 
+    // TODO copy paths of selected images on Ctrl+C
     this.imagesList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
     this.imagesList.getSelectionModel().selectedItemProperty().addListener(
         (observable, oldValue, newValue) -> this.onSelectionChange());

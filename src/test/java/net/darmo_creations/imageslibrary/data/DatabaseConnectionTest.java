@@ -1036,13 +1036,15 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void updatePicture_pathDoesNothing() throws DatabaseOperationException {
+  void updatePicture_pathDoesNotImpactFile() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    final Path path2 = Path.of("test_file_2.png");
+    final Path path2 = Path.of("test_file_10.png");
     this.db.updatePicture(new PictureUpdate(1, path2, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    assertTrue(this.db.isFileRegistered(path));
-    assertFalse(this.db.isFileRegistered(path2));
+    assertFalse(this.db.isFileRegistered(path));
+    assertTrue(this.db.isFileRegistered(path2));
+    assertTrue(Files.exists(path));
+    assertFalse(Files.exists(path2));
   }
 
   @Test

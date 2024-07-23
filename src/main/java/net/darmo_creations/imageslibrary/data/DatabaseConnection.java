@@ -971,15 +971,16 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
-  private static final String UPDATE_IMAGE_HASH_QUERY = """
+  private static final String UPDATE_IMAGE_QUERY = """
       UPDATE images
-      SET hash = ?1
-      WHERE id = ?2
+      SET path = ?1, hash = ?2
+      WHERE id = ?3
       """;
 
   /**
    * Update the given picture’s hash and tags.
    * <p>
+   * <strong>Updating the path will not move or rename the associated file.</strong>
    * To move or rename a picture, see {@link #moveOrRenamePicture(Picture, Path, boolean)}.
    * To merge two pictures, see {@link #mergePictures(Picture, Picture, boolean)}.
    *
@@ -989,12 +990,13 @@ public final class DatabaseConnection implements AutoCloseable {
   public void updatePicture(@NotNull PictureUpdate pictureUpdate) throws DatabaseOperationException {
     this.ensureInDatabase(pictureUpdate);
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
-    try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_HASH_QUERY)) {
+    try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_QUERY)) {
+      statement.setString(1, pictureUpdate.path().toString());
       if (pictureUpdate.hash().isPresent())
-        statement.setLong(1, pictureUpdate.hash().get().bytes());
+        statement.setLong(2, pictureUpdate.hash().get().bytes());
       else
-        statement.setNull(1, Types.INTEGER);
-      statement.setInt(2, pictureUpdate.id());
+        statement.setNull(2, Types.INTEGER);
+      statement.setInt(3, pictureUpdate.id());
       statement.executeUpdate();
       result = this.updatePictureTagsNoCommit(pictureUpdate);
     } catch (final SQLException e) {
@@ -1437,6 +1439,7 @@ public final class DatabaseConnection implements AutoCloseable {
         case MoveOperation.KEY -> MoveOperation.deserialize(data, condition);
         case RecomputeHashOperation.KEY -> new RecomputeHashOperation(condition);
         case UpdateTagsOperation.KEY -> UpdateTagsOperation.deserialize(data, condition, this);
+        case TransformPathOperation.KEY -> TransformPathOperation.deserialize(data, condition);
         default -> {
           this.logger.error("Unsupported operation type: {}", condType);
           yield null;
