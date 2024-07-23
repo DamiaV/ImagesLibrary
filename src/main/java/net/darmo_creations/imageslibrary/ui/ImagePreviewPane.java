@@ -36,7 +36,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     final Language language = config.language();
     final Theme theme = config.theme();
 
-    this.openInExplorerButton.setText(language.translate("image_preview.open_in_explorer_button.label"));
+    this.openInExplorerButton.setTooltip(new Tooltip(language.translate("image_preview.open_in_explorer_button.label")));
     this.openInExplorerButton.setGraphic(theme.getIcon(Icon.OPEN_FILE_IN_EXPLORER, Icon.Size.SMALL));
     this.openInExplorerButton.setOnAction(e -> this.onOpenFile());
     final HBox controlsBox = new HBox(5, this.openInExplorerButton);
@@ -68,7 +68,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.editTagsButton.setDisable(true);
 
     HBox.setHgrow(tagsLabelBox, Priority.ALWAYS);
-    final HBox tagsTitleBox = new HBox(5, tagsLabelBox, this.editTagsButton);
+    final HBox tagsTitleBox = new HBox(5, tagsLabelBox, this.editTagsButton, this.openInExplorerButton);
     tagsTitleBox.setPadding(new Insets(0, 5, 0, 5));
 
     this.tagsList.setPrefHeight(150);
