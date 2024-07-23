@@ -12,12 +12,15 @@ import org.jetbrains.annotations.*;
 
 import java.nio.file.*;
 import java.util.*;
+import java.util.function.*;
 
 public class ImagePreviewPane extends SplitPane implements ClickableListCellFactory.ClickListener<TagView> {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
-  private final List<EditTagsListener> editTagsListeners = new ArrayList<>();
+  private final Set<EditTagsListener> editTagsListeners = new HashSet<>();
+  private final Set<Consumer<Picture>> similarImagesListeners = new HashSet<>();
 
   private final Button openInExplorerButton = new Button();
+  private final Button showSimilarImagesButton = new Button();
   private final Label fileNameLabel = new Label();
   private final Label fileMetadataLabel = new Label();
   private final HBox imageViewBox;
@@ -39,8 +42,10 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.openInExplorerButton.setTooltip(new Tooltip(language.translate("image_preview.open_in_explorer_button.label")));
     this.openInExplorerButton.setGraphic(theme.getIcon(Icon.OPEN_FILE_IN_EXPLORER, Icon.Size.SMALL));
     this.openInExplorerButton.setOnAction(e -> this.onOpenFile());
-    final HBox controlsBox = new HBox(5, this.openInExplorerButton);
-    controlsBox.setAlignment(Pos.CENTER);
+
+    this.showSimilarImagesButton.setTooltip(new Tooltip(language.translate("image_preview.show_similar_images_button.label")));
+    this.showSimilarImagesButton.setGraphic(theme.getIcon(Icon.SHOW_SILIMAR_IMAGES, Icon.Size.SMALL));
+    this.showSimilarImagesButton.setOnAction(e -> this.showSimilarImages());
 
     final HBox fileNameBox = new HBox(this.fileNameLabel);
     fileNameBox.setAlignment(Pos.CENTER);
@@ -68,7 +73,13 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.editTagsButton.setDisable(true);
 
     HBox.setHgrow(tagsLabelBox, Priority.ALWAYS);
-    final HBox tagsTitleBox = new HBox(5, tagsLabelBox, this.editTagsButton, this.openInExplorerButton);
+    final HBox tagsTitleBox = new HBox(
+        5,
+        tagsLabelBox,
+        this.editTagsButton,
+        this.showSimilarImagesButton,
+        this.openInExplorerButton
+    );
     tagsTitleBox.setPadding(new Insets(0, 5, 0, 5));
 
     this.tagsList.setPrefHeight(150);
@@ -81,7 +92,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
         new VBox(5, fileNameBox, metadataBox, tagsTitleBox, this.tagsList)
     );
     this.setDividerPositions(0.75);
-    this.setImage(null, null);
+    this.setImage(null, null, false);
   }
 
   private void updateImageViewSize() {
@@ -97,16 +108,16 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   /**
    * Set the image to show.
    *
-   * @param picture The image to show.
-   * @param tags    The tags for the image.
+   * @param picture          The image to show.
+   * @param tags             The tags for the image.
+   * @param hasSimilarImages Whether the given picture has similar images.
    */
-  @Contract("!null, null -> fail")
-  public void setImage(Picture picture, Set<Tag> tags) {
+  @Contract("!null, null, _ -> fail")
+  public void setImage(Picture picture, Set<Tag> tags, boolean hasSimilarImages) {
     if (picture != null)
       Objects.requireNonNull(tags);
     this.picture = picture;
 
-    this.openInExplorerButton.setDisable(true);
     this.imageView.setImage(null);
     this.fileNameLabel.setText(null);
     this.fileNameLabel.setTooltip(null);
@@ -152,6 +163,10 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
           .map(TagView::new)
           .toList();
       this.tagsList.getItems().addAll(tagsEntries);
+      this.showSimilarImagesButton.setDisable(!hasSimilarImages);
+    } else {
+      this.openInExplorerButton.setDisable(true);
+      this.showSimilarImagesButton.setDisable(true);
     }
   }
 
@@ -168,6 +183,10 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
       FileUtils.openInFileExplorer(this.picture.path().toString());
   }
 
+  private void showSimilarImages() {
+    this.similarImagesListeners.forEach(l -> l.accept(this.picture));
+  }
+
   @Override
   public void onItemClick(@NotNull TagView item) {
   }
@@ -175,6 +194,10 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   @Override
   public void onItemDoubleClick(@NotNull TagView item) {
     this.tagClickListeners.forEach(listener -> listener.onTagClick(item.tag()));
+  }
+
+  public void addSimilarImagesListeners(@NotNull Consumer<Picture> similarImagesListener) {
+    this.similarImagesListeners.add(Objects.requireNonNull(similarImagesListener));
   }
 
   public interface EditTagsListener {

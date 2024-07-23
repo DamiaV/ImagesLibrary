@@ -59,6 +59,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
 
     this.imagePreviewPane = new ImagePreviewPane(config);
     this.imagePreviewPane.addEditTagsListener(picture -> this.onItemDoubleClick(new PictureEntry(picture, Set.of(), config)));
+    this.imagePreviewPane.addSimilarImagesListeners(this::onSimilarImages);
 
     this.popup = new TextPopOver(PopOver.ArrowLocation.RIGHT_CENTER, config);
 
@@ -249,10 +250,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
           if (this.imagesList.getItems().contains(entry)) {
             this.imagesList.getSelectionModel().select(entry);
             this.imagesList.requestFocus();
-          } else if (this.db.pictureExists(picture.id()))
-            this.imagePreviewPane.setImage(picture, this.db.getImageTags(picture));
-          else
-            this.imagePreviewPane.setImage(null, null);
+          } else if (this.db.pictureExists(picture.id())) {
+            this.imagePreviewPane.setImage(picture, this.db.getImageTags(picture), this.hasSimilarImages(picture));
+          } else
+            this.imagePreviewPane.setImage(null, null, false);
         } catch (final DatabaseOperationException e) {
           Alerts.databaseError(this.config, e.errorCode());
         }
@@ -429,6 +430,15 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.imageClickListeners.forEach(listener -> listener.onImageClick(pictureEntry.picture()));
   }
 
+  public void onSimilarImages(@NotNull Picture picture) {
+    final String escapedPath = picture.path().toString()
+        .replace("\"", "\\\"")
+        .replace("\\", "\\\\");
+    this.searchField.setText("similar_to=\"%s\"".formatted(escapedPath));
+    this.searchField.requestFocus();
+    this.search(null);
+  }
+
   private void copySelectedPaths() {
     final var selectedItems = this.imagesList.getSelectionModel().getSelectedItems();
     final var joiner = new StringJoiner("\n");
@@ -443,9 +453,23 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     final var selection = selectedItems.stream()
         .map(PictureEntry::picture)
         .toList();
-    if (selection.size() == 1)
-      this.imagePreviewPane.setImage(selectedItems.get(0).picture(), selectedItems.get(0).tags());
+    if (selection.size() == 1) {
+      final PictureEntry entry = selectedItems.get(0);
+      final Picture picture = entry.picture();
+      this.imagePreviewPane.setImage(picture, entry.tags(), this.hasSimilarImages(picture));
+    }
     this.imageSelectionListeners.forEach(listener -> listener.onSelectionChange(selection));
+  }
+
+  private boolean hasSimilarImages(@NotNull Picture picture) {
+    if (picture.hash().isPresent()) {
+      try {
+        return !this.db.getSimilarImages(picture.hash().get(), picture).isEmpty();
+      } catch (final DatabaseOperationException e) {
+        App.logger().error("Failed to get similar images of {}", picture.path(), e);
+      }
+    }
+    return false;
   }
 
   public static final class PictureEntry extends HBox implements Comparable<PictureEntry> {
