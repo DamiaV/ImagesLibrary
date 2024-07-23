@@ -2,6 +2,7 @@ package net.darmo_creations.imageslibrary.ui;
 
 import javafx.beans.value.*;
 import javafx.geometry.*;
+import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
@@ -74,6 +75,13 @@ public class AutoCompleteField<T, S> extends AnchorPane {
       styledArea.getStyleClass().add("text-area");
     this.styledArea = styledArea;
     this.setSyntaxHighlighter(syntaxHighlighter);
+    this.entriesPopup.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+      // Prevent space from validating the selected popup entry
+      if (event.getCode() == KeyCode.SPACE)
+        event.consume();
+    });
+    this.entriesPopup.addEventFilter(KeyEvent.KEY_PRESSED, this::handleSuggestionsCompletion);
+    styledArea.addEventFilter(KeyEvent.KEY_PRESSED, this::handleSuggestionsCompletion);
     EventStreams.nonNullValuesOf(styledArea.caretBoundsProperty()).subscribe(opt -> {
       if (opt.isPresent()) {
         final Bounds bounds = opt.get();
@@ -100,6 +108,8 @@ public class AutoCompleteField<T, S> extends AnchorPane {
           this.history.subList(this.historyIndex + 1, this.history.size()).clear();
         this.history.add(newValue); // Add new value
         this.historyIndex++;
+        if (this.entriesPopup.isShowing())
+          this.focusFirstSuggestion();
       }
     });
     styledArea.focusedProperty().addListener((observableValue, oldValue, newValue) -> this.hideSuggestions());
@@ -117,8 +127,7 @@ public class AutoCompleteField<T, S> extends AnchorPane {
       this.canShowSuggestions = false;
     });
     styledArea.setOnKeyPressed(event -> {
-      if (event.getCode() == KeyCode.SPACE && event.isShortcutDown()
-          && !event.isAltDown() && !event.isMetaDown() && !event.isShiftDown())
+      if (event.getCode() == KeyCode.SPACE && event.isShortcutDown())
         this.fillAndShowSuggestions(entries, stringConverter, styledArea.getCaretPosition());
     });
     styledArea.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
@@ -138,6 +147,24 @@ public class AutoCompleteField<T, S> extends AnchorPane {
     AnchorPane.setLeftAnchor(styledArea, 0.0);
     AnchorPane.setRightAnchor(styledArea, 0.0);
     this.getChildren().add(styledArea);
+  }
+
+  private void handleSuggestionsCompletion(@NotNull KeyEvent event) {
+    if (this.entriesPopup.isShowing() && (event.getCode() == KeyCode.TAB || event.getCode() == KeyCode.ENTER)) {
+      final List<Node> nodes = this.entriesPopup.getSkin()
+          .getNode()
+          .lookupAll(".menu-item")
+          .stream()
+          .sorted(Comparator.comparing(Node::getId))
+          .toList();
+      for (int i = 0; i < nodes.size(); i++) {
+        if (nodes.get(i).isFocused()) {
+          event.consume();
+          this.entriesPopup.getItems().get(i).fire();
+          break;
+        }
+      }
+    }
   }
 
   private void undoText() {
@@ -213,12 +240,23 @@ public class AutoCompleteField<T, S> extends AnchorPane {
   }
 
   private void showSuggestions() {
-    if (!this.entriesPopup.getItems().isEmpty() && this.getScene() != null)
+    if (!this.entriesPopup.getItems().isEmpty() && this.getScene() != null) {
       this.entriesPopup.show(this.getScene().getWindow());
+      this.focusFirstSuggestion();
+    }
   }
 
   private void hideSuggestions() {
     this.entriesPopup.hide();
+  }
+
+  private void focusFirstSuggestion() {
+    this.entriesPopup.getSkin()
+        .getNode()
+        .lookupAll(".menu-item")
+        .stream()
+        .min(Comparator.comparing(Node::getId))
+        .ifPresent(Node::requestFocus);
   }
 
   private void fillAndShowSuggestions(
@@ -230,11 +268,15 @@ public class AutoCompleteField<T, S> extends AnchorPane {
     final String beforeCaret = text.substring(0, caretIndex);
     final Matcher matcher = WORD_START_PATTERN.matcher(beforeCaret);
     final String wordBegining = matcher.find() ? matcher.group(1) : "";
-    final var suggestions = entries.stream()
-        .map(stringConverter)
-        .filter(s -> s.startsWith(wordBegining) && !s.equals(wordBegining))
-        .sorted()
-        .toList();
+    final List<String> suggestions;
+    if (wordBegining.isEmpty())
+      suggestions = List.of();
+    else
+      suggestions = entries.stream()
+          .map(stringConverter)
+          .filter(s -> s.startsWith(wordBegining) && !s.equals(wordBegining))
+          .sorted()
+          .toList();
     if (!suggestions.isEmpty()) {
       this.populatePopup(suggestions);
       if (!this.entriesPopup.isShowing())
@@ -255,7 +297,10 @@ public class AutoCompleteField<T, S> extends AnchorPane {
     suggestions.stream()
         .limit(MAX_SHOWN_SUGGESTIONS)
         .map(this::newMenuItem)
-        .forEach(this.entriesPopup.getItems()::add);
+        .forEach(menuItem -> {
+          menuItem.setId("suggestion-%02d".formatted(this.entriesPopup.getItems().size()));
+          this.entriesPopup.getItems().add(menuItem);
+        });
   }
 
   private MenuItem newMenuItem(@NotNull String suggestion) {
