@@ -51,6 +51,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
   private final DatabaseConnection db;
 
+  private int totalPictures;
   private final Queue<Picture> pictures = new LinkedList<>();
   private final Set<Tag> currentPictureTags = new HashSet<>();
   private Path targetPath;
@@ -214,6 +215,14 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     return splitPane;
   }
 
+  @Override
+  protected List<FormatArg> getTitleFormatArgs() {
+    return List.of(
+        new FormatArg("count", this.totalPictures - (this.pictures != null ? this.pictures.size() : 0)),
+        new FormatArg("total", this.totalPictures)
+    );
+  }
+
   private void showTagsErrorPopup() {
     if (this.getDialogPane().getScene() != null && this.stage().isShowing()) // Fix an NPE that sometimes occur
       this.tagsErrorPopup.show(this.tagsField);
@@ -243,6 +252,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.refreshTitle();
     this.pictures.clear();
     this.pictures.addAll(pictures);
+    this.totalPictures = pictures.size();
     this.tagsField.setText("");
     this.anyUpdate = false;
     this.clearTargetPath();
@@ -321,6 +331,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       }
     this.viewSimilarImagesButton.setDisable(similarPictures.isEmpty());
     this.similarImagesDialog.setPictures(similarPictures);
+    this.refreshTitle();
   }
 
   private boolean applyChanges() {
