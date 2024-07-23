@@ -474,6 +474,11 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         label.setTooltip(new Tooltip(language.translate("images_view.result.no_tags")));
         this.getChildren().add(label);
       }
+      if (picture.hash().isEmpty()) {
+        final Label label = new Label(null, theme.getIcon(Icon.NO_HASH, Icon.Size.SMALL));
+        label.setTooltip(new Tooltip(language.translate("images_view.result.no_hash")));
+        this.getChildren().add(label);
+      }
       this.getChildren().add(new Label(picture.path().toString()));
     }
 

@@ -42,6 +42,7 @@ public enum Icon {
   CASE_SENSITIVITY("text_smallcaps"),
   NO_TAGS("tag_blue_error"),
   NO_FILE("picture_error"),
+  NO_HASH("tag_hash_error"),
   EDIT_TAGS("pencil"),
 
   COMPOUND_TAG("three_tags"),
