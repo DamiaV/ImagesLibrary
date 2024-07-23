@@ -70,8 +70,8 @@ public class UpdateTagsOperationView extends OperationView<UpdateTagsOperation> 
         this.db.getAllTags(),
         Tag::label,
         new TagListSyntaxHighlighter(this.db.getAllTags(), this.db.getAllTagTypes()),
-        Function.identity()
-    );
+        Function.identity(),
+        config);
     this.tagsToAddField.textProperty()
         .addListener((observable, oldValue, newValue) -> this.notifyUpdateListeners());
     this.tagsToAddField.setPrefHeight(100);
@@ -83,8 +83,8 @@ public class UpdateTagsOperationView extends OperationView<UpdateTagsOperation> 
         this.db.getAllTags(),
         Tag::label,
         new TagListSyntaxHighlighter(this.db.getAllTags(), this.db.getAllTagTypes()),
-        Function.identity()
-    );
+        Function.identity(),
+        config);
     this.tagsToRemoveField.textProperty()
         .addListener((observable, oldValue, newValue) -> this.notifyUpdateListeners());
     this.tagsToRemoveField.setPrefHeight(100);

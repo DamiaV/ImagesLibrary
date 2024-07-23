@@ -81,6 +81,12 @@ Text.hyperlink {
   -fx-stroke: -fx-light-text-color;
 }
 
+/* Suggestions popup */
+
+.suggestions-menu {
+  -fx-border-color: derive(-fx-base, 30%);
+}
+
 /* Tag query highlighting */
 
 .highlight-tag-query .text {

@@ -77,7 +77,8 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         db.getAllTags(),
         Tag::label,
         config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null,
-        List::of
+        List::of,
+        config
     );
     textField.setPromptText(new Text(language.translate("image_search_field.search")));
     textField.setStyle("-fx-font-size: 2em");

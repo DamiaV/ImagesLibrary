@@ -42,7 +42,8 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
         this.db.getAllTags(),
         Tag::label,
         new TagQuerySyntaxHighlighter(),
-        List::of
+        List::of,
+        config
     );
 
     this.getDialogPane().setPrefWidth(400);

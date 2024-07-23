@@ -73,7 +73,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         this.db.getAllTags(),
         Tag::label,
         new TagListSyntaxHighlighter(db.getAllTags(), db.getAllTagTypes()),
-        Function.identity()
+        Function.identity(),
+        config
     );
 
     this.nextButton = (Button) this.getDialogPane().lookupButton(ButtonTypes.NEXT);

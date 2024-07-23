@@ -47,6 +47,14 @@
 
 /* Custom */
 
+.suggestions-menu {
+  -fx-background-color: -fx-base;
+}
+
+.suggestions-menu-item:selected {
+  -fx-background-color: -fx-accent;
+}
+
 .tags-tab:selected,
 .tags-tab-title,
 .results-label,

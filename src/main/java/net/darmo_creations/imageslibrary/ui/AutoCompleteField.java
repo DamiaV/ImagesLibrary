@@ -1,11 +1,16 @@
 package net.darmo_creations.imageslibrary.ui;
 
+import javafx.beans.property.*;
 import javafx.beans.value.*;
+import javafx.collections.*;
+import javafx.css.*;
+import javafx.event.*;
 import javafx.geometry.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
+import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.ui.syntax_highlighting.*;
 import org.fxmisc.richtext.*;
@@ -36,7 +41,8 @@ public class AutoCompleteField<T, S> extends AnchorPane {
   private static final int CARET_Y_OFFSET = 0;
   private static final int MAX_SHOWN_SUGGESTIONS = 10;
 
-  private final ContextMenu entriesPopup = new ContextMenu();
+  private final Config config;
+  private final SuggestionsMenu suggestionsPopup = new SuggestionsMenu();
   private final Function<String, S> cssConverter;
   @Nullable
   private SyntaxHighlighter syntaxHighlighter;
@@ -60,33 +66,31 @@ public class AutoCompleteField<T, S> extends AnchorPane {
    * @param cssConverter      If the {@code syntaxHighlighter} argument is specified,
    *                          a function that converts a string returned by {@link Span} objects
    *                          into the appropriate type accepted by the {@code styledArea} object.
+   * @param config            The app’s config.
    */
   public AutoCompleteField(
       @NotNull StyledTextArea<S, S> styledArea,
       final @NotNull Set<T> entries,
       @NotNull Function<T, String> stringConverter,
       SyntaxHighlighter syntaxHighlighter,
-      Function<String, S> cssConverter
+      Function<String, S> cssConverter,
+      @NotNull Config config
   ) {
     this.cssConverter = cssConverter;
+    this.config = config;
     if (!styledArea.getStyleClass().contains("text-input"))
       styledArea.getStyleClass().add("text-input");
     if (!styledArea.getStyleClass().contains("text-area"))
       styledArea.getStyleClass().add("text-area");
     this.styledArea = styledArea;
     this.setSyntaxHighlighter(syntaxHighlighter);
-    this.entriesPopup.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-      // Prevent space from validating the selected popup entry
-      if (event.getCode() == KeyCode.SPACE)
-        event.consume();
-    });
-    this.entriesPopup.addEventFilter(KeyEvent.KEY_PRESSED, this::handleSuggestionsCompletion);
-    styledArea.addEventFilter(KeyEvent.KEY_PRESSED, this::handleSuggestionsCompletion);
+    this.suggestionsPopup.addEventFilter(KeyEvent.KEY_PRESSED, this::handlePopupInteractions);
+    styledArea.addEventFilter(KeyEvent.KEY_PRESSED, this::handlePopupInteractions);
     EventStreams.nonNullValuesOf(styledArea.caretBoundsProperty()).subscribe(opt -> {
       if (opt.isPresent()) {
         final Bounds bounds = opt.get();
-        this.entriesPopup.setX(bounds.getMaxX() + CARET_X_OFFSET);
-        this.entriesPopup.setY(bounds.getMaxY() + CARET_Y_OFFSET);
+        this.suggestionsPopup.setX(bounds.getMaxX() + CARET_X_OFFSET);
+        this.suggestionsPopup.setY(bounds.getMaxY() + CARET_Y_OFFSET);
         if (this.hidePopupTemporarily) {
           this.showSuggestions();
           this.hidePopupTemporarily = false;
@@ -108,8 +112,6 @@ public class AutoCompleteField<T, S> extends AnchorPane {
           this.history.subList(this.historyIndex + 1, this.history.size()).clear();
         this.history.add(newValue); // Add new value
         this.historyIndex++;
-        if (this.entriesPopup.isShowing())
-          this.focusFirstSuggestion();
       }
     });
     styledArea.focusedProperty().addListener((observableValue, oldValue, newValue) -> this.hideSuggestions());
@@ -149,19 +151,29 @@ public class AutoCompleteField<T, S> extends AnchorPane {
     this.getChildren().add(styledArea);
   }
 
-  private void handleSuggestionsCompletion(@NotNull KeyEvent event) {
-    if (this.entriesPopup.isShowing() && (event.getCode() == KeyCode.TAB || event.getCode() == KeyCode.ENTER)) {
-      final List<Node> nodes = this.entriesPopup.getSkin()
-          .getNode()
-          .lookupAll(".menu-item")
-          .stream()
-          .sorted(Comparator.comparing(Node::getId))
-          .toList();
-      for (int i = 0; i < nodes.size(); i++) {
-        if (nodes.get(i).isFocused()) {
+  private void handlePopupInteractions(@NotNull KeyEvent event) {
+    if (this.suggestionsPopup.isShowing()) {
+      switch (event.getCode()) {
+        case TAB, ENTER -> {
+          for (final var item : this.suggestionsPopup.getItems()) {
+            if (item.isSelected()) {
+              item.fire();
+              event.consume();
+              break;
+            }
+          }
+        }
+        case UP -> {
+          this.suggestionsPopup.selectUp();
           event.consume();
-          this.entriesPopup.getItems().get(i).fire();
-          break;
+        }
+        case DOWN -> {
+          this.suggestionsPopup.selectDown();
+          event.consume();
+        }
+        case ESCAPE -> {
+          this.suggestionsPopup.hide();
+          event.consume();
         }
       }
     }
@@ -240,23 +252,12 @@ public class AutoCompleteField<T, S> extends AnchorPane {
   }
 
   private void showSuggestions() {
-    if (!this.entriesPopup.getItems().isEmpty() && this.getScene() != null) {
-      this.entriesPopup.show(this.getScene().getWindow());
-      this.focusFirstSuggestion();
-    }
+    if (!this.suggestionsPopup.getItems().isEmpty() && this.getScene() != null)
+      this.suggestionsPopup.show(this.getScene().getWindow());
   }
 
   private void hideSuggestions() {
-    this.entriesPopup.hide();
-  }
-
-  private void focusFirstSuggestion() {
-    this.entriesPopup.getSkin()
-        .getNode()
-        .lookupAll(".menu-item")
-        .stream()
-        .min(Comparator.comparing(Node::getId))
-        .ifPresent(Node::requestFocus);
+    this.suggestionsPopup.hide();
   }
 
   private void fillAndShowSuggestions(
@@ -279,7 +280,7 @@ public class AutoCompleteField<T, S> extends AnchorPane {
           .toList();
     if (!suggestions.isEmpty()) {
       this.populatePopup(suggestions);
-      if (!this.entriesPopup.isShowing())
+      if (!this.suggestionsPopup.isShowing())
         this.showSuggestions();
     } else {
       this.hideSuggestions();
@@ -293,19 +294,16 @@ public class AutoCompleteField<T, S> extends AnchorPane {
    * @param suggestions The set of suggestions.
    */
   private void populatePopup(final @NotNull List<String> suggestions) {
-    this.entriesPopup.getItems().clear();
+    this.suggestionsPopup.getItems().clear();
     suggestions.stream()
         .limit(MAX_SHOWN_SUGGESTIONS)
         .map(this::newMenuItem)
-        .forEach(menuItem -> {
-          menuItem.setId("suggestion-%02d".formatted(this.entriesPopup.getItems().size()));
-          this.entriesPopup.getItems().add(menuItem);
-        });
+        .forEach(menuItem -> this.suggestionsPopup.getItems().add(menuItem));
   }
 
-  private MenuItem newMenuItem(@NotNull String suggestion) {
-    final CustomMenuItem item = new CustomMenuItem(new Label(suggestion), true);
-    item.setOnAction(actionEvent -> {
+  private SuggestionsMenuItem newMenuItem(@NotNull String suggestion) {
+    final SuggestionsMenuItem item = new SuggestionsMenuItem(suggestion);
+    item.setOnAction(event -> {
       final String text = this.getText();
       final int caretPosition = this.styledArea.getCaretPosition();
       final String beforeCaret = text.substring(0, caretPosition);
@@ -316,5 +314,134 @@ public class AutoCompleteField<T, S> extends AnchorPane {
       this.hideSuggestions();
     });
     return item;
+  }
+
+  /**
+   * A popup that shows a list of clickable suggestions.
+   */
+  private class SuggestionsMenu extends PopupControl {
+    private final ObservableList<SuggestionsMenuItem> items = FXCollections.observableArrayList();
+
+    private boolean initialized = false;
+
+    public SuggestionsMenu() {
+      final VBox root = new VBox();
+      root.getStyleClass().add("suggestions-menu");
+      this.getScene().setRoot(root);
+
+      this.items.addListener((ListChangeListener<? super SuggestionsMenuItem>) change -> {
+        while (change.next()) {
+          for (final SuggestionsMenuItem removed : change.getRemoved()) {
+            root.getChildren().remove(removed);
+          }
+          for (final SuggestionsMenuItem added : change.getAddedSubList()) {
+            root.getChildren().add(added);
+            added.selectedProperty().addListener((observable, oldValue, newValue) -> {
+              if (newValue)
+                this.items.filtered(item -> item != added && item.isSelected())
+                    .forEach(item -> item.setSelected(false));
+            });
+          }
+        }
+        if (!this.items.isEmpty())
+          this.items.get(0).setSelected(true);
+      });
+
+      this.setOnShowing(event -> {
+        if (!this.initialized) {
+          AutoCompleteField.this.config.theme().applyTo(root);
+          this.initialized = true;
+        }
+        for (int i = 0; i < this.items.size(); i++)
+          this.items.get(i).setSelected(i == 0);
+      });
+    }
+
+    public ObservableList<SuggestionsMenuItem> getItems() {
+      return this.items;
+    }
+
+    public void selectUp() {
+      final int size = this.items.size();
+      for (int i = 0; i < size; i++) {
+        if (this.items.get(i).isSelected()) {
+          this.items.get(i == 0 ? size - 1 : i - 1).setSelected(true);
+          break;
+        }
+      }
+    }
+
+    public void selectDown() {
+      final int size = this.items.size();
+      for (int i = 0; i < size; i++) {
+        if (this.items.get(i).isSelected()) {
+          this.items.get((i + 1) % size).setSelected(true);
+          break;
+        }
+      }
+    }
+  }
+
+  private static class SuggestionsMenuItem extends AnchorPane {
+    public SuggestionsMenuItem(@NotNull String text) {
+      final Label label = new Label(text);
+      AnchorPane.setLeftAnchor(label, 0.0);
+      AnchorPane.setRightAnchor(label, 0.0);
+      AnchorPane.setTopAnchor(label, 0.0);
+      AnchorPane.setBottomAnchor(label, 0.0);
+      this.getChildren().add(label);
+
+      this.getStyleClass().add("suggestions-menu-item");
+      this.setPadding(new Insets(2));
+      this.setCursor(Cursor.HAND);
+
+      this.selected.addListener((observable, oldValue, newValue) ->
+          this.pseudoClassStateChanged(PseudoClass.getPseudoClass("selected"), newValue));
+      this.setOnMouseEntered(event -> this.setSelected(true));
+      this.setOnMouseClicked(event -> this.fire());
+    }
+
+    private final BooleanProperty selected = new SimpleBooleanProperty(this, "selected", false);
+
+    public BooleanProperty selectedProperty() {
+      return this.selected;
+    }
+
+    public boolean isSelected() {
+      return this.selected.get();
+    }
+
+    public void setSelected(boolean selected) {
+      this.selected.set(selected);
+    }
+
+    private final ObjectProperty<EventHandler<ActionEvent>> onAction = new ObjectPropertyBase<>() {
+      @Override
+      protected void invalidated() {
+        SuggestionsMenuItem.this.setEventHandler(ActionEvent.ACTION, this.get());
+      }
+
+      @Override
+      public Object getBean() {
+        return SuggestionsMenuItem.this;
+      }
+
+      @Override
+      public String getName() {
+        return "onAction";
+      }
+    };
+
+    public final ObjectProperty<EventHandler<ActionEvent>> onActionProperty() {
+      return this.onAction;
+    }
+
+    public final void setOnAction(EventHandler<ActionEvent> value) {
+      this.onActionProperty().set(value);
+    }
+
+    public void fire() {
+      this.fireEvent(new ActionEvent());
+    }
   }
 }

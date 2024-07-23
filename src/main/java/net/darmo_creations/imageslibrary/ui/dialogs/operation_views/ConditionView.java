@@ -44,7 +44,8 @@ public class ConditionView extends VBox {
         db.getAllTags(),
         Tag::label,
         new TagQuerySyntaxHighlighter(),
-        List::of
+        List::of,
+        config
     );
 
     final var converter = new ConditionTypeStringConverter();
