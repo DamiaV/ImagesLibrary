@@ -440,7 +440,7 @@ public class AppController implements ResultsView.SearchListener {
         headerKey = "alert.skipped_files.header";
       else
         headerKey = "alert.skipped_files_and_error.header";
-      Alerts.warning(
+      Alerts.info(
           this.config,
           headerKey,
           null,
@@ -451,7 +451,7 @@ public class AppController implements ResultsView.SearchListener {
     }
 
     if (pictures.isEmpty()) {
-      Alerts.warning(
+      Alerts.info(
           this.config,
           "alert.no_files.header",
           null,
