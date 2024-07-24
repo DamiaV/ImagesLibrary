@@ -83,6 +83,13 @@ public class TagsView extends VBox {
    * Refresh this view from the internal tags and tag types views.
    */
   public void refresh() {
+    final Tab selectedTab = this.tabPane.getSelectionModel().getSelectedItem();
+    final Optional<Integer> selectedTagType;
+    if (selectedTab != null)
+      selectedTagType = ((TagsTab) selectedTab).tagType().map(TagType::id);
+    else
+      selectedTagType = Optional.empty();
+
     this.tabPane.getTabs().clear();
 
     final Map<TagType, TagsTab> tagTypeTabs = new HashMap<>();
@@ -100,6 +107,8 @@ public class TagsView extends VBox {
       tab.addEditTagTypeListener(this::onEditTagType);
       tab.addDeleteTagTypeListener(this::onDeleteTagType);
       tab.addCreateTagTypeListener(this::onCreateTagType);
+      if (selectedTagType.equals(Optional.ofNullable(tagType).map(TagType::id)))
+        this.tabPane.getSelectionModel().select(tab);
     };
 
     createTab.accept(null);
