@@ -573,7 +573,10 @@ public class AppController implements ResultsView.SearchListener {
 
   private void onEditTagType(@NotNull TagType tagType) {
     this.editTagTypeDialog.setTagType(tagType);
-    this.editTagTypeDialog.showAndWait().ifPresent(type -> this.tagsView.refresh());
+    this.editTagTypeDialog.showAndWait().ifPresent(type -> {
+      this.tagsView.refresh();
+      this.resultsView.refresh();
+    });
   }
 
   private void onDeleteTagType(@NotNull TagType tagType) {
@@ -593,6 +596,7 @@ public class AppController implements ResultsView.SearchListener {
       return;
     }
     this.tagsView.refresh();
+    this.resultsView.refresh();
   }
 
   private void onCreateTagType() {
@@ -737,7 +741,10 @@ public class AppController implements ResultsView.SearchListener {
 
   private void editTag(@NotNull Tag tag) {
     this.editTagDialog.setTag(tag);
-    this.editTagDialog.showAndWait().ifPresent(t -> this.tagsView.refresh());
+    this.editTagDialog.showAndWait().ifPresent(t -> {
+      this.tagsView.refresh();
+      this.resultsView.refresh();
+    });
   }
 
   /**
