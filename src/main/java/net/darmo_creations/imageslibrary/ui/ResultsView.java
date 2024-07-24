@@ -478,8 +478,8 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
 
     public PictureEntry(@NotNull Picture picture, final @NotNull Set<Tag> tags, final @NotNull Config config) {
       super(5);
-      this.picture = picture;
-      this.tags = tags;
+      this.picture = Objects.requireNonNull(picture);
+      this.tags = Objects.requireNonNull(tags);
       final Language language = config.language();
       final Theme theme = config.theme();
       boolean exists;
