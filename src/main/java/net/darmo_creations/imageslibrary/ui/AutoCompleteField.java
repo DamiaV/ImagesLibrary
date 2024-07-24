@@ -43,6 +43,9 @@ public class AutoCompleteField<T, S> extends AnchorPane {
 
   private final Config config;
   private final SuggestionsMenu suggestionsPopup = new SuggestionsMenu();
+  private final Set<T> entries;
+  private final Predicate<T> entriesFilter;
+  private final Function<T, String> stringConverter;
   private final Function<String, S> cssConverter;
   @Nullable
   private SyntaxHighlighter syntaxHighlighter;
@@ -61,6 +64,7 @@ public class AutoCompleteField<T, S> extends AnchorPane {
    *
    * @param styledArea        The text input to wrap.
    * @param entries           The set of entries.
+   * @param entriesFilter     An optional filter to apply to entries when showing suggestions.
    * @param stringConverter   A function to convert each suggestion into a string.
    * @param syntaxHighlighter An optional syntax highlighter that will color the text.
    * @param cssConverter      If the {@code syntaxHighlighter} argument is specified,
@@ -71,11 +75,15 @@ public class AutoCompleteField<T, S> extends AnchorPane {
   public AutoCompleteField(
       @NotNull StyledTextArea<S, S> styledArea,
       final @NotNull Set<T> entries,
+      Predicate<T> entriesFilter,
       @NotNull Function<T, String> stringConverter,
       SyntaxHighlighter syntaxHighlighter,
       Function<String, S> cssConverter,
       @NotNull Config config
   ) {
+    this.entries = Objects.requireNonNull(entries);
+    this.entriesFilter = entriesFilter;
+    this.stringConverter = Objects.requireNonNull(stringConverter);
     this.cssConverter = cssConverter;
     this.config = config;
     if (!styledArea.getStyleClass().contains("text-input"))
@@ -125,12 +133,12 @@ public class AutoCompleteField<T, S> extends AnchorPane {
         this.hideSuggestions();
         return;
       }
-      this.fillAndShowSuggestions(entries, stringConverter, newValue);
+      this.fillAndShowSuggestions(newValue);
       this.canShowSuggestions = false;
     });
     styledArea.setOnKeyPressed(event -> {
       if (event.getCode() == KeyCode.SPACE && event.isShortcutDown())
-        this.fillAndShowSuggestions(entries, stringConverter, styledArea.getCaretPosition());
+        this.fillAndShowSuggestions(styledArea.getCaretPosition());
     });
     styledArea.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
       if (event.getCode() == KeyCode.Z && event.isShortcutDown()) {
@@ -260,11 +268,7 @@ public class AutoCompleteField<T, S> extends AnchorPane {
     this.suggestionsPopup.hide();
   }
 
-  private void fillAndShowSuggestions(
-      final @NotNull Set<T> entries,
-      @NotNull Function<T, String> stringConverter,
-      int caretIndex
-  ) {
+  private void fillAndShowSuggestions(int caretIndex) {
     final String text = this.getText();
     final String beforeCaret = text.substring(0, caretIndex);
     final Matcher matcher = WORD_START_PATTERN.matcher(beforeCaret);
@@ -273,8 +277,9 @@ public class AutoCompleteField<T, S> extends AnchorPane {
     if (wordBegining.isEmpty())
       suggestions = List.of();
     else
-      suggestions = entries.stream()
-          .map(stringConverter)
+      suggestions = this.entries.stream()
+          .filter(t -> this.entriesFilter != null && this.entriesFilter.test(t))
+          .map(this.stringConverter)
           .filter(s -> s.startsWith(wordBegining) && !s.equals(wordBegining))
           .sorted()
           .toList();

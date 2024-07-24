@@ -68,6 +68,7 @@ public class UpdateTagsOperationView extends OperationView<UpdateTagsOperation> 
     this.tagsToAddField = new AutoCompleteField<>(
         new InlineCssTextArea(),
         this.db.getAllTags(),
+        t -> t.definition().isEmpty(),
         Tag::label,
         new TagListSyntaxHighlighter(this.db.getAllTags(), this.db.getAllTagTypes()),
         Function.identity(),
@@ -81,6 +82,7 @@ public class UpdateTagsOperationView extends OperationView<UpdateTagsOperation> 
     this.tagsToRemoveField = new AutoCompleteField<>(
         new InlineCssTextArea(),
         this.db.getAllTags(),
+        t -> t.definition().isEmpty(),
         Tag::label,
         new TagListSyntaxHighlighter(this.db.getAllTags(), this.db.getAllTagTypes()),
         Function.identity(),

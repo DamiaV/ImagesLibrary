@@ -76,6 +76,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.searchField = new AutoCompleteField<>(
         textField,
         db.getAllTags(),
+        t -> true,
         Tag::label,
         config.isQuerySyntaxHighlightingEnabled() ? new TagQuerySyntaxHighlighter() : null,
         List::of,

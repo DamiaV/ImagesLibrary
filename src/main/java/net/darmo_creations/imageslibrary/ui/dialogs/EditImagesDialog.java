@@ -73,6 +73,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.tagsField = new AutoCompleteField<>(
         new InlineCssTextArea(),
         this.db.getAllTags(),
+        t -> t.definition().isEmpty(),
         Tag::label,
         new TagListSyntaxHighlighter(db.getAllTags(), db.getAllTagTypes()),
         Function.identity(),

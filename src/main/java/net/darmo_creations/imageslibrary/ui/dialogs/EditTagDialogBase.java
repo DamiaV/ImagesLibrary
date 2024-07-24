@@ -40,6 +40,7 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
     this.definitionField = new AutoCompleteField<>(
         new StyleClassedTextField(),
         this.db.getAllTags(),
+        t -> true,
         Tag::label,
         new TagQuerySyntaxHighlighter(),
         List::of,

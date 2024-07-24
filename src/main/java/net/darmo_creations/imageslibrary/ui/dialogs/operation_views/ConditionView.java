@@ -42,6 +42,7 @@ public class ConditionView extends VBox {
     this.tagsField = new AutoCompleteField<>(
         new StyleClassedTextField(),
         db.getAllTags(),
+        t -> true,
         Tag::label,
         new TagQuerySyntaxHighlighter(),
         List::of,
