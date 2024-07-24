@@ -1060,38 +1060,38 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   /**
-   * Merge the tags of {@code picture1} into those of {@code picture2},
-   * deleting {@code picture1} from the database and optionaly from the disk.
+   * Merge the tags of {@code source} into those of {@code destination},
+   * deleting {@code source} from the database and optionaly from the disk.
    *
-   * @param picture1       The picture whose tags ought to be merged into those of {@code picture2}.
-   * @param picture2       The picture which should receive the tags of {@code picture1}.
-   * @param deleteFromDisk Whether {@code picture1} should be deleted from the disk.
+   * @param source         The picture whose tags ought to be merged into those of {@code destination}.
+   * @param destination    The picture which should receive the tags of {@code source}.
+   * @param deleteFromDisk Whether {@code source} should be deleted from the disk.
    * @throws DatabaseOperationException If any database error occurs.
    * @throws IllegalArgumentException   If the two pictures have the same ID and/or path.
    */
-  public void mergePictures(@NotNull Picture picture1, @NotNull Picture picture2, boolean deleteFromDisk)
+  public void mergePictures(@NotNull Picture source, @NotNull Picture destination, boolean deleteFromDisk)
       throws DatabaseOperationException {
-    this.ensureInDatabase(picture1);
-    this.ensureInDatabase(picture2);
-    if (picture1.id() == picture2.id())
+    this.ensureInDatabase(source);
+    this.ensureInDatabase(destination);
+    if (source.id() == destination.id())
       throw this.logThrownError(new IllegalArgumentException("Both pictures have the same ID"));
-    if (picture1.path().equals(picture2.path()))
+    if (source.path().equals(destination.path()))
       throw this.logThrownError(new IllegalArgumentException("Both pictures have the same path"));
 
-    final var pic1Tags = this.getImageTags(picture1).stream()
+    final var sourceTags = this.getImageTags(source).stream()
         .map(t -> new ParsedTag(t.type(), t.label()))
         .collect(Collectors.toSet());
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
     try {
       // Add tags of picture1 to picture2
-      result = this.updatePictureTagsNoCommit(new PictureUpdate(picture2.id(), picture2.path(), picture2.hash(), pic1Tags, Set.of()));
+      result = this.updatePictureTagsNoCommit(new PictureUpdate(destination.id(), destination.path(), destination.hash(), sourceTags, Set.of()));
     } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     this.commit();
     this.updateTagsCache(result.getKey(), result.getValue());
-    this.deletePicture(picture1, deleteFromDisk);
+    this.deletePicture(source, deleteFromDisk);
   }
 
   /**

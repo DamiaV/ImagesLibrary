@@ -14,6 +14,7 @@ public enum Icon {
   QUIT("door_in"),
   EDIT_IMAGES("picture_edit"),
   MOVE_IMAGES("picture_go"),
+  MERGE_IMAGES_TAGS("two_pictures"),
   DELETE_IMAGES("picture_delete"),
   EDIT_TAG("tag_blue_edit"),
   DELETE_TAGS("tag_blue_delete"),
@@ -69,6 +70,11 @@ public enum Icon {
   LOAD_OPERATION_BATCH("arrow_up"),
   DELETE_OPERATION_BATCH("delete"),
   RENAME_OPERATION_BATCH("pencil"),
+
+  MERGE_TO_RIGHT("arrow_right"),
+  MERGE_TO_LEFT("arrow_left"),
+
+  INFO("information"),
   ;
 
   private final String baseName;

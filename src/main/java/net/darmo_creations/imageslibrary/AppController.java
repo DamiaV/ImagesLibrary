@@ -41,6 +41,7 @@ public class AppController implements ResultsView.SearchListener {
   private final ImageViewerDialog imageViewerDialog;
   private final ManageSavedQueriesDialog manageSavedQueriesDialog;
   private final BatchOperationsDialog batchOperationsDialog;
+  private final MergeImagesTagsDialog mergeImagesTagsDialog;
 
   private final Map<MenuItem, Boolean> menuItemStates = new HashMap<>();
   private MenuItem moveImagesMenuItem;
@@ -49,6 +50,8 @@ public class AppController implements ResultsView.SearchListener {
   private Button editButton;
   private MenuItem deleteMenuItem;
   private Button deleteButton;
+  private MenuItem mergeImagesTagsMenuItem;
+  private Button mergeImagesTagsButton;
   private MenuItem slideshowMenuItem;
   private Button slideshowButton;
   private MenuItem slideshowSelectedMenuItem;
@@ -96,6 +99,7 @@ public class AppController implements ResultsView.SearchListener {
     this.imageViewerDialog = new ImageViewerDialog(config);
     this.manageSavedQueriesDialog = new ManageSavedQueriesDialog(config, this.queriesManager);
     this.batchOperationsDialog = new BatchOperationsDialog(config, db, BatchOperationsManager.load(db));
+    this.mergeImagesTagsDialog = new MergeImagesTagsDialog(config, db);
 
     this.tagsView = new TagsView(config, this.db);
     this.resultsView = new ResultsView(config, db, this.queriesManager);
@@ -205,10 +209,19 @@ public class AppController implements ResultsView.SearchListener {
     this.moveImagesMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.M, KeyCombination.CONTROL_DOWN));
     this.moveImagesMenuItem.setDisable(true);
     this.menuItemStates.put(this.moveImagesMenuItem, this.moveImagesMenuItem.isDisable());
+    this.mergeImagesTagsMenuItem = new MenuItem(
+        language.translate("menu.edit.merge_images_tags"),
+        theme.getIcon(Icon.MERGE_IMAGES_TAGS, Icon.Size.SMALL)
+    );
+    this.mergeImagesTagsMenuItem.setOnAction(e -> this.onMergeSelectedImagesTags());
+    this.mergeImagesTagsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.M, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
+    this.mergeImagesTagsMenuItem.setDisable(true);
+    this.menuItemStates.put(this.mergeImagesTagsMenuItem, this.mergeImagesTagsMenuItem.isDisable());
     editMenu.getItems().addAll(
         this.editMenuItem,
         this.deleteMenuItem,
-        this.moveImagesMenuItem
+        this.moveImagesMenuItem,
+        this.mergeImagesTagsMenuItem
     );
 
     final Menu viewMenu = new Menu(language.translate("menu.view"));
@@ -343,6 +356,10 @@ public class AppController implements ResultsView.SearchListener {
     this.moveImagesButton.setOnAction(e -> this.onBatchMoveSelectedImages());
     this.moveImagesButton.setTooltip(new Tooltip(language.translate("toolbar.edit.move_images")));
     this.moveImagesButton.setDisable(true);
+    this.mergeImagesTagsButton = new Button(null, theme.getIcon(Icon.MERGE_IMAGES_TAGS, Icon.Size.BIG));
+    this.mergeImagesTagsButton.setOnAction(e -> this.onMergeSelectedImagesTags());
+    this.mergeImagesTagsButton.setTooltip(new Tooltip(language.translate("toolbar.edit.merge_images_tags")));
+    this.mergeImagesTagsButton.setDisable(true);
 
     final Button operationsButton = new Button(null, theme.getIcon(Icon.BATCH_OPERATIONS, Icon.Size.BIG));
     operationsButton.setOnAction(e -> this.onOperationsAction());
@@ -378,6 +395,7 @@ public class AppController implements ResultsView.SearchListener {
         this.editButton,
         this.deleteButton,
         this.moveImagesButton,
+        this.mergeImagesTagsButton,
         new Separator(),
         operationsButton,
         new Separator(),
@@ -522,6 +540,8 @@ public class AppController implements ResultsView.SearchListener {
 
     this.moveImagesMenuItem.setDisable(true);
     this.moveImagesButton.setDisable(true);
+    this.mergeImagesTagsMenuItem.setDisable(true);
+    this.mergeImagesTagsButton.setDisable(true);
     this.deleteMenuItem.setDisable(true);
     this.deleteButton.setDisable(true);
     this.slideshowSelectedMenuItem.setDisable(true);
@@ -621,6 +641,7 @@ public class AppController implements ResultsView.SearchListener {
     final Theme theme = this.config.theme();
 
     final boolean empty = pictures.isEmpty();
+    final boolean notTwoSelected = pictures.size() != 2;
     this.editMenuItem.setDisable(empty);
     this.editMenuItem.setGraphic(theme.getIcon(Icon.EDIT_IMAGES, Icon.Size.SMALL));
     this.editMenuItem.setText(language.translate("menu.edit.edit_images"));
@@ -635,6 +656,8 @@ public class AppController implements ResultsView.SearchListener {
     this.deleteButton.setTooltip(new Tooltip(language.translate("toolbar.edit.delete_images")));
     this.moveImagesMenuItem.setDisable(empty);
     this.moveImagesButton.setDisable(empty);
+    this.mergeImagesTagsMenuItem.setDisable(notTwoSelected);
+    this.mergeImagesTagsButton.setDisable(notTwoSelected);
     this.slideshowSelectedMenuItem.setDisable(empty);
     this.slideshowSelectedButton.setDisable(empty);
   }
@@ -789,6 +812,28 @@ public class AppController implements ResultsView.SearchListener {
       return;
     this.movePicturesDialog.setPictures(this.selectedPictures);
     this.movePicturesDialog.showAndWait().ifPresent(anyUpdate -> {
+      if (anyUpdate) {
+        this.resultsView.refresh();
+        this.tagsView.refresh();
+      }
+    });
+  }
+
+  private void onMergeSelectedImagesTags() {
+    if (this.selectedPictures.size() != 2)
+      return;
+    final Picture picture1 = this.selectedPictures.get(0);
+    final Picture picture2 = this.selectedPictures.get(1);
+    final Set<Tag> imageTags1, imageTags2;
+    try {
+      imageTags1 = this.db.getImageTags(picture1);
+      imageTags2 = this.db.getImageTags(picture2);
+    } catch (final DatabaseOperationException e) {
+      Alerts.databaseError(this.config, e.errorCode());
+      return;
+    }
+    this.mergeImagesTagsDialog.setPictures(picture1, imageTags1, picture2, imageTags2);
+    this.mergeImagesTagsDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
         this.resultsView.refresh();
         this.tagsView.refresh();
