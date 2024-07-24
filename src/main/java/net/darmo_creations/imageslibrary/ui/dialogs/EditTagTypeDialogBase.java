@@ -36,6 +36,8 @@ public abstract class EditTagTypeDialogBase extends DialogBase<TagType> {
 
     this.getDialogPane().setPrefWidth(400);
     this.getDialogPane().setContent(this.createContent());
+
+    this.setOnShowing(event -> this.labelField.requestFocus());
   }
 
   private Pane createContent() {
