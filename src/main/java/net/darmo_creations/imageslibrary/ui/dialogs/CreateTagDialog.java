@@ -38,9 +38,10 @@ public class CreateTagDialog extends EditTagDialogBase {
     });
   }
 
-  public void reset() {
+  public void reset(TagType tagType) {
     this.labelField.setText("");
     this.refreshTypesCombo();
+    this.tagTypeComboBox.getSelectionModel().select(new TagTypeEntry(tagType));
     this.definitionField.setText("");
   }
 }
