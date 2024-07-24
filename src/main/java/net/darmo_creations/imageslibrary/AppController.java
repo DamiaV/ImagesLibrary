@@ -444,7 +444,7 @@ public class AppController implements ResultsView.SearchListener {
 
     final LoadingResult res = this.loadPictures(filesOrDirs);
     final List<Picture> pictures = res.pictures();
-    pictures.sort(Comparator.comparing(Picture::path));
+    pictures.sort(null);
     final List<Path> skipped = res.skipped();
     skipped.sort(null);
     final List<Path> errors = res.errors();

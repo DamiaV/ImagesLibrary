@@ -113,7 +113,7 @@ public class TagsView extends VBox {
 
     createTab.accept(null);
     this.db.getAllTagTypes().stream()
-        .sorted(Comparator.comparing(TagType::label))
+        .sorted()
         .forEach(createTab);
     this.db.getAllTags().forEach(tag -> {
       final var tab = tagTypeTabs.get(tag.type().orElse(null));

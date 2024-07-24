@@ -122,7 +122,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
   public void setTags(final @NotNull Set<TagEntry> tags) {
     this.tagEntries.clear();
     this.tagEntries.addAll(tags);
-    this.tagEntries.sort(Comparator.comparing(e -> e.tag().label()));
+    this.tagEntries.sort(null);
     this.updateTitle();
   }
 
@@ -196,7 +196,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     return "%s (%s)".formatted(title, language.formatNumber(tagsCount));
   }
 
-  public static final class TagEntry extends HBox {
+  public static final class TagEntry extends HBox implements Comparable<TagEntry> {
     private final Tag tag;
 
     public TagEntry(@NotNull Tag tag, int useCount, final @NotNull Config config) {
@@ -213,6 +213,11 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
 
     public Tag tag() {
       return this.tag;
+    }
+
+    @Override
+    public int compareTo(@NotNull TagEntry o) {
+      return this.tag().compareTo(o.tag());
     }
   }
 }

@@ -72,7 +72,7 @@ public final class Theme {
   @Contract(pure = true, value = "-> new")
   @Unmodifiable
   public static List<Theme> themes() {
-    return THEMES.values().stream().sorted(Comparator.comparing(Theme::name)).toList();
+    return THEMES.values().stream().sorted(Comparator.comparing(theme -> theme.name().toLowerCase())).toList();
   }
 
   private final String id;

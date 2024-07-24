@@ -151,7 +151,7 @@ public final class Config {
   @Contract(pure = true, value = "-> new")
   @Unmodifiable
   public static List<Language> languages() {
-    return LANGUAGES.values().stream().sorted(Comparator.comparing(Language::name)).toList();
+    return LANGUAGES.values().stream().sorted(Comparator.comparing(lang -> lang.name().toLowerCase())).toList();
   }
 
   private final Language language;

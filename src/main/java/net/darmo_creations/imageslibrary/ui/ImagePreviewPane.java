@@ -159,7 +159,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
         );
       }
       final var tagsEntries = tags.stream()
-          .sorted(Comparator.comparing(Tag::label))
+          .sorted()
           .map(TagView::new)
           .toList();
       this.tagsList.getItems().addAll(tagsEntries);

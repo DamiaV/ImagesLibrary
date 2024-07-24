@@ -280,17 +280,18 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
 
     final var listViewItems = this.imagesList.getItems();
     listViewItems.clear();
-    for (final var picture : pictures) {
-      Set<Tag> imageTags;
-      try {
-        imageTags = this.db.getImageTags(picture);
-      } catch (final DatabaseOperationException e) {
-        App.logger().error("Error getting tags for image {}", picture, e);
-        imageTags = Set.of();
-      }
-      listViewItems.add(new PictureEntry(picture, imageTags, this.config));
-    }
-    listViewItems.sort(null);
+    pictures.stream()
+        .sorted()
+        .forEach(picture -> {
+          Set<Tag> imageTags;
+          try {
+            imageTags = this.db.getImageTags(picture);
+          } catch (final DatabaseOperationException e) {
+            App.logger().error("Error getting tags for image {}", picture, e);
+            imageTags = Set.of();
+          }
+          listViewItems.add(new PictureEntry(picture, imageTags, this.config));
+        });
   }
 
   /**
