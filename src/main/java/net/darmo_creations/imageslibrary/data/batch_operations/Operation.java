@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.data.batch_operations;
 
+import javafx.util.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import org.jetbrains.annotations.*;
@@ -33,15 +34,19 @@ public abstract sealed class Operation implements StringSerializable
    * @param picture The picture to apply this operation to.
    * @param db      A database to apply changes to.
    * @param config  The app’s config.
-   * @return True if this operation was applied to the given picture, false otherwise.
+   * @return A pair containing a boolean indicating whether this operation was applied to the given picture or not,
+   * and a {@link Picture} object containing the updated data of the passed picture.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public final boolean apply(@NotNull Picture picture, @NotNull DatabaseConnection db, @NotNull Config config)
+  public final Pair<Boolean, Picture> apply(@NotNull Picture picture, @NotNull DatabaseConnection db, @NotNull Config config)
       throws DatabaseOperationException {
     boolean apply = this.condition == null || this.condition.test(picture, db, config);
-    if (apply)
-      apply = this.execute(picture, db);
-    return apply;
+    if (apply) {
+      final var result = this.execute(picture, db);
+      apply = result.getKey();
+      picture = result.getValue();
+    }
+    return new Pair<>(apply, picture);
   }
 
   /**
@@ -49,10 +54,11 @@ public abstract sealed class Operation implements StringSerializable
    *
    * @param picture The picture to apply this operation to.
    * @param db      A database to apply changes to.
-   * @return True if this operation updated the given picture, false otherwise.
+   * @return A pair containing a boolean indicating whether this operation was applied to the given picture or not,
+   * and a {@link Picture} object containing the updated data of the passed picture.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  protected abstract boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+  protected abstract Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
       throws DatabaseOperationException;
 
   /**

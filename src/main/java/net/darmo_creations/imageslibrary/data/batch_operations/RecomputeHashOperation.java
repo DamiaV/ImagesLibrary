@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.data.batch_operations;
 
+import javafx.util.*;
 import net.darmo_creations.imageslibrary.data.*;
 import org.jetbrains.annotations.*;
 
@@ -21,11 +22,12 @@ public final class RecomputeHashOperation extends Operation {
   }
 
   @Override
-  protected boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+  protected Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+      throws DatabaseOperationException {
     final Optional<Hash> currentHash = picture.hash();
     final Optional<Hash> hash = Hash.computeForFile(picture.path());
     db.updatePicture(new PictureUpdate(picture.id(), picture.path(), hash, Set.of(), Set.of()));
-    return !currentHash.equals(hash);
+    return new Pair<>(!currentHash.equals(hash), new Picture(picture.id(), picture.path(), hash.orElse(null)));
   }
 
   @Override

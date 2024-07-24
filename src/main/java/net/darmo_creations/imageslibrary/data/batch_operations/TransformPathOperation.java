@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.data.batch_operations;
 
+import javafx.util.*;
 import net.darmo_creations.imageslibrary.data.*;
 import org.jetbrains.annotations.*;
 
@@ -40,7 +41,8 @@ public final class TransformPathOperation extends Operation {
   }
 
   @Override
-  protected boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+  protected Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+      throws DatabaseOperationException {
     final Path oldPath = picture.path();
     final Path newPath;
     if (this.asRegex)
@@ -48,7 +50,7 @@ public final class TransformPathOperation extends Operation {
     else
       newPath = Path.of(oldPath.toString().replace(this.rawPattern, this.substitute));
     db.updatePicture(new PictureUpdate(picture.id(), newPath, picture.hash(), Set.of(), Set.of()));
-    return !oldPath.equals(newPath);
+    return new Pair<>(!oldPath.equals(newPath), new Picture(picture.id(), newPath, picture.hash().orElse(null)));
   }
 
   public String pattern() {

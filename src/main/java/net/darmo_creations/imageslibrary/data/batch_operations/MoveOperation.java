@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.data.batch_operations;
 
+import javafx.util.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
@@ -38,15 +39,17 @@ public final class MoveOperation extends Operation {
   }
 
   @Override
-  protected boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+  protected Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+      throws DatabaseOperationException {
+    final Path newPath = this.targetDirectory.resolve(picture.path().getFileName());
     final boolean updated = db.moveOrRenamePicture(
         picture,
-        this.targetDirectory.resolve(picture.path().getFileName()),
+        newPath,
         this.overwriteTarget
     );
     if (this.deleteEmptySourceDirectory)
       FileUtils.deleteDirectoryIfEmpty(picture);
-    return updated;
+    return new Pair<>(updated, new Picture(picture.id(), newPath, picture.hash().orElse(null)));
   }
 
   public Path targetPath() {

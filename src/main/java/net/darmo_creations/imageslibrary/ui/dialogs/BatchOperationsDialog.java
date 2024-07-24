@@ -532,7 +532,7 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
             this.onCancel(count);
             return;
           }
-          final Picture picture = iterator.next();
+          Picture picture = iterator.next();
 
           final List<? extends Operation> operations = dialog.operationBatchList.getItems()
               .stream()
@@ -542,8 +542,10 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
           boolean anyApplied = false;
           for (final Operation operation : operations)
             try {
-              anyApplied |= operation.apply(picture, dialog.db, dialog.config);
-            } catch (final DatabaseOperationException e) {
+              final var result = operation.apply(picture, dialog.db, dialog.config);
+              anyApplied |= result.getKey();
+              picture = result.getValue();
+            } catch (final DatabaseOperationException | DatabaseOperationRuntimeException e) {
               App.logger().error("Batch operation failed.", e);
             }
 

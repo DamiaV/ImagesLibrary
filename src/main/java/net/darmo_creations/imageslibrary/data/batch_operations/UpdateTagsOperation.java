@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.data.batch_operations;
 
+import javafx.util.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.ui.*;
 import org.jetbrains.annotations.*;
@@ -30,11 +31,12 @@ public final class UpdateTagsOperation extends Operation {
   }
 
   @Override
-  protected boolean execute(@NotNull Picture picture, @NotNull DatabaseConnection db) throws DatabaseOperationException {
+  protected Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+      throws DatabaseOperationException {
     final Set<Tag> oldTags = db.getImageTags(picture);
     db.updatePicture(new PictureUpdate(picture.id(), picture.path(), picture.hash(), this.tagsToAdd, this.tagsToRemove));
     final Set<Tag> newTags = db.getImageTags(picture);
-    return !oldTags.equals(newTags);
+    return new Pair<>(!oldTags.equals(newTags), picture);
   }
 
   @UnmodifiableView
