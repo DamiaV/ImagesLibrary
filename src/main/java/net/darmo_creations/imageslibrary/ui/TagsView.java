@@ -112,6 +112,7 @@ public class TagsView extends VBox {
     });
     tabTags.forEach(TagsTab::setTags);
     this.hookDragAndDrop();
+    this.onSearchFilterChange(this.searchField.getText());
   }
 
   /**

@@ -91,10 +91,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
         this.onSelectionChange();
     });
     this.tagsList.setCellFactory(param -> ClickableListCellFactory.forListener(this));
-    this.filteredList.predicateProperty().addListener((observable, oldValue, newValue) -> {
-      this.setText(getTitle(tagType, this.filteredList.size(), config.language()));
-      this.label.setText(getTitle(tagType, this.filteredList.size(), config.language()));
-    });
+    this.filteredList.predicateProperty().addListener((observable, oldValue, newValue) -> this.updateTitle());
     // Allow drag-and-drop of tag items
     this.tagsList.setOnDragDetected(event -> {
       final Dragboard dragboard = this.tagsList.startDragAndDrop(TransferMode.MOVE);
@@ -106,6 +103,11 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     });
 
     this.setContent(new VBox(top, this.tagsList));
+  }
+
+  private void updateTitle() {
+    this.setText(getTitle(this.tagType, this.filteredList.size(), this.config.language()));
+    this.label.setText(getTitle(this.tagType, this.filteredList.size(), this.config.language()));
   }
 
   public Optional<TagType> tagType() {
@@ -121,9 +123,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
     this.tagEntries.clear();
     this.tagEntries.addAll(tags);
     this.tagEntries.sort(Comparator.comparing(e -> e.tag().label()));
-    final String title = getTitle(this.tagType, this.tagEntries.size(), this.config.language());
-    this.setText(title);
-    this.label.setText(title);
+    this.updateTitle();
   }
 
   /**
@@ -134,7 +134,7 @@ public final class TagsTab extends Tab implements ClickableListCellFactory.Click
   public void setFilter(String filter) {
     this.filteredList.setPredicate(item ->
         StringUtils.stripNullable(filter)
-            .map(s -> item.tag().label().contains(s.toLowerCase()))
+            .map(s -> item.tag().label().toLowerCase().contains(s.toLowerCase()))
             .orElse(true));
   }
 
