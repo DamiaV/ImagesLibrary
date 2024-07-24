@@ -451,6 +451,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private void onSelectionChange() {
     final var selectedItems = this.imagesList.getSelectionModel().getSelectedItems();
     final var selection = selectedItems.stream()
+        .filter(Objects::nonNull) // Selection model may return null values in the list
         .map(PictureEntry::picture)
         .toList();
     if (selection.size() == 1) {
