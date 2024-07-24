@@ -64,7 +64,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
   public EditImagesDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
     super(config, "edit_images", true, ButtonTypes.FINISH, ButtonTypes.SKIP, ButtonTypes.NEXT, ButtonTypes.CANCEL);
-    this.db = db;
+    this.db = Objects.requireNonNull(db);
 
     this.similarImagesDialog = new SimilarImagesDialog(config, db);
     this.similarImagesDialog.addTagCopyListener(this::onCopyTags);

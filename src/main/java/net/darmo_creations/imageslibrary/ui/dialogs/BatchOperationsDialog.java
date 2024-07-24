@@ -57,7 +57,7 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
       @NotNull BatchOperationsManager batchOperationsManager
   ) {
     super(config, "batch_operations", true, ButtonTypes.CLOSE, ButtonTypes.APPLY);
-    this.db = db;
+    this.db = Objects.requireNonNull(db);
     this.batchOperationsManager = Objects.requireNonNull(batchOperationsManager);
     this.operationBatchesCache = batchOperationsManager.entries();
 

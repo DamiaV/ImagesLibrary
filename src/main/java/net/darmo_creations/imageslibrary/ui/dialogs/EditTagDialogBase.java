@@ -33,7 +33,7 @@ public abstract class EditTagDialogBase extends DialogBase<Tag> {
 
   protected EditTagDialogBase(@NotNull Config config, @NotNull String name, @NotNull DatabaseConnection db) {
     super(config, name, false, ButtonTypes.OK, ButtonTypes.CANCEL);
-    this.db = db;
+    this.db = Objects.requireNonNull(db);
 
     this.labelErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);
     this.definitionErrorPopup = new TextPopOver(PopOver.ArrowLocation.LEFT_CENTER, config);

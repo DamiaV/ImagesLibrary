@@ -44,7 +44,7 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
    */
   public MovePicturesDialog(final @NotNull Config config, @NotNull DatabaseConnection db) {
     super(config, "move_pictures", true, ButtonTypes.CLOSE, ButtonTypes.APPLY);
-    this.db = db;
+    this.db = Objects.requireNonNull(db);
 
     this.applyButton = (Button) this.getDialogPane().lookupButton(ButtonTypes.APPLY);
     this.applyButton.addEventFilter(ActionEvent.ACTION, event -> {
