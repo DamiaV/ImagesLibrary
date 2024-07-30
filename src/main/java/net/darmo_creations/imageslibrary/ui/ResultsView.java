@@ -25,14 +25,17 @@ import java.util.*;
 
 public class ResultsView extends VBox implements ClickableListCellFactory.ClickListener<ResultsView.PictureEntry> {
   private static final int MAX_HISTORY_SIZE = 20;
+  private static int globalId = 0;
 
-  private final List<ImageClickListener> imageClickListeners = new ArrayList<>();
-  private final List<ImageSelectionListener> imageSelectionListeners = new ArrayList<>();
-  private final List<SearchListener> searchListeners = new ArrayList<>();
+  private final Set<ImageClickListener> imageClickListeners = new HashSet<>();
+  private final Set<ImageSelectionListener> imageSelectionListeners = new HashSet<>();
+  private final Set<SimilarImagesActionListener> similarImagesActionListeners = new HashSet<>();
+  private final Set<SearchListener> searchListeners = new HashSet<>();
 
   private final Config config;
   private final DatabaseConnection db;
   private final SavedQueriesManager queriesManager;
+  private final int id = ++globalId;
 
   private final Button saveQueryButton = new Button();
   private final MenuButton historyButton = new MenuButton();
@@ -58,7 +61,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     final Theme theme = config.theme();
 
     this.imagePreviewPane = new ImagePreviewPane(config);
-    this.imagePreviewPane.addEditTagsListener(picture -> this.onItemDoubleClick(new PictureEntry(picture, Set.of(), config)));
+    this.imagePreviewPane.addEditTagsListener(picture -> this.onItemDoubleClick(new PictureEntry(picture, Set.of(), config, this.id)));
     this.imagePreviewPane.addSimilarImagesListeners(this::onSimilarImages);
 
     this.popup = new TextPopOver(PopOver.ArrowLocation.RIGHT_CENTER, config);
@@ -185,6 +188,16 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   /**
+   * Return a list of the images that are currently selected in this view.
+   */
+  @Unmodifiable
+  public List<Picture> getSelectedImages() {
+    return this.imagesList.getSelectionModel().getSelectedItems().stream()
+        .map(PictureEntry::picture)
+        .toList();
+  }
+
+  /**
    * Focus the search bar.
    */
   public void focusSearchBar() {
@@ -205,7 +218,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   /**
    * Add a listener that will be notified whenever an image item is double-clicked.
    */
-  public void addImageClickListener(@NotNull ImageClickListener listener) {
+  public void addImageDoubleClickListener(@NotNull ImageClickListener listener) {
     this.imageClickListeners.add(Objects.requireNonNull(listener));
   }
 
@@ -214,6 +227,13 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    */
   public void addImageSelectionListener(@NotNull ImageSelectionListener listener) {
     this.imageSelectionListeners.add(Objects.requireNonNull(listener));
+  }
+
+  /**
+   * Add a listener that will be notified whenever a request to show similar images of a given picture is made.
+   */
+  public void addSimilarImagesListener(@NotNull SimilarImagesActionListener listener) {
+    this.similarImagesActionListeners.add(Objects.requireNonNull(listener));
   }
 
   /**
@@ -290,7 +310,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
             App.logger().error("Error getting tags for image {}", picture, e);
             imageTags = Set.of();
           }
-          listViewItems.add(new PictureEntry(picture, imageTags, this.config));
+          listViewItems.add(new PictureEntry(picture, imageTags, this.config, this.id));
         });
   }
 
@@ -340,11 +360,11 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       history.add(0, item);
     }
 
-    this.performSearch(() -> this.db.queryPictures(tagQuery), onSuccess);
+    this.performSearch(query, () -> this.db.queryPictures(tagQuery), onSuccess);
   }
 
-  private void performSearch(@NotNull Search search, Runnable onSuccess) {
-    this.searchListeners.forEach(SearchListener::onSearchStart);
+  private void performSearch(@NotNull String query, @NotNull Search search, Runnable onSuccess) {
+    this.searchListeners.forEach(l -> l.onSearchStart(query, this));
     new Thread(() -> {
       final Set<Picture> pictures;
       try {
@@ -433,12 +453,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   public void onSimilarImages(@NotNull Picture picture) {
-    final String escapedPath = picture.path().toString()
-        .replace("\"", "\\\"")
-        .replace("\\", "\\\\");
-    this.searchField.setText("similar_to=\"%s\"".formatted(escapedPath));
-    this.searchField.requestFocus();
-    this.search(null);
+    this.similarImagesActionListeners.forEach(l -> l.onSimilarImage(picture));
   }
 
   private void copySelectedPaths() {
@@ -478,11 +493,13 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   public static final class PictureEntry extends HBox implements Comparable<PictureEntry> {
     private final Picture picture;
     private final Set<Tag> tags;
+    private final int viewId; // Prevents error if the same Picture is listed in two different ResultsView’s
 
-    public PictureEntry(@NotNull Picture picture, final @NotNull Set<Tag> tags, final @NotNull Config config) {
+    public PictureEntry(@NotNull Picture picture, final @NotNull Set<Tag> tags, final @NotNull Config config, int viewId) {
       super(5);
       this.picture = Objects.requireNonNull(picture);
       this.tags = Objects.requireNonNull(tags);
+      this.viewId = viewId;
       final Language language = config.language();
       final Theme theme = config.theme();
       boolean exists;
@@ -529,12 +546,12 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       if (o == null || this.getClass() != o.getClass())
         return false;
       final PictureEntry that = (PictureEntry) o;
-      return Objects.equals(this.picture, that.picture);
+      return Objects.equals(this.picture, that.picture) && this.viewId == that.viewId;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hashCode(this.picture);
+      return Objects.hash(this.picture, this.viewId);
     }
 
     @Override
@@ -563,11 +580,24 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     void onSelectionChange(@NotNull List<Picture> pictures);
   }
 
+  @FunctionalInterface
+  public interface SimilarImagesActionListener {
+    /**
+     * Called when a request for the images similar to the passed one is made.
+     *
+     * @param picture The picture to get the similar pictures of.
+     */
+    void onSimilarImage(@NotNull Picture picture);
+  }
+
   public interface SearchListener {
     /**
      * Called right before the search starts.
+     *
+     * @param query The query being run.
+     * @param view  The view that initiated the search.
      */
-    void onSearchStart();
+    void onSearchStart(@NotNull String query, @NotNull ResultsView view);
 
     /**
      * Called right after the search ended with no errors.

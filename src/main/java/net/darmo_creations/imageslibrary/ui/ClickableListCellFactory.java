@@ -5,6 +5,8 @@ import javafx.scene.control.*;
 import javafx.scene.input.*;
 import org.jetbrains.annotations.*;
 
+import java.util.*;
+
 public final class ClickableListCellFactory {
   /**
    * Create a {@link ListCell} that fires an event when it is clicked or double-clicked.
@@ -26,17 +28,19 @@ public final class ClickableListCellFactory {
         } else if (item instanceof Node newNode) {
           this.setText(null);
           final Node currentNode = this.getGraphic();
-          if (currentNode == null || !currentNode.equals(newNode))
+          if (!newNode.equals(currentNode)) {
             this.setGraphic(newNode);
-          this.installMouseClickListener(item);
+            this.installMouseClickListener(item);
+          }
         } else {
-          this.setText(item == null ? "null" : item.toString());
+          this.setText(Objects.toString(item));
           this.setGraphic(null);
-          this.installMouseClickListener(item);
+          if (item != null)
+            this.installMouseClickListener(item);
         }
       }
 
-      private void installMouseClickListener(T item) {
+      private void installMouseClickListener(@NotNull T item) {
         this.setOnMouseClicked(event -> {
           if (event.getButton().equals(MouseButton.PRIMARY)) {
             if (event.getClickCount() == 1)

@@ -19,6 +19,8 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.*;
 
+import static javafx.scene.control.TabPane.*;
+
 public class AppController implements ResultsView.SearchListener {
   private final DatabaseConnection db;
 
@@ -57,12 +59,15 @@ public class AppController implements ResultsView.SearchListener {
   private MenuItem slideshowSelectedMenuItem;
   private Button slideshowSelectedButton;
   private Menu savedQueriesMenu;
+  private MenuItem closeResultsTabMenuItem;
 
   private final TagsView tagsView;
-  private final ResultsView resultsView;
+  private final TabPane resultsTabPane = new TabPane();
 
   private final List<Picture> selectedPictures = new ArrayList<>();
   private final List<Tag> selectedTags = new ArrayList<>();
+  // Counts how many blocking tasks are ongoing to properly handle disabling/re-enabling of interactions
+  private int onGoingTasksCount = 0;
 
   /**
    * Create a controller for the given {@link Stage}.
@@ -102,7 +107,7 @@ public class AppController implements ResultsView.SearchListener {
     this.mergeImagesTagsDialog = new MergeImagesTagsDialog(config, db);
 
     this.tagsView = new TagsView(config, this.db);
-    this.resultsView = new ResultsView(config, db, this.queriesManager);
+
     final Scene scene = new Scene(new VBox(this.createMenuBar(), this.createToolBar(), this.createContent()));
     stage.setScene(scene);
     theme.applyTo(scene);
@@ -225,6 +230,20 @@ public class AppController implements ResultsView.SearchListener {
     );
 
     final Menu viewMenu = new Menu(language.translate("menu.view"));
+    final MenuItem addResultsTabMenuItem = new MenuItem(
+        language.translate("menu.view.new_results_tab"),
+        theme.getIcon(Icon.NEW_TAB, Icon.Size.SMALL)
+    );
+    addResultsTabMenuItem.setOnAction(e -> this.addResultsTab(null));
+    addResultsTabMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN));
+    this.closeResultsTabMenuItem = new MenuItem(
+        language.translate("menu.view.close_results_tab"),
+        theme.getIcon(Icon.CLOSE_TAB, Icon.Size.SMALL)
+    );
+    this.closeResultsTabMenuItem.setOnAction(e -> this.onCloseResultsTab());
+    this.closeResultsTabMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.W, KeyCombination.CONTROL_DOWN));
+    this.closeResultsTabMenuItem.setDisable(true);
+    this.menuItemStates.put(this.closeResultsTabMenuItem, this.closeResultsTabMenuItem.isDisable());
     this.slideshowMenuItem = new MenuItem(
         language.translate("menu.view.slideshow"),
         theme.getIcon(Icon.SLIDESHOW, Icon.Size.SMALL)
@@ -241,7 +260,13 @@ public class AppController implements ResultsView.SearchListener {
     this.slideshowSelectedMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F11, KeyCombination.CONTROL_DOWN));
     this.slideshowSelectedMenuItem.setDisable(true);
     this.menuItemStates.put(this.slideshowSelectedMenuItem, this.slideshowSelectedMenuItem.isDisable());
-    viewMenu.getItems().addAll(this.slideshowMenuItem, this.slideshowSelectedMenuItem);
+    viewMenu.getItems().addAll(
+        addResultsTabMenuItem,
+        this.closeResultsTabMenuItem,
+        new SeparatorMenuItem(),
+        this.slideshowMenuItem,
+        this.slideshowSelectedMenuItem
+    );
 
     final Menu queriesMenu = new Menu(language.translate("menu.queries"));
     final MenuItem showNoTagsMenuItem = new MenuItem(
@@ -249,7 +274,7 @@ public class AppController implements ResultsView.SearchListener {
         theme.getIcon(Icon.SEARCH_NO_TAGS, Icon.Size.SMALL)
     );
     showNoTagsMenuItem.setOnAction(e -> this.onShowImagesWithNoTags());
-    showNoTagsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN));
+    showNoTagsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
     this.menuItemStates.put(showNoTagsMenuItem, showNoTagsMenuItem.isDisable());
     final MenuItem showNoFileMenuItem = new MenuItem(
         language.translate("menu.queries.show_images_with_no_file"),
@@ -411,19 +436,35 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private SplitPane createContent() {
-    final SplitPane splitPane = new SplitPane();
-    this.tagsView.addTagClickListener(this::onTagClick);
+    this.tagsView.addTagClickListener(this::onTagDoubleClick);
     this.tagsView.addTagSelectionListener(this::onTagSelectionChange);
     this.tagsView.addCreateTagListener(this::onCreateTag);
     this.tagsView.addEditTagTypeListener(this::onEditTagType);
     this.tagsView.addDeleteTagTypeListener(this::onDeleteTagType);
     this.tagsView.addCreateTagTypeListener(this::onCreateTagType);
     this.tagsView.addEditTagsTypeListener(this::onEditTagsType);
-    splitPane.getItems().add(this.tagsView);
-    this.resultsView.addImageClickListener(this::onImageClick);
-    this.resultsView.addImageSelectionListener(this::onImageSelectionChange);
-    this.resultsView.addSearchListener(this);
-    splitPane.getItems().add(this.resultsView);
+
+    this.resultsTabPane.getSelectionModel().selectedItemProperty().addListener(
+        (observable, oldValue, newValue) -> this.onResultsTabSelectionChanged(newValue));
+    this.resultsTabPane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+      final int size = this.resultsTabPane.getTabs().size();
+      if (event.getCode() == KeyCode.TAB && event.isShortcutDown() && size > 1) {
+        int i = this.resultsTabPane.getSelectionModel().getSelectedIndex();
+        if (event.isShiftDown())
+          i = i == 0 ? size - 1 : i - 1;
+        else
+          i = (i + 1) % size;
+        this.resultsTabPane.getSelectionModel().select(i);
+        this.getSelectedResultsView().focusSearchBar();
+        event.consume();
+      }
+    });
+    this.resultsTabPane.getTabs().addListener((ListChangeListener<? super Tab>) c -> this.onResultsTabsUpdate());
+    this.resultsTabPane.setTabDragPolicy(TabDragPolicy.REORDER);
+    this.addResultsTab(null);
+
+    final SplitPane splitPane = new SplitPane();
+    splitPane.getItems().addAll(this.tagsView, this.resultsTabPane);
     splitPane.setDividerPositions(0.1);
     VBox.setVgrow(splitPane, Priority.ALWAYS);
     return splitPane;
@@ -436,6 +477,45 @@ public class AppController implements ResultsView.SearchListener {
    */
   public void show() {
     this.stage.show();
+  }
+
+  private void onResultsTabSelectionChanged(@NotNull Tab tab) {
+    this.onImageSelectionChange(((ResultsView) tab.getContent()).getSelectedImages());
+    this.onResultsTabsUpdate();
+  }
+
+  private void onResultsTabsUpdate() {
+    final boolean oneTab = this.resultsTabPane.getTabs().size() == 1;
+    this.closeResultsTabMenuItem.setDisable(oneTab);
+    this.resultsTabPane.setTabClosingPolicy(oneTab ? TabClosingPolicy.UNAVAILABLE : TabClosingPolicy.ALL_TABS);
+    this.getSelectedResultsView().focusSearchBar();
+  }
+
+  private void addResultsTab(String title) {
+    if (title == null)
+      title = this.config.language().translate("results_tabs.new_tab.title");
+    final ResultsView view = new ResultsView(this.config, this.db, this.queriesManager);
+    view.addImageDoubleClickListener(this::onImageDoubleClick);
+    view.addImageSelectionListener(this::onImageSelectionChange);
+    view.addSimilarImagesListener(this::onSimilarImages);
+    view.addSearchListener(this);
+    final Tab tab = new Tab(title, view);
+    this.resultsTabPane.getTabs().add(tab);
+    this.resultsTabPane.getSelectionModel().select(tab);
+    view.focusSearchBar();
+  }
+
+  private ResultsView getSelectedResultsView() {
+    final Tab tab = this.resultsTabPane.getSelectionModel().getSelectedItem();
+    if (tab == null)
+      throw new IllegalStateException("No results tab selected");
+    return (ResultsView) tab.getContent();
+  }
+
+  private Stream<ResultsView> getResultsViews() {
+    return this.resultsTabPane.getTabs()
+        .stream()
+        .map(t -> (ResultsView) t.getContent());
   }
 
   private void loadFiles(final @NotNull List<Path> filesOrDirs) {
@@ -481,7 +561,7 @@ public class AppController implements ResultsView.SearchListener {
     this.editImagesDialog.setPictures(pictures, true);
     this.editImagesDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
-        this.resultsView.refresh();
+        this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
       }
     });
@@ -529,8 +609,8 @@ public class AppController implements ResultsView.SearchListener {
     }
   }
 
-  private void onTagClick(@NotNull Tag tag) {
-    this.resultsView.searchTag(tag);
+  private void onTagDoubleClick(@NotNull Tag tag) {
+    this.getSelectedResultsView().searchTag(tag);
   }
 
   private void onTagSelectionChange(final @NotNull List<Tag> tags) {
@@ -575,7 +655,7 @@ public class AppController implements ResultsView.SearchListener {
     this.editTagTypeDialog.setTagType(tagType);
     this.editTagTypeDialog.showAndWait().ifPresent(type -> {
       this.tagsView.refresh();
-      this.resultsView.refresh();
+      this.getResultsViews().forEach(ResultsView::refresh);
     });
   }
 
@@ -596,7 +676,7 @@ public class AppController implements ResultsView.SearchListener {
       return;
     }
     this.tagsView.refresh();
-    this.resultsView.refresh();
+    this.getResultsViews().forEach(ResultsView::refresh);
   }
 
   private void onCreateTagType() {
@@ -614,17 +694,17 @@ public class AppController implements ResultsView.SearchListener {
     try {
       this.db.updateTags(updates);
       this.tagsView.refresh();
-      this.resultsView.refresh();
+      this.getResultsViews().forEach(ResultsView::refresh);
     } catch (final DatabaseOperationException e) {
       App.logger().error("Error updating tags", e);
     }
   }
 
-  private void onImageClick(@NotNull Picture picture) {
+  private void onImageDoubleClick(@NotNull Picture picture) {
     this.editImagesDialog.setPictures(List.of(picture), false);
     this.editImagesDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
-        this.resultsView.refresh();
+        this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
       }
     });
@@ -660,8 +740,21 @@ public class AppController implements ResultsView.SearchListener {
     this.slideshowSelectedButton.setDisable(empty);
   }
 
+  private void onSimilarImages(@NotNull Picture picture) {
+    final String escapedPath = picture.path().toString()
+        .replace("\"", "\\\"")
+        .replace("\\", "\\\\");
+    final String query = "similar_to=\"%s\"".formatted(escapedPath);
+    this.addResultsTab(query);
+    this.getSelectedResultsView().searchQuery(query);
+  }
+
   @Override
-  public void onSearchStart() {
+  public void onSearchStart(@NotNull String query, final @NotNull ResultsView view) {
+    this.resultsTabPane.getTabs().stream()
+        .filter(tab -> tab.getContent() == view)
+        .findFirst()
+        .ifPresent(tab -> tab.setText(query));
     this.disableInteractions();
   }
 
@@ -685,6 +778,9 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void disableInteractions() {
+    this.onGoingTasksCount++;
+    if (this.onGoingTasksCount > 1)
+      return;
     this.stage.getScene().getRoot().setDisable(true);
     // Record the disable-state of all menu items and disable them
     this.menuItemStates.replaceAll((menuItem, b) -> {
@@ -695,6 +791,9 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void restoreInteractions() {
+    this.onGoingTasksCount--;
+    if (this.onGoingTasksCount != 0)
+      return;
     this.stage.getScene().getRoot().setDisable(false);
     // Restore menu items’ states
     this.menuItemStates.forEach(MenuItem::setDisable);
@@ -733,7 +832,7 @@ public class AppController implements ResultsView.SearchListener {
     this.editImagesDialog.setPictures(this.selectedPictures, false);
     this.editImagesDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
-        this.resultsView.refresh();
+        this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
       }
     });
@@ -743,7 +842,7 @@ public class AppController implements ResultsView.SearchListener {
     this.editTagDialog.setTag(tag);
     this.editTagDialog.showAndWait().ifPresent(t -> {
       this.tagsView.refresh();
-      this.resultsView.refresh();
+      this.getResultsViews().forEach(ResultsView::refresh);
     });
   }
 
@@ -780,9 +879,10 @@ public class AppController implements ResultsView.SearchListener {
     }
     if (!notDeleted.isEmpty()) {
       Alerts.error(this.config, "alert.deletion_error.header", null, null);
-      this.resultsView.listImages(notDeleted);
+      this.addResultsTab(this.config.language().translate("results_tabs.not_deleted.title"));
+      this.getSelectedResultsView().listImages(notDeleted);
     } else {
-      this.resultsView.refresh();
+      this.getResultsViews().forEach(ResultsView::refresh);
       this.tagsView.refresh();
     }
   }
@@ -795,7 +895,7 @@ public class AppController implements ResultsView.SearchListener {
         null))
       try {
         this.db.deleteTags(new HashSet<>(this.selectedTags));
-        this.resultsView.refresh();
+        this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
       } catch (final DatabaseOperationException e) {
         Alerts.databaseError(this.config, e.errorCode());
@@ -811,7 +911,7 @@ public class AppController implements ResultsView.SearchListener {
     this.movePicturesDialog.setPictures(this.selectedPictures);
     this.movePicturesDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
-        this.resultsView.refresh();
+        this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
       }
     });
@@ -833,20 +933,24 @@ public class AppController implements ResultsView.SearchListener {
     this.mergeImagesTagsDialog.setPictures(picture1, imageTags1, picture2, imageTags2);
     this.mergeImagesTagsDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
-        this.resultsView.refresh();
+        this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
       }
     });
   }
 
   private void onOperationsAction() {
-    this.batchOperationsDialog.setPictures(this.resultsView.pictures(), this.selectedPictures);
+    this.batchOperationsDialog.setPictures(this.getSelectedResultsView().pictures(), this.selectedPictures);
     this.batchOperationsDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
-        this.resultsView.refresh();
+        this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
       }
     });
+  }
+
+  private void onCloseResultsTab() {
+    this.resultsTabPane.getTabs().remove(this.resultsTabPane.getSelectionModel().getSelectedItem());
   }
 
   /**
@@ -857,7 +961,7 @@ public class AppController implements ResultsView.SearchListener {
     if (onlySelected)
       pictures.addAll(this.selectedPictures);
     else
-      pictures.addAll(this.resultsView.pictures());
+      pictures.addAll(this.getSelectedResultsView().pictures());
     this.imageViewerDialog.setPictures(pictures);
     this.imageViewerDialog.showAndWait();
   }
@@ -866,21 +970,27 @@ public class AppController implements ResultsView.SearchListener {
    * Launch a search for images with no tags.
    */
   private void onShowImagesWithNoTags() {
-    this.resultsView.searchImagesWithFlag("#no_tags");
+    final String query = "#no_tags";
+    this.addResultsTab(query);
+    this.getSelectedResultsView().searchImagesWithFlag(query);
   }
 
   /**
    * Launch a search for images with no file.
    */
   private void onShowImagesWithNoFile() {
-    this.resultsView.searchImagesWithFlag("#no_file");
+    final String query = "#no_file";
+    this.addResultsTab(query);
+    this.getSelectedResultsView().searchImagesWithFlag(query);
   }
 
   /**
    * Launch a search for images with no hash.
    */
   private void onShowImagesWithNoHash() {
-    this.resultsView.searchImagesWithFlag("#no_hash");
+    final String query = "#no_hash";
+    this.addResultsTab(query);
+    this.getSelectedResultsView().searchImagesWithFlag(query);
   }
 
   /**
@@ -931,7 +1041,7 @@ public class AppController implements ResultsView.SearchListener {
    * Focus the search bar in ResultView.
    */
   private void onFocusSearchBar() {
-    this.resultsView.focusSearchBar();
+    this.getSelectedResultsView().focusSearchBar();
   }
 
   private static final KeyCode[] KEYCODES = {
@@ -954,7 +1064,7 @@ public class AppController implements ResultsView.SearchListener {
     for (int i = 0; i < sortedQueries.size(); i++) {
       final SavedQuery savedQuery = sortedQueries.get(i);
       final MenuItem item = new MenuItem(savedQuery.name());
-      item.setOnAction(event -> this.resultsView.searchQuery(savedQuery.query()));
+      item.setOnAction(event -> this.getSelectedResultsView().searchQuery(savedQuery.query()));
       if (i < KEYCODES.length)
         item.setAccelerator(new KeyCodeCombination(KEYCODES[i], KeyCombination.CONTROL_DOWN));
       menuItems.add(menuItems.size() - 2, item);

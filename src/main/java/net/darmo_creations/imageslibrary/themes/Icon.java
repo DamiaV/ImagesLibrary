@@ -22,6 +22,8 @@ public enum Icon {
   EDIT_TAG_TYPE("pencil"),
   DELETE_TAG_TYPE("delete"),
   CREATE_TAG_TYPE("add"),
+  NEW_TAB("tab_add"),
+  CLOSE_TAB("tab_delete"),
   SLIDESHOW("slideshow"),
   SLIDESHOW_SELECTED("slideshow_valid"),
   SEARCH_NO_TAGS("tag_blue_error"),
