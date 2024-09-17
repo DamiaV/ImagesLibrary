@@ -2,6 +2,7 @@ package net.darmo_creations.imageslibrary.ui.dialogs;
 
 import javafx.application.*;
 import javafx.geometry.*;
+import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
 import javafx.scene.input.*;
@@ -62,6 +63,7 @@ public class ImageViewerDialog extends DialogBase<Void> {
       }
     });
     stage.initStyle(StageStyle.UNDECORATED);
+    this.getDialogPane().getScene().setCursor(Cursor.NONE);
 
     this.setOnShowing(event -> stage.setFullScreen(true));
     this.setOnShown(event -> this.startSlideshow());
