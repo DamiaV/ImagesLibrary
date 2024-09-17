@@ -226,8 +226,8 @@ application at least once to create it.
     - `case_sensitive_by_default` (boolean): specifies whether pseudo-tags matches should be case sensitive by default
     - `syntax_highlighting` (boolean): specifies whether tag queries syntax highlighting should be activated
 - Section `[Slideshow]`:
-    - `shuffle` (boolean): specifies whether slideshow images should be shuffled
     - `delay` (integer): the delay in seconds between each slideshow image
+    - `shuffle` (boolean): specifies whether slideshow images should be shuffled
 
 # Found a bug?
 
