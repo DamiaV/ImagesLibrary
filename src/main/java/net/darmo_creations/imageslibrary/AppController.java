@@ -352,6 +352,7 @@ public class AppController implements ResultsView.SearchListener {
     );
     helpMenuItem.setOnAction(e -> this.onHelp());
     helpMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN));
+    helpMenuItem.setDisable(true); // TEMP until help is done
     this.menuItemStates.put(helpMenuItem, helpMenuItem.isDisable());
     helpMenu.getItems().addAll(aboutMenuItem, helpMenuItem);
 
@@ -412,6 +413,7 @@ public class AppController implements ResultsView.SearchListener {
     final Button helpButton = new Button(null, theme.getIcon(Icon.HELP, Icon.Size.BIG));
     helpButton.setOnAction(e -> this.onHelp());
     helpButton.setTooltip(new Tooltip(language.translate("toolbar.help.help")));
+    helpButton.setDisable(true); // TEMP until help is done
 
     return new ToolBar(
         importImagesButton,
