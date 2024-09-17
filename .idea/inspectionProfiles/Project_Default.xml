@@ -33,6 +33,7 @@
     <inspection_tool class="SqlResolveInspection" enabled="true" level="ERROR" enabled_by_default="true">
       <option name="suppressForPossibleStringLiterals" value="true" />
     </inspection_tool>
+    <inspection_tool class="StringConcatenationArgumentToLogCall" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="ThrowablePrintStackTrace" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="UnqualifiedFieldAccess" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="UnqualifiedMethodAccess" enabled="true" level="WARNING" enabled_by_default="true" />
