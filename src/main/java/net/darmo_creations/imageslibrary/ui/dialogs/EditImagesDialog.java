@@ -35,6 +35,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private final Label fileMetadataLabel = new Label();
   private final Button viewSimilarImagesButton = new Button();
   private final Button moveButton = new Button();
+  private final Button showInExplorerButton = new Button();
   private final Button clearPathButton = new Button();
   private final CheckBox overwriteTargetCheckBox = new CheckBox();
   private final Label targetPathLabel = new Label();
@@ -145,6 +146,10 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.moveButton.setGraphic(this.config.theme().getIcon(Icon.MOVE_IMAGES, Icon.Size.SMALL));
     this.moveButton.setOnAction(event -> this.onMoveAction());
 
+    this.showInExplorerButton.setText(language.translate("dialog.edit_images.show_in_explorer"));
+    this.showInExplorerButton.setGraphic(this.config.theme().getIcon(Icon.OPEN_FILE_IN_EXPLORER, Icon.Size.SMALL));
+    this.showInExplorerButton.setOnAction(event -> this.onOpenFileAction());
+
     this.clearPathButton.setText(language.translate("dialog.edit_images.clear_path"));
     this.clearPathButton.setGraphic(this.config.theme().getIcon(Icon.CLEAR_TEXT, Icon.Size.SMALL));
     this.clearPathButton.setOnAction(event -> this.clearTargetPath());
@@ -156,6 +161,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     final HBox buttonsBox = new HBox(
         5,
         this.viewSimilarImagesButton,
+        this.showInExplorerButton,
         this.moveButton,
         this.clearPathButton,
         this.overwriteTargetCheckBox
@@ -437,6 +443,11 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.targetPathLabel.setText(this.targetPath.toString());
     this.clearPathButton.setDisable(false);
     this.overwriteTargetCheckBox.setDisable(false);
+  }
+
+  private void onOpenFileAction() {
+    if (this.currentPicture != null)
+      FileUtils.openInFileExplorer(this.currentPicture.path().toString());
   }
 
   private void clearTargetPath() {
