@@ -19,7 +19,7 @@ import java.util.*;
 
 public class App extends Application {
   public static final String NAME = "Image Library";
-  public static final String VERSION = "1.0-SNAPSHOT";
+  public static final String VERSION = "1.0";
 
   private static Logger LOGGER;
 
@@ -203,13 +203,13 @@ public class App extends Application {
     }
     final String template = """
         --- %s (v%s) Crash Report ---
-                
+        
         Time: %s
         Description: %s
-                
+        
         -- Detailled Stack Trace --
         %s
-                
+        
         -- Technical Information --
         System properties:
         %s

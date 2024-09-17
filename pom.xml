@@ -6,7 +6,7 @@
 
   <groupId>net.darmo_creations</groupId>
   <artifactId>ImagesLibrary</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <name>ImagesLibrary</name>
 
   <properties>
