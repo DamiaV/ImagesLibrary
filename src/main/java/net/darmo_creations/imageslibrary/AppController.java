@@ -64,6 +64,7 @@ public class AppController implements ResultsView.SearchListener {
   private final TagsView tagsView;
   private final TabPane resultsTabPane = new TabPane();
 
+  // FIXME focus update error when a single picture is in ResultsView
   private final List<Picture> selectedPictures = new ArrayList<>();
   private final List<Tag> selectedTags = new ArrayList<>();
   // Counts how many blocking tasks are ongoing to properly handle disabling/re-enabling of interactions
@@ -144,7 +145,7 @@ public class AppController implements ResultsView.SearchListener {
   private boolean isDragAndDropValid(final @NotNull Dragboard dragboard) {
     return dragboard.hasFiles() && dragboard.getFiles().stream().allMatch(
         // Accept directories and files with valid extensions
-        file -> file.isDirectory() || App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(file.toPath()).toLowerCase()));
+        file -> file.isDirectory() || FileUtils.isValidFile(file.toPath()));
   }
 
   private MenuBar createMenuBar() {
@@ -290,10 +291,13 @@ public class AppController implements ResultsView.SearchListener {
     showNoHashMenuItem.setOnAction(e -> this.onShowImagesWithNoHash());
     showNoHashMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
     this.menuItemStates.put(showNoHashMenuItem, showNoHashMenuItem.isDisable());
-    this.savedQueriesMenu = new Menu(
-        language.translate("menu.queries.saved_queries"),
-        theme.getIcon(Icon.SAVED_QUERIES, Icon.Size.SMALL)
+    final MenuItem showVideosMenuItem = new MenuItem(
+        language.translate("menu.queries.show_videos"),
+        theme.getIcon(Icon.SEARCH_VIDEOS, Icon.Size.SMALL)
     );
+    showVideosMenuItem.setOnAction(e -> this.onShowVideos());
+    showVideosMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.V, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
+    this.menuItemStates.put(showVideosMenuItem, showVideosMenuItem.isDisable());
     this.savedQueriesMenu = new Menu(
         language.translate("menu.queries.saved_queries"),
         theme.getIcon(Icon.SAVED_QUERIES, Icon.Size.SMALL)
@@ -315,6 +319,7 @@ public class AppController implements ResultsView.SearchListener {
         showNoTagsMenuItem,
         showNoFileMenuItem,
         showNoHashMenuItem,
+        showVideosMenuItem,
         new SeparatorMenuItem(),
         this.savedQueriesMenu,
         new SeparatorMenuItem(),
@@ -409,6 +414,9 @@ public class AppController implements ResultsView.SearchListener {
     final Button showNoHashButton = new Button(null, theme.getIcon(Icon.SEARCH_NO_HASH, Icon.Size.BIG));
     showNoHashButton.setOnAction(e -> this.onShowImagesWithNoHash());
     showNoHashButton.setTooltip(new Tooltip(language.translate("toolbar.queries.show_images_with_no_hash")));
+    final Button showVideosButton = new Button(null, theme.getIcon(Icon.SEARCH_VIDEOS, Icon.Size.BIG));
+    showVideosButton.setOnAction(e -> this.onShowVideos());
+    showVideosButton.setTooltip(new Tooltip(language.translate("toolbar.queries.show_videos")));
 
     final Button helpButton = new Button(null, theme.getIcon(Icon.HELP, Icon.Size.BIG));
     helpButton.setOnAction(e -> this.onHelp());
@@ -429,6 +437,7 @@ public class AppController implements ResultsView.SearchListener {
         showNoTagsButton,
         showNoFileButton,
         showNoHashButton,
+        showVideosButton,
         new Separator(),
         this.slideshowButton,
         this.slideshowSelectedButton,
@@ -586,7 +595,7 @@ public class AppController implements ResultsView.SearchListener {
         } catch (final IOException | SecurityException e) {
           errors.add(fileOrDir);
         }
-      else if (App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(fileOrDir)))
+      else if (FileUtils.isValidFile(fileOrDir))
         try {
           if (this.db.isFileRegistered(fileOrDir))
             skipped.add(fileOrDir);
@@ -972,27 +981,33 @@ public class AppController implements ResultsView.SearchListener {
    * Launch a search for images with no tags.
    */
   private void onShowImagesWithNoTags() {
-    final String query = "#no_tags";
-    this.addResultsTab(query);
-    this.getSelectedResultsView().searchImagesWithFlag(query);
+    this.searchFlag("no_tags");
   }
 
   /**
    * Launch a search for images with no file.
    */
   private void onShowImagesWithNoFile() {
-    final String query = "#no_file";
-    this.addResultsTab(query);
-    this.getSelectedResultsView().searchImagesWithFlag(query);
+    this.searchFlag("no_file");
   }
 
   /**
    * Launch a search for images with no hash.
    */
   private void onShowImagesWithNoHash() {
-    final String query = "#no_hash";
-    this.addResultsTab(query);
-    this.getSelectedResultsView().searchImagesWithFlag(query);
+    this.searchFlag("no_hash");
+  }
+
+  /**
+   * Launch a search for video files.
+   */
+  private void onShowVideos() {
+    this.searchFlag("video");
+  }
+
+  private void searchFlag(String flag) {
+    this.addResultsTab(flag);
+    this.getSelectedResultsView().searchImagesWithFlag(flag);
   }
 
   /**

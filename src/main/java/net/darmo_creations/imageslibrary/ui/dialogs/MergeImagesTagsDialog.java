@@ -243,6 +243,8 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
       final String fileName = path.getFileName().toString();
       this.fileNameLabel.setText(fileName);
       this.fileNameLabel.setTooltip(new Tooltip(fileName));
+      this.fileNameLabel.setGraphic(
+          config.theme().getIcon(picture.isVideo() ? Icon.VIDEO : Icon.IMAGE, Icon.Size.SMALL));
       boolean exists;
       try {
         exists = Files.exists(path);

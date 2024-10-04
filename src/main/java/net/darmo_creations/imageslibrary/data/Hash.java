@@ -1,6 +1,7 @@
 package net.darmo_creations.imageslibrary.data;
 
 import net.darmo_creations.imageslibrary.*;
+import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
 
 import javax.imageio.*;
@@ -86,10 +87,13 @@ public record Hash(long bytes) {
    *
    * @param file The image file to compute the hash of.
    * @return An {@link Optional} containing the computed hash,
-   * or an empty {@link Optional} if the file could not be read.
+   * or an empty {@link Optional} if the file could not be read or is not an image.
    */
   @Contract(pure = true, value = "_ -> new")
   public static Optional<Hash> computeForFile(final @NotNull Path file) {
+    if (!App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(file).toLowerCase()))
+      return Optional.empty();
+
     final @Nullable BufferedImage image;
     try {
       image = ImageIO.read(file.toFile());

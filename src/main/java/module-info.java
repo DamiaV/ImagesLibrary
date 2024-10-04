@@ -12,6 +12,9 @@ module net.darmo_creations.imageslibrary {
   // ImageIO
   requires javafx.swing;
 
+  // Video frame extraction
+  requires org.bytedeco.javacv;
+
   // Database
   requires org.xerial.sqlitejdbc;
 

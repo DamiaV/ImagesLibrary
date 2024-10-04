@@ -35,7 +35,7 @@ public final class FileChoosers {
   }
 
   /**
-   * Open a dialog to choose image files.
+   * Open a dialog to choose image/video files.
    *
    * @param config The app’s config.
    * @param stage  The parent stage object.
@@ -51,7 +51,7 @@ public final class FileChoosers {
         stage,
         "image_files_chooser",
         null,
-        App.VALID_IMAGE_EXTENSIONS
+        App.VALID_FILE_EXTENSIONS
     );
   }
 

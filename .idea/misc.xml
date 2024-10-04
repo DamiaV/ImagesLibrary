@@ -26,6 +26,9 @@
       </list>
     </option>
   </component>
+  <component name="Black">
+    <option name="sdkName" value="Python 3.12 (ImagesLibrary)" />
+  </component>
   <component name="EntryPointsManager">
     <list size="1">
       <item index="0" class="java.lang.String" itemvalue="net.darmo_creations.imageslibrary.data.sql_functions.SqlFunction" />

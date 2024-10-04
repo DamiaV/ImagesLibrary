@@ -245,9 +245,11 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
 
   /**
    * Search for all images that match the given flag.
+   *
+   * @param flag The name of the flag without the "#".
    */
   public void searchImagesWithFlag(@NotNull String flag) {
-    this.searchField.setText(flag);
+    this.searchField.setText("#" + flag);
     this.searchField.requestFocus();
     this.search(null);
   }
@@ -518,7 +520,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         label.setTooltip(new Tooltip(language.translate("images_view.result.no_tags")));
         this.getChildren().add(label);
       }
-      if (picture.hash().isEmpty()) {
+      if (!picture.isVideo() && picture.hash().isEmpty()) {
         final Label label = new Label(null, theme.getIcon(Icon.NO_HASH, Icon.Size.SMALL));
         label.setTooltip(new Tooltip(language.translate("images_view.result.no_hash")));
         this.getChildren().add(label);

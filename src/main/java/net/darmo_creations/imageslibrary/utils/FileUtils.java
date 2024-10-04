@@ -7,6 +7,7 @@ import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
+import org.bytedeco.javacv.*;
 import org.jetbrains.annotations.*;
 
 import javax.imageio.*;
@@ -123,6 +124,7 @@ public class FileUtils {
    * Load the given image. If the file’s format is not supported by JavaFX,
    * but is in the {@link App#VALID_IMAGE_EXTENSIONS} list, the image will be converted in-memory
    * into a format that JavaFX supports.
+   * If the file is a video, this method extracts the first frame to serve as a thumbnail.
    *
    * @param path            The path to the image file.
    * @param successCallback Callback called when the image is done loading.
@@ -136,14 +138,14 @@ public class FileUtils {
       @NotNull Consumer<Image> successCallback,
       @NotNull Consumer<Exception> errorCallback
   ) {
-    final String ext = getExtension(path);
+    final String ext = getExtension(path).toLowerCase();
 
     if (ext.isEmpty())
-      throw new IllegalArgumentException("Unsupported image format");
-    else if (!App.VALID_IMAGE_EXTENSIONS.contains(ext.toLowerCase()))
-      throw new IllegalArgumentException("Unsupported image format: " + ext);
+      throw new IllegalArgumentException("Unsupported file format");
+    else if (!isValidFile(path))
+      throw new IllegalArgumentException("Unsupported file format: " + ext);
 
-    if (JAVAFX_FILE_EXTENSIONS.contains(ext.toLowerCase())) {
+    if (JAVAFX_FILE_EXTENSIONS.contains(ext)) {
       final Image image = new Image("file://" + path, true);
       image.progressProperty().addListener((observable, oldValue, newValue) -> {
         if (newValue.doubleValue() >= 1) {
@@ -153,18 +155,36 @@ public class FileUtils {
             successCallback.accept(image);
         }
       });
+    } else if (App.VALID_VIDEO_EXTENSIONS.contains(ext)) {
+      new Thread(() -> {
+        // Extract first frame of video
+        final BufferedImage image;
+        try (final var frameGrabber = new FFmpegFrameGrabber(path.toFile());
+             final var frameConverter = new Java2DFrameConverter()) {
+          frameGrabber.start();
+          image = frameConverter.convert(frameGrabber.grabImage());
+          frameGrabber.stop();
+        } catch (final IOException e) {
+          Platform.runLater(() -> errorCallback.accept(e));
+          return;
+        }
+        Platform.runLater(() -> successCallback.accept(SwingFXUtils.toFXImage(image, null)));
+      }).start();
     } else {
       new Thread(() -> {
         // Load with ImageIO then convert to Image
         try {
           final BufferedImage image = ImageIO.read(path.toFile());
-          final WritableImage fxImage = SwingFXUtils.toFXImage(image, null);
-          Platform.runLater(() -> successCallback.accept(fxImage));
+          Platform.runLater(() -> successCallback.accept(SwingFXUtils.toFXImage(image, null)));
         } catch (final IOException e) {
           Platform.runLater(() -> errorCallback.accept(e));
         }
       }).start();
     }
+  }
+
+  public static boolean isValidFile(Path path) {
+    return App.VALID_FILE_EXTENSIONS.contains(getExtension(path).toLowerCase());
   }
 
   /**

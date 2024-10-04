@@ -121,6 +121,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.imageView.setImage(null);
     this.fileNameLabel.setText(null);
     this.fileNameLabel.setTooltip(null);
+    this.fileNameLabel.setGraphic(null);
     this.fileMetadataLabel.setText(null);
     this.fileMetadataLabel.setTooltip(null);
     this.editTagsButton.setDisable(picture == null);
@@ -132,6 +133,8 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
       final String fileName = path.getFileName().toString();
       this.fileNameLabel.setText(fileName);
       this.fileNameLabel.setTooltip(new Tooltip(fileName));
+      this.fileNameLabel.setGraphic(
+          this.config.theme().getIcon(picture.isVideo() ? Icon.VIDEO : Icon.IMAGE, Icon.Size.SMALL));
       boolean exists;
       try {
         exists = Files.exists(path);

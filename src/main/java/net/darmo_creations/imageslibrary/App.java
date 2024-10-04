@@ -19,7 +19,7 @@ import java.util.*;
 
 public class App extends Application {
   public static final String NAME = "Image Library";
-  public static final String VERSION = "1.0";
+  public static final String VERSION = "1.1";
 
   private static Logger LOGGER;
 
@@ -34,7 +34,25 @@ public class App extends Application {
    * The list of accepted image file extensions.
    */
   @Unmodifiable
-  public static final List<String> VALID_IMAGE_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif", "bmp", "webp");
+  public static final List<String> VALID_IMAGE_EXTENSIONS = List.of("bmp", "gif", "jpeg", "jpg", "png", "webp");
+
+  /**
+   * The list of accepted video file extensions.
+   */
+  @Unmodifiable
+  public static final List<String> VALID_VIDEO_EXTENSIONS = List.of("avi", "mov", "mp4", "ogv", "webm");
+
+  /**
+   * The list of accepted file extensions (images and videos).
+   */
+  @Unmodifiable
+  public static final List<String> VALID_FILE_EXTENSIONS;
+
+  static {
+    final List<String> exts = new ArrayList<>(VALID_IMAGE_EXTENSIONS);
+    exts.addAll(VALID_VIDEO_EXTENSIONS);
+    VALID_FILE_EXTENSIONS = Collections.unmodifiableList(exts);
+  }
 
   /**
    * Jar path to the resources’ root directory.

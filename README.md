@@ -1,17 +1,17 @@
 # Image Library
 
-Image Library lets you manage images by associating tags to them.
+**Image Library** lets you manage images and videos by associating tags to them.
 This is a full re-implementation of my [Python-based application](https://github.com/Darmo117/ImageDatabase).
 
 Main features:
 
-- Image tagging
-- Tagged images searching with a simple querying language
-- Replace/move image files while keeping all associated tags
+- Image and video file tagging
+- Tagged files searching with a simple querying language
+- Replace/move files while keeping all associated tags
 - Manage tags (create, remove, organize with types)
-- Tag completion in queries and image tags editor
-- Apply pattern-based transformations to images paths and tags
-- List similar images (hash-based)
+- Tag completion in queries and tags editor
+- Apply pattern-based transformations to file paths and tags
+- List similar images (hash-based); not available for video files
 - Fully translated interface, available in English, French, and Esperanto
 
 # Installation
@@ -25,16 +25,18 @@ launched.
 
 # Usage
 
-## Registering images
+**Note:** video files are not playable from the application itself, only their first frame is displayed.
 
-Go through the *File* menu and click on *Add Files* to add images or *Add Directory* to import all images from a
+## Adding files
+
+Go through the *File* menu and click on *Add Files* to add files or *Add Directory* to import all valid files from a
 directory; or you can simply drag-and-drop files and directories into the main window.
 
 You should see a dialog window with a preview of an image and a text area. This text area is where you have to type
-the tags for the displayed image. Once you’re done, click on *Next* to go to the next image or *Finish* to finish. You
-can click on *Skip* to skip the current image and go directly to the next one.
+the tags for the displayed image. Once you’re done, click on *Next* to go to the next file or *Finish* to finish. You
+can click on *Skip* to skip the current file and go directly to the next one.
 
-While editing tags, you can choose where to move the current image by clicking on *Move to…*; the path is then displayed
+While editing tags, you can choose where to move the current file by clicking on *Move to…*; the path is then displayed
 below the button.
 
 If the application found similar images already registered, a button labelled *Show similar images…* will be available
@@ -42,23 +44,23 @@ above the text area. It will show a list of similar images, ordered by decreasin
 one of these images and copy its tags by clicking on the button above the tags list (**Warning**: it will replace all
 tags in the text box).
 
-## Searching for registered images
+## Searching for registered files
 
-You can search for images by typing queries in the search field.
+You can search for files by typing queries in the search field.
 
 ### Basic syntax
 
 Tag names can contain any Unicode letters and digits, as well as underscores `_`.
 
-- `a` will match images with tag `a`
-- `a b` will match images with both tags `a` *and* `b`
-- `a + b` will match images with tags `a` *or* `b` or *both*
-- `-a` will match images *without* tag `a`
+- `a` will match files with tag `a`
+- `a b` will match files with both tags `a` *and* `b`
+- `a + b` will match files with tags `a` *or* `b` or *both*
+- `-a` will match files *without* tag `a`
 - Parentheses `(` and `)` can be used to group query elements
 
 ### Flags
 
-Flags are special tags that represent a specific image property.
+Flags are special tags that represent a specific file property.
 
 #### Syntax
 
@@ -77,15 +79,19 @@ Where `<name>` is the flag’s name.
     </tr>
     <tr>
         <td><code>no_tags</code></td>
-        <td>Match images that have no attached tags</td>
+        <td>Match files that have no attached tags</td>
     </tr>
     <tr>
         <td><code>no_file</code></td>
-        <td>Match images whose file is missing</td>
+        <td>Match entries whose file is missing</td>
     </tr>
     <tr>
         <td><code>no_hash</code></td>
         <td>Match images whose hash could not be computed</td>
+    </tr>
+    <tr>
+        <td><code>video</code></td>
+        <td>Match files that are videos based on their extension</td>
     </tr>
 </table>
 
@@ -95,7 +101,7 @@ Where `<name>` is the flag’s name.
 #no_file a b
 ```
 
-This will match all images whose file is missing that have both tags `a` and `b`.
+This will match all entries whose file is missing that have both tags `a` and `b`.
 
 ```
 #no_file #no_tags
@@ -157,19 +163,19 @@ Full syntax examples:
         <td><code>ext</code></td>
         <td>Yes</td>
         <td>Yes</td>
-        <td>Match images based on their extension (without the dot)</td>
+        <td>Match files based on their extension (without the dot)</td>
     </tr>
     <tr>
         <td><code>name</code></td>
         <td>Yes</td>
         <td>Yes</td>
-        <td>Match images based on their name, including extension</td>
+        <td>Match files based on their name, including extension</td>
     </tr>
     <tr>
         <td><code>path</code></td>
         <td>Yes</td>
         <td>Yes</td>
-        <td>Match images based on their full path</td>
+        <td>Match files based on their full path</td>
     </tr>
     <tr>
         <td><code>similar_to</code></td>
@@ -200,16 +206,16 @@ a (b + c) + -(d + e) ext=i"jp?g"
 
 Here’s how to interpret it:
 
-- `a (b + c)` returns the set of images with both tags `a` and `b` and/or both tags `a` and `c`.
+- `a (b + c)` returns the set of files with both tags `a` and `b` and/or both tags `a` and `c`.
 - `-(d + e) ext=i"jp?g"` = `-d -e ext=i"jp?g"` returns the set of JPG images without tags `d` nor `e`; note the `?` to
   match both `jpg` and `jpeg` extensions, and the `i` flag to disregard case.
 
-The result is the union of both image sets.
+The result is the union of both file sets.
 
 ### Tag definitions
 
 The application supports tag definitions, i.e. tags defined from tag queries (e.g.: tag `animal` could be defined
-as `cat + dog + bird`). You cannot tag images directly with tags that have a definition, they exist only for querying
+as `cat + dog + bird`). You cannot tag files directly with tags that have a definition, they exist only for querying
 purposes.
 
 # Configuration file

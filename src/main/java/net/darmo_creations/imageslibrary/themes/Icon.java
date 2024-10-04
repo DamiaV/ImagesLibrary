@@ -29,6 +29,7 @@ public enum Icon {
   SEARCH_NO_TAGS("tag_blue_error"),
   SEARCH_NO_FILE("picture_error"),
   SEARCH_NO_HASH("tag_hash_error"),
+  SEARCH_VIDEOS("film_magnify"),
   SAVED_QUERIES("magnifier"),
   MANAGE_SAVED_QUERIES("magnifier_gear"),
   FOCUS_SEARCH_BAR("search_field_go"),
@@ -77,6 +78,9 @@ public enum Icon {
   MERGE_TO_LEFT("arrow_left"),
 
   INFO("information"),
+
+  IMAGE("picture"),
+  VIDEO("film"),
   ;
 
   private final String baseName;

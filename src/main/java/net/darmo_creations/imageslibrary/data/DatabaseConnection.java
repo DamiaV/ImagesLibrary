@@ -89,9 +89,19 @@ public final class DatabaseConnection implements AutoCloseable {
           """
               SELECT id, path, hash
               FROM images
-              WHERE hash IS NULL
+              WHERE NOT "IS_VIDEO"(path) AND hash IS NULL
               """,
-          (picture, tags, db) -> picture.hash().isEmpty()
+          (picture, tags, db) -> !picture.isVideo() && picture.hash().isEmpty()
+      ),
+
+      "video",
+      new BooleanFlag(
+          """
+              SELECT id, path, hash
+              FROM images
+              WHERE "IS_VIDEO"(path)
+              """,
+          (picture, tags, db) -> picture.isVideo()
       ),
 
       "name",
@@ -237,6 +247,7 @@ public final class DatabaseConnection implements AutoCloseable {
     final Class<? extends org.sqlite.Function>[] functions = new Class[] {
         FileExistsFunction.class,
         HashesSimilarityFunction.class,
+        IsVideoFunction.class,
         RegexFunction.class,
         RightIndexFunction.class,
         SimilarHashesFunction.class,

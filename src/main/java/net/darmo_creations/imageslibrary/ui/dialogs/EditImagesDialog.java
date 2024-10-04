@@ -300,6 +300,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.fileNameField.setText(fileName);
     this.fileMetadataLabel.setText(null);
     this.fileMetadataLabel.setTooltip(null);
+    this.fileMetadataLabel.setGraphic(
+        this.config.theme().getIcon(this.currentPicture.isVideo() ? Icon.VIDEO : Icon.IMAGE, Icon.Size.SMALL));
     final Language language = this.config.language();
     boolean exists;
     try {
@@ -413,7 +415,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         .collect(Collectors.toSet());
 
     final Optional<String> name = StringUtils.stripNullable(this.fileNameField.getText());
-    if (name.isEmpty() || !App.VALID_IMAGE_EXTENSIONS.contains(FileUtils.getExtension(Path.of(name.get()))))
+    if (name.isEmpty() || !FileUtils.isValidFile(Path.of(name.get())))
       return Optional.empty();
 
     Optional<Hash> hash = Optional.ofNullable(this.computedHash);
