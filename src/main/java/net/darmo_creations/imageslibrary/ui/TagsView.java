@@ -63,6 +63,10 @@ public class TagsView extends VBox {
       if (newValue != null)
         this.hookDragAndDrop();
     });
+    this.tabPane.focusedProperty().addListener((observable, wasFocused, isFocused) -> {
+      if (isFocused)
+        this.onTabSelectionChange();
+    });
 
     this.searchField.setPromptText(language.translate("tag_search_field.search"));
     this.searchField.setStyle("-fx-font-size: 1.5em");

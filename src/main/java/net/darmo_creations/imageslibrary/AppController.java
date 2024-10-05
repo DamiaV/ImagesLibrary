@@ -64,7 +64,6 @@ public class AppController implements ResultsView.SearchListener {
   private final TagsView tagsView;
   private final TabPane resultsTabPane = new TabPane();
 
-  // FIXME focus update error when a single picture is in ResultsView
   private final List<Picture> selectedPictures = new ArrayList<>();
   private final List<Tag> selectedTags = new ArrayList<>();
   // Counts how many blocking tasks are ongoing to properly handle disabling/re-enabling of interactions
@@ -455,6 +454,10 @@ public class AppController implements ResultsView.SearchListener {
     this.tagsView.addCreateTagTypeListener(this::onCreateTagType);
     this.tagsView.addEditTagsTypeListener(this::onEditTagsType);
 
+    this.resultsTabPane.focusedProperty().addListener((observable, wasFocused, isFocused) -> {
+      if (isFocused)
+        this.onResultsTabSelectionChanged(this.resultsTabPane.getSelectionModel().getSelectedItem());
+    });
     this.resultsTabPane.getSelectionModel().selectedItemProperty().addListener(
         (observable, oldValue, newValue) -> this.onResultsTabSelectionChanged(newValue));
     this.resultsTabPane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {

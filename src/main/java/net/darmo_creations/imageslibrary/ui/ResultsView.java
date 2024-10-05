@@ -157,6 +157,10 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.imagesList.getSelectionModel().selectedItemProperty().addListener(
         (observable, oldValue, newValue) -> this.onSelectionChange());
     this.imagesList.setCellFactory(item -> ClickableListCellFactory.forListener(this));
+    this.imagesList.focusedProperty().addListener((observable, wasFocused, isFocused) -> {
+      if (isFocused)
+        this.onSelectionChange();
+    });
 
     HBox.setHgrow(this.searchField, Priority.ALWAYS);
     final HBox searchBox = new HBox(
