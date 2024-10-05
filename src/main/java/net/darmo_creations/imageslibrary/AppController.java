@@ -459,14 +459,16 @@ public class AppController implements ResultsView.SearchListener {
         (observable, oldValue, newValue) -> this.onResultsTabSelectionChanged(newValue));
     this.resultsTabPane.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
       final int size = this.resultsTabPane.getTabs().size();
-      if (event.getCode() == KeyCode.TAB && event.isShortcutDown() && size > 1) {
-        int i = this.resultsTabPane.getSelectionModel().getSelectedIndex();
-        if (event.isShiftDown())
-          i = i == 0 ? size - 1 : i - 1;
-        else
-          i = (i + 1) % size;
-        this.resultsTabPane.getSelectionModel().select(i);
-        this.getSelectedResultsView().focusSearchBar();
+      if (event.getCode() == KeyCode.TAB && event.isShortcutDown()) {
+        if (size > 1) {
+          int i = this.resultsTabPane.getSelectionModel().getSelectedIndex();
+          if (event.isShiftDown())
+            i = i == 0 ? size - 1 : i - 1;
+          else
+            i = (i + 1) % size;
+          this.resultsTabPane.getSelectionModel().select(i);
+          this.getSelectedResultsView().focusSearchBar();
+        }
         event.consume();
       }
     });
