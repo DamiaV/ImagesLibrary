@@ -44,7 +44,7 @@ public class VideoPlayer extends VBox {
     this.playButton.setPadding(Insets.EMPTY);
 
     this.stopButton.setTooltip(new Tooltip(this.config.language().translate("video_player.controls.stop")));
-    this.stopButton.setGraphic(this.config.theme().getIcon(Icon.CONTROL_STOP, Icon.Size.SMALL));
+    this.stopButton.setGraphic(this.config.theme().getIcon(Icon.CONTROL_STOP, Icon.Size.BIG));
     this.stopButton.setOnAction(event -> this.stop());
     this.stopButton.setPadding(Insets.EMPTY);
 
@@ -240,15 +240,15 @@ public class VideoPlayer extends VBox {
 
     final boolean isPlaying = !disable && mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING;
     this.playButton.setTooltip(new Tooltip(language.translate("video_player.controls." + (isPlaying ? "pause" : "play"))));
-    this.playButton.setGraphic(theme.getIcon(isPlaying ? Icon.CONTROL_PAUSE : Icon.CONTROL_PLAY, Icon.Size.SMALL));
+    this.playButton.setGraphic(theme.getIcon(isPlaying ? Icon.CONTROL_PAUSE : Icon.CONTROL_PLAY, Icon.Size.BIG));
 
     final boolean isRepeat = !disable && mediaPlayer.getCycleCount() == MediaPlayer.INDEFINITE;
     this.loopButton.setTooltip(new Tooltip(language.translate("video_player.controls.loop." + (isRepeat ? "enabled" : "disabled"))));
-    this.loopButton.setGraphic(theme.getIcon(isRepeat ? Icon.CONTROL_LOOP_ON : Icon.CONTROL_LOOP_OFF, Icon.Size.SMALL));
+    this.loopButton.setGraphic(theme.getIcon(isRepeat ? Icon.CONTROL_LOOP_ON : Icon.CONTROL_LOOP_OFF, Icon.Size.BIG));
 
     final boolean isSoundOn = !disable && this.hasSound && mediaPlayer.getVolume() != 0;
     this.toggleSoundButton.setTooltip(new Tooltip(language.translate("video_player.controls.sound." + (isSoundOn ? "on" : "off"))));
-    this.toggleSoundButton.setGraphic(theme.getIcon(isSoundOn ? Icon.CONTROL_SOUND_ON : Icon.CONTROL_SOUND_OFF, Icon.Size.SMALL));
+    this.toggleSoundButton.setGraphic(theme.getIcon(isSoundOn ? Icon.CONTROL_SOUND_ON : Icon.CONTROL_SOUND_OFF, Icon.Size.BIG));
 
     this.playButton.setDisable(disable);
     this.stopButton.setDisable(disable);
