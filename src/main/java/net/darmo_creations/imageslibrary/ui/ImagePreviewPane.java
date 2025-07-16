@@ -1,9 +1,11 @@
 package net.darmo_creations.imageslibrary.ui;
 
 import javafx.geometry.*;
+import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
 import javafx.scene.layout.*;
+import javafx.scene.media.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.themes.*;
@@ -25,6 +27,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   private final Label fileMetadataLabel = new Label();
   private final HBox imageViewBox;
   private final ImageView imageView = new ImageView();
+  private final VideoPlayer videoPlayer;
   private final Button editTagsButton = new Button();
   private final ListView<TagView> tagsList = new ListView<>();
 
@@ -58,9 +61,13 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.imageViewBox = new HBox(this.imageView);
     this.imageViewBox.setAlignment(Pos.CENTER);
     this.imageViewBox.setMinHeight(200);
-    this.imageViewBox.heightProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
-    this.widthProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
+    this.imageViewBox.heightProperty().addListener(
+        (observable, oldValue, newValue) -> this.updateImageViewSize());
+    this.widthProperty().addListener(
+        (observable, oldValue, newValue) -> this.updateImageViewSize());
     this.imageView.setPreserveRatio(true);
+
+    this.videoPlayer = new VideoPlayer(config);
 
     final HBox tagsLabelBox = new HBox(new Label(language.translate("image_preview.section.tags.title")));
     tagsLabelBox.getStyleClass().add("section-title");
@@ -96,12 +103,23 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   }
 
   private void updateImageViewSize() {
-    final Image image = this.imageView.getImage();
-    if (image != null) {
-      final double width = Math.min(image.getWidth(), this.getWidth() - 10);
-      this.imageView.setFitWidth(width);
-      final double height = Math.min(image.getHeight(), this.imageViewBox.getHeight() - 10);
-      this.imageView.setFitHeight(height);
+    if (this.imageViewBox.getChildren().contains(this.imageView)) {
+      final Image image = this.imageView.getImage();
+      if (image != null) {
+        final double width = Math.min(image.getWidth(), this.getWidth() - 10);
+        this.imageView.setFitWidth(width);
+        final double height = Math.min(image.getHeight(), this.imageViewBox.getHeight() - 10);
+        this.imageView.setFitHeight(height);
+      }
+    } else {
+      final Optional<MediaPlayer> mediaPlayer = this.videoPlayer.getMediaPlayer();
+      if (mediaPlayer.isPresent()) {
+        final Media media = mediaPlayer.get().getMedia();
+        final double width = Math.min(media.getWidth(), this.getWidth() - 10);
+        this.videoPlayer.setFitWidth(width);
+        final double height = Math.min(media.getHeight(), this.imageViewBox.getHeight() - 10);
+        this.videoPlayer.setFitHeight(height);
+      }
     }
   }
 
@@ -119,6 +137,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.picture = picture;
 
     this.imageView.setImage(null);
+    this.videoPlayer.setMediaPlayer(null, true);
     this.fileNameLabel.setText(null);
     this.fileNameLabel.setTooltip(null);
     this.fileNameLabel.setGraphic(null);
@@ -145,21 +164,26 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
         this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
       } else {
         this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
-        FileUtils.loadImage(
-            path,
-            image -> {
-              this.imageView.setImage(image);
-              final String text = FileUtils.formatImageMetadata(path, image, this.config);
-              this.fileMetadataLabel.setText(text);
-              this.fileMetadataLabel.setTooltip(new Tooltip(text));
-              this.openInExplorerButton.setDisable(false);
-              this.updateImageViewSize();
-            },
-            error -> {
-              this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
-              this.openInExplorerButton.setDisable(true);
-            }
-        );
+        if (picture.isVideo() && FileUtils.isSupportedVideoFile(path))
+          FileUtils.loadVideo(
+              path,
+              mediaPlayer -> {
+                this.videoPlayer.setMediaPlayer(mediaPlayer, true);
+                final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, this.config);
+                this.updateImageViewBoxContent(this.videoPlayer, metadata);
+              },
+              this::onFileLoadingError
+          );
+        else
+          FileUtils.loadImage(
+              path,
+              image -> {
+                this.imageView.setImage(image);
+                final String metadata = FileUtils.formatImageMetadata(path, image, this.config);
+                this.updateImageViewBoxContent(this.imageView, metadata);
+              },
+              this::onFileLoadingError
+          );
       }
       final var tagsEntries = tags.stream()
           .sorted()
@@ -171,6 +195,18 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
       this.openInExplorerButton.setDisable(true);
       this.showSimilarImagesButton.setDisable(true);
     }
+  }
+
+  private void updateImageViewBoxContent(@NotNull Node content, @NotNull String metadata) {
+    this.fileMetadataLabel.setText(metadata);
+    this.fileMetadataLabel.setTooltip(new Tooltip(metadata));
+    this.imageViewBox.getChildren().set(0, content);
+    this.updateImageViewSize();
+  }
+
+  private void onFileLoadingError(Exception error) {
+    this.fileMetadataLabel.setText(this.config.language().translate("image_preview.missing_file"));
+    this.openInExplorerButton.setDisable(true);
   }
 
   public void addTagClickListener(@NotNull TagClickListener listener) {

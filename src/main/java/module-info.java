@@ -1,6 +1,7 @@
 module net.darmo_creations.imageslibrary {
   // JavaFX
   requires javafx.controls;
+  requires javafx.media;
   requires java.desktop;
 
   // JavaFX libs
@@ -32,6 +33,7 @@ module net.darmo_creations.imageslibrary {
 
   // Annotations
   requires org.jetbrains.annotations;
+  requires org.bytedeco.opencv;
 
   exports net.darmo_creations.imageslibrary;
   exports net.darmo_creations.imageslibrary.ui;

@@ -3,6 +3,7 @@ package net.darmo_creations.imageslibrary.utils;
 import javafx.application.*;
 import javafx.embed.swing.*;
 import javafx.scene.image.*;
+import javafx.scene.media.*;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
@@ -13,6 +14,7 @@ import org.jetbrains.annotations.*;
 import javax.imageio.*;
 import java.awt.image.*;
 import java.io.*;
+import java.net.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;
@@ -45,13 +47,13 @@ public class FileUtils {
     final String osName = System.getProperty("os.name").toLowerCase();
     final String[] command;
     if (osName.contains("linux"))
-      command = new String[] { "dbus-send", "--dest=org.freedesktop.FileManager1", "--type=method_call",
+      command = new String[] {"dbus-send", "--dest=org.freedesktop.FileManager1", "--type=method_call",
           "/org/freedesktop/FileManager1", "org.freedesktop.FileManager1.ShowItems",
-          "array:string:file:%s".formatted(path), "string:\"\"" };
+          "array:string:file:%s".formatted(path), "string:\"\""};
     else if (osName.contains("win"))
-      command = new String[] { "explorer /select,\"{path}\"" };
+      command = new String[] {"explorer /select,\"{path}\""};
     else if (osName.contains("mac"))
-      command = new String[] { "open", "-R", path };
+      command = new String[] {"open", "-R", path};
     else {
       App.logger().error("Unable to open file system explorer: unsupported operating system {}", osName);
       return;
@@ -95,12 +97,16 @@ public class FileUtils {
    * Format the metada of the given image file: width, height,
    * approximate size (in KiB, MiB or GiB), and full size in bytes
    *
-   * @param path   The path to the image.
+   * @param path   The path to the image file.
    * @param image  The image.
    * @param config The app’s config.
    * @return The formatted metadata.
    */
-  public static String formatImageMetadata(@NotNull Path path, @NotNull Image image, final @NotNull Config config) {
+  public static String formatImageMetadata(
+      @NotNull Path path,
+      @NotNull Image image,
+      final @NotNull Config config
+  ) {
     long size = -1;
     try {
       size = Files.size(path);
@@ -111,9 +117,51 @@ public class FileUtils {
     final Language language = config.language();
     final var formattedSize = size >= 0 ? formatBytesSize(size, language) : new Pair<>("?", "");
     return language.translate(
-        "image_preview.file_metadata.label",
+        "image_preview.image_file_metadata.label",
         new FormatArg("width", (int) image.getWidth()),
         new FormatArg("height", (int) image.getHeight()),
+        new FormatArg("abbr_bytes", formattedSize.getKey()),
+        new FormatArg("unit", formattedSize.getValue()),
+        new FormatArg("full_bytes", language.formatNumber(size))
+    );
+  }
+
+  /**
+   * Format the metada of the given video file: duration, width, height,
+   * approximate size (in KiB, MiB or GiB), and full size in bytes
+   *
+   * @param path        The path to the video file.
+   * @param mediaPlayer The media player containing the video data.
+   * @param config      The app’s config.
+   * @return The formatted metadata.
+   */
+  public static String formatVideoMetadata(
+      @NotNull Path path,
+      @NotNull MediaPlayer mediaPlayer,
+      final @NotNull Config config
+  ) {
+    long size = -1;
+    try {
+      size = Files.size(path);
+    } catch (final IOException | SecurityException e) {
+      App.logger().error("Unable to get size of file {}", path, e);
+    }
+
+    final Language language = config.language();
+    final Media media = mediaPlayer.getMedia();
+    final var formattedSize = size >= 0 ? formatBytesSize(size, language) : new Pair<>("?", "");
+    final Duration duration = mediaPlayer.getCycleDuration();
+    final int seconds = (int) Math.round(duration.toSeconds());
+    final int minutes = (int) duration.toMinutes();
+    final int hours = (int) duration.toHours();
+    final String formattedDuration;
+    if (hours > 0) formattedDuration = "%d:%02d:%02d".formatted(hours, minutes, seconds);
+    else formattedDuration = "%d:%02d".formatted(minutes, seconds);
+    return language.translate(
+        "image_preview.video_file_metadata.label",
+        new FormatArg("duration", formattedDuration),
+        new FormatArg("width", media.getWidth()),
+        new FormatArg("height", media.getHeight()),
         new FormatArg("abbr_bytes", formattedSize.getKey()),
         new FormatArg("unit", formattedSize.getValue()),
         new FormatArg("full_bytes", language.formatNumber(size))
@@ -132,6 +180,7 @@ public class FileUtils {
    * @param errorCallback   Callback called when an I/O error occurs.
    *                        It takes the {@link Exception} object as its argument.
    * @throws IllegalArgumentException If the file’s extension in not in {@link App#VALID_IMAGE_EXTENSIONS}.
+   * @see #loadVideo(Path, Consumer, Consumer)
    */
   public static void loadImage(
       @NotNull Path path,
@@ -145,7 +194,7 @@ public class FileUtils {
     else if (!isValidFile(path))
       throw new IllegalArgumentException("Unsupported file format: " + ext);
 
-    if (JAVAFX_FILE_EXTENSIONS.contains(ext)) {
+    if (JAVAFX_IMAGE_FILE_EXTENSIONS.contains(ext)) {
       final Image image = new Image("file://" + path, true);
       image.progressProperty().addListener((observable, oldValue, newValue) -> {
         if (newValue.doubleValue() >= 1) {
@@ -183,8 +232,60 @@ public class FileUtils {
     }
   }
 
+  /**
+   * Indicate whether the given file is supported by the {@link #loadImage(Path, Consumer, Consumer)} method.
+   *
+   * @param path The file path.
+   * @return True if the file can be loaded by {@link #loadImage(Path, Consumer, Consumer)}, false otherwise.
+   */
   public static boolean isValidFile(Path path) {
     return App.VALID_FILE_EXTENSIONS.contains(getExtension(path).toLowerCase());
+  }
+
+  /**
+   * Load the given video.
+   *
+   * @param path            The path to the video file.
+   * @param successCallback Callback called when the video is done loading.
+   *                        It takes the resulting {@link MediaPlayer} as its argument.
+   * @param errorCallback   Callback called when an I/O error occurs.
+   *                        It takes the {@link Exception} object as its argument.
+   * @throws IllegalArgumentException If the video format is not supported,
+   *                                  i.e. when {@link #isSupportedVideoFile(Path)} returns false for the same path.
+   * @see #loadImage(Path, Consumer, Consumer)
+   */
+  public static void loadVideo(
+      @NotNull Path path,
+      @NotNull Consumer<MediaPlayer> successCallback,
+      @NotNull Consumer<Exception> errorCallback
+  ) {
+    final String ext = getExtension(path).toLowerCase();
+
+    if (ext.isEmpty())
+      throw new IllegalArgumentException("Unsupported file format");
+    if (!isSupportedVideoFile(path))
+      throw new IllegalArgumentException("Unsupported file format: " + ext);
+
+    new Thread(() -> {
+      final MediaPlayer mediaPlayer;
+      try {
+        mediaPlayer = new MediaPlayer(new Media(path.toUri().toURL().toString()));
+      } catch (final RuntimeException | MalformedURLException e) {
+        Platform.runLater(() -> errorCallback.accept(e));
+        return;
+      }
+      mediaPlayer.setOnReady(() -> Platform.runLater(() -> successCallback.accept(mediaPlayer)));
+    }).start();
+  }
+
+  /**
+   * Indicate whether the given file is supported by the {@link #loadVideo(Path, Consumer, Consumer)} method.
+   *
+   * @param path The file path.
+   * @return True if the file can be loaded by {@link #loadVideo(Path, Consumer, Consumer)}, false otherwise.
+   */
+  public static boolean isSupportedVideoFile(@NotNull Path path) {
+    return JAVAFX_VIDEO_FILE_EXTENSIONS.contains(getExtension(path).toLowerCase());
   }
 
   /**
@@ -194,7 +295,15 @@ public class FileUtils {
    * see <a href="https://bugs.openjdk.org/browse/JDK-8149621">this JDK bug report</a>.
    */
   @Unmodifiable
-  private static final List<String> JAVAFX_FILE_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif");
+  private static final List<String> JAVAFX_IMAGE_FILE_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif");
+
+  /**
+   * The list of video file formats supported by JavaFX.
+   * <p>
+   * See <a href="https://docs.oracle.com/javase/8/javafx/media-tutorial/overview.htm">here</a>.
+   */
+  @Unmodifiable
+  private static final List<String> JAVAFX_VIDEO_FILE_EXTENSIONS = List.of("mp4");
 
   /**
    * Delete the parent directory of the given picture if it is empty.

@@ -81,6 +81,14 @@ public enum Icon {
 
   IMAGE("picture"),
   VIDEO("film"),
+
+  CONTROL_PLAY("control_play_blue"),
+  CONTROL_PAUSE("control_pause_blue"),
+  CONTROL_STOP("control_stop_blue"),
+  CONTROL_LOOP_ON("control_repeat_blue"),
+  CONTROL_LOOP_OFF("control_repeat"),
+  CONTROL_SOUND_ON("sound"),
+  CONTROL_SOUND_OFF("sound_mute"),
   ;
 
   private final String baseName;
