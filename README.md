@@ -12,6 +12,7 @@ Main features:
 - Tag completion in queries and tags editor
 - Apply pattern-based transformations to file paths and tags
 - List similar images (hash-based); not available for video files
+- Custom-built video player for video files
 - Fully translated interface, available in English, French, and Esperanto
 
 # Installation
