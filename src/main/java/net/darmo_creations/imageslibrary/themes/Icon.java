@@ -89,6 +89,8 @@ public enum Icon {
   CONTROL_LOOP_OFF("control_repeat"),
   CONTROL_SOUND_ON("sound"),
   CONTROL_SOUND_OFF("sound_mute"),
+  CONTROL_SOUND_LOWER("sound_low"),
+  CONTROL_SOUND_LOWEST("sound_none"),
   ;
 
   private final String baseName;

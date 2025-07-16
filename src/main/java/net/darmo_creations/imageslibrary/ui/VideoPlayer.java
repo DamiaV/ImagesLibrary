@@ -248,7 +248,13 @@ public class VideoPlayer extends VBox {
 
     final boolean isSoundOn = !disable && this.hasSound && mediaPlayer.getVolume() != 0;
     this.toggleSoundButton.setTooltip(new Tooltip(language.translate("video_player.controls.sound." + (isSoundOn ? "on" : "off"))));
-    this.toggleSoundButton.setGraphic(theme.getIcon(isSoundOn ? Icon.CONTROL_SOUND_ON : Icon.CONTROL_SOUND_OFF, Icon.Size.BIG));
+    final Icon soundIcon;
+    if (isSoundOn) {
+      if (mediaPlayer.getVolume() > 0.66) soundIcon = Icon.CONTROL_SOUND_ON;
+      else if (mediaPlayer.getVolume() > 0.33) soundIcon = Icon.CONTROL_SOUND_LOWER;
+      else soundIcon = Icon.CONTROL_SOUND_LOWEST;
+    } else soundIcon = Icon.CONTROL_SOUND_OFF;
+    this.toggleSoundButton.setGraphic(theme.getIcon(soundIcon, Icon.Size.BIG));
 
     this.playButton.setDisable(disable);
     this.stopButton.setDisable(disable);
