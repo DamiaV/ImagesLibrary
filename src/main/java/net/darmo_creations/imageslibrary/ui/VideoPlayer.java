@@ -12,7 +12,7 @@ import net.darmo_creations.imageslibrary.themes.*;
 import java.util.*;
 
 // TODO remember volume and loop settings when media is changed
-public class VideoPlayer extends StackPane {
+public class VideoPlayer extends VBox {
   private final Config config;
 
   private final MediaView mediaView = new MediaView();
@@ -23,6 +23,7 @@ public class VideoPlayer extends StackPane {
   private final Label progressLabel = new Label();
   private final Button toggleSoundButton = new Button();
   private final Slider soundSlider = new Slider();
+  private final HBox controlsBox;
 
   private boolean isPausedWhileAdjusting;
   private boolean isManuallyAdjustingTime;
@@ -33,33 +34,39 @@ public class VideoPlayer extends StackPane {
   public VideoPlayer(final Config config) {
     this.config = config;
 
-    this.setStyle("-fx-background-color: red;"); // DEBUG
     this.setAlignment(Pos.CENTER);
+    this.getStyleClass().add("video-player");
 
     this.mediaView.setPreserveRatio(true);
     this.mediaView.setOnMouseClicked(event -> this.togglePlay());
 
     this.playButton.setOnAction(event -> this.togglePlay());
+    this.playButton.setPadding(Insets.EMPTY);
 
     this.stopButton.setTooltip(new Tooltip(this.config.language().translate("video_player.controls.stop")));
     this.stopButton.setGraphic(this.config.theme().getIcon(Icon.CONTROL_STOP, Icon.Size.SMALL));
     this.stopButton.setOnAction(event -> this.stop());
+    this.stopButton.setPadding(Insets.EMPTY);
 
     this.progressSlider.setMin(0);
     this.progressSlider.setOnMouseClicked(event -> this.onProgressBarClicked());
     this.progressSlider.setOnMousePressed(event -> this.onProgressBarPressed());
     this.progressSlider.setOnMouseReleased(event -> this.onProgressBarReleased());
+    HBox.setHgrow(this.progressSlider, Priority.ALWAYS);
 
     this.loopButton.setOnAction(event -> this.toggleRepeat());
+    this.loopButton.setPadding(Insets.EMPTY);
 
     this.toggleSoundButton.setOnAction(event -> this.toggleSound());
+    this.toggleSoundButton.setPadding(Insets.EMPTY);
 
+    this.soundSlider.setPrefWidth(30);
     this.soundSlider.setMin(0);
     this.soundSlider.setMax(1);
     this.soundSlider.valueProperty()
         .addListener((observable, oldValue, newValue) -> this.updateControls());
 
-    final HBox controlsBox = new HBox(
+    this.controlsBox = new HBox(
         5,
         this.playButton,
         this.stopButton,
@@ -69,19 +76,11 @@ public class VideoPlayer extends StackPane {
         this.toggleSoundButton,
         this.soundSlider
     );
-    HBox.setHgrow(this.progressSlider, Priority.ALWAYS);
-    controlsBox.setPadding(new Insets(5));
-    controlsBox.setAlignment(Pos.CENTER);
-    controlsBox.setStyle("-fx-background-color: blue;");
+    this.controlsBox.getStyleClass().add("video-player-controls");
+    this.controlsBox.setPadding(new Insets(3));
+    this.controlsBox.setAlignment(Pos.CENTER);
 
-    final VerticalSpacer spacer = new VerticalSpacer();
-    spacer.setMouseTransparent(true);
-    final VBox vbox = new VBox(
-        spacer,
-        controlsBox
-    );
-
-    this.getChildren().addAll(this.mediaView, vbox);
+    this.getChildren().addAll(this.mediaView, this.controlsBox);
 
     this.updateControls();
   }
@@ -196,6 +195,7 @@ public class VideoPlayer extends StackPane {
       });
     } else {
       this.hasSound = false;
+      this.progressSlider.setValue(0);
       this.progressLabel.setText("--:-- / --:--");
     }
     this.updateControls();
@@ -263,6 +263,6 @@ public class VideoPlayer extends StackPane {
   }
 
   public void setFitHeight(double height) {
-    this.mediaView.setFitHeight(height);
+    this.mediaView.setFitHeight(height - this.controlsBox.getHeight());
   }
 }

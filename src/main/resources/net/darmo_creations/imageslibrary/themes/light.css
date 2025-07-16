@@ -69,3 +69,7 @@ Text.hyperlink {
 .text-field.invalid {
   -fx-background-color: #ff8989;
 }
+
+.video-player-controls {
+  -fx-background-color: -fx-control-inner-background-alt;
+}

@@ -131,3 +131,7 @@ Text.hyperlink {
 .text-field.invalid {
   -fx-background-color: #ae0000;
 }
+
+.video-player-controls {
+  -fx-background-color: -fx-control-inner-background-alt;
+}

@@ -67,3 +67,17 @@
 .section-title {
   -fx-font-size: 1.3em;
 }
+
+.video-player-controls Button {
+  -fx-background-color: transparent;
+}
+
+.video-player-controls Button:focused {
+  -fx-background-color: -fx-accent;
+}
+
+.video-player MediaView,
+.video-player-controls Button,
+.video-player-controls Slider {
+  -fx-cursor: hand;
+}
