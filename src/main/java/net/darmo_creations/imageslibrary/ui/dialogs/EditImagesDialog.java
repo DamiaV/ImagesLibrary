@@ -22,6 +22,7 @@ import org.controlsfx.control.*;
 import org.fxmisc.richtext.*;
 import org.jetbrains.annotations.*;
 
+import java.net.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;
@@ -62,6 +63,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   private final Set<Tag> currentPictureTags = new HashSet<>();
   private Path targetPath;
   private Picture currentPicture;
+  private MediaPlayer mediaPlayer; // Keep a reference to avoid garbage collection.
   private boolean insert;
   private boolean anyUpdate;
   private boolean preventClosing;
@@ -120,6 +122,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         // Hide the similar images dialog when this one closes
         this.similarImagesDialog.hide();
         this.videoPlayer.setMediaPlayer(null, true);
+        if (this.mediaPlayer != null && this.mediaPlayer.getStatus() != MediaPlayer.Status.DISPOSED)
+          this.mediaPlayer.dispose();
       }
     });
   }
@@ -314,6 +318,9 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         Alerts.error(this.config, "dialog.edit_images.tags_querying_error.header", null, null);
       }
     this.imageView.setImage(null);
+    this.videoPlayer.setMediaPlayer(null, true);
+    if (this.mediaPlayer != null && this.mediaPlayer.getStatus() != MediaPlayer.Status.DISPOSED)
+      this.mediaPlayer.dispose();
     final Path path = this.currentPicture.path();
     final String fileName = path.getFileName().toString();
     this.fileNameField.setText(fileName);
@@ -332,24 +339,26 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
     } else {
       this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
-      if (this.currentPicture.isVideo() && FileUtils.isSupportedVideoFile(this.currentPicture.path()))
-        FileUtils.loadVideo(
-            path,
-            mediaPlayer -> {
-              this.videoPlayer.setMediaPlayer(mediaPlayer, true);
-              final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, this.config);
-              this.updateImageViewBoxContent(this.videoPlayer, metadata);
-            },
-            this::onFileLoadingError
-        );
-      else
+      if (this.currentPicture.isVideo() && FileUtils.isSupportedVideoFile(this.currentPicture.path())) {
+        try {
+          this.mediaPlayer = FileUtils.loadVideo(
+              path,
+              mediaPlayer -> {
+                this.videoPlayer.setMediaPlayer(mediaPlayer, true);
+                final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, this.config);
+                this.updateImageViewBoxContent(this.videoPlayer, metadata);
+              }
+          );
+        } catch (final MalformedURLException e) {
+          this.onFileLoadingError(e);
+        }
+      } else
         FileUtils.loadImage(
             path,
             image -> {
               this.imageView.setImage(image);
               final String metadata = FileUtils.formatImageMetadata(path, image, this.config);
               this.updateImageViewBoxContent(this.imageView, metadata);
-              this.videoPlayer.setMediaPlayer(null, true); // Dispose of any remaining video
             },
             this::onFileLoadingError
         );

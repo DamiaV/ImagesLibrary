@@ -180,7 +180,7 @@ public class FileUtils {
    * @param errorCallback   Callback called when an I/O error occurs.
    *                        It takes the {@link Exception} object as its argument.
    * @throws IllegalArgumentException If the file’s extension in not in {@link App#VALID_IMAGE_EXTENSIONS}.
-   * @see #loadVideo(Path, Consumer, Consumer)
+   * @see #loadVideo(Path, Consumer)
    */
   public static void loadImage(
       @NotNull Path path,
@@ -248,17 +248,17 @@ public class FileUtils {
    * @param path            The path to the video file.
    * @param successCallback Callback called when the video is done loading.
    *                        It takes the resulting {@link MediaPlayer} as its argument.
-   * @param errorCallback   Callback called when an I/O error occurs.
-   *                        It takes the {@link Exception} object as its argument.
+   * @return The loaded {@link MediaPlayer} instance.
    * @throws IllegalArgumentException If the video format is not supported,
    *                                  i.e. when {@link #isSupportedVideoFile(Path)} returns false for the same path.
+   * @throws MalformedURLException    If the path is invalid.
    * @see #loadImage(Path, Consumer, Consumer)
    */
-  public static void loadVideo(
+  @Contract("_, _ -> new")
+  public static MediaPlayer loadVideo(
       @NotNull Path path,
-      @NotNull Consumer<MediaPlayer> successCallback,
-      @NotNull Consumer<Exception> errorCallback
-  ) {
+      @NotNull Consumer<MediaPlayer> successCallback
+  ) throws MalformedURLException {
     final String ext = getExtension(path).toLowerCase();
 
     if (ext.isEmpty())
@@ -266,23 +266,17 @@ public class FileUtils {
     if (!isSupportedVideoFile(path))
       throw new IllegalArgumentException("Unsupported file format: " + ext);
 
-    new Thread(() -> {
-      final MediaPlayer mediaPlayer;
-      try {
-        mediaPlayer = new MediaPlayer(new Media(path.toUri().toURL().toString()));
-      } catch (final RuntimeException | MalformedURLException e) {
-        Platform.runLater(() -> errorCallback.accept(e));
-        return;
-      }
-      mediaPlayer.setOnReady(() -> Platform.runLater(() -> successCallback.accept(mediaPlayer)));
-    }).start();
+    final MediaPlayer mediaPlayer = new MediaPlayer(new Media(path.toUri().toURL().toString()));
+    mediaPlayer.setOnReady(() -> successCallback.accept(mediaPlayer));
+
+    return mediaPlayer;
   }
 
   /**
-   * Indicate whether the given file is supported by the {@link #loadVideo(Path, Consumer, Consumer)} method.
+   * Indicate whether the given file is supported by the {@link #loadVideo(Path, Consumer)} method.
    *
    * @param path The file path.
-   * @return True if the file can be loaded by {@link #loadVideo(Path, Consumer, Consumer)}, false otherwise.
+   * @return True if the file can be loaded by {@link #loadVideo(Path, Consumer)}, false otherwise.
    */
   public static boolean isSupportedVideoFile(@NotNull Path path) {
     return JAVAFX_VIDEO_FILE_EXTENSIONS.contains(getExtension(path).toLowerCase());

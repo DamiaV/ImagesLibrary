@@ -12,6 +12,7 @@ import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
 
+import java.net.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;
@@ -34,6 +35,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   private final Config config;
   @Nullable
   private Picture picture;
+  private MediaPlayer mediaPlayer; // Keep a reference to avoid garbage collection
 
   public ImagePreviewPane(final @NotNull Config config) {
     this.config = config;
@@ -138,6 +140,8 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
 
     this.imageView.setImage(null);
     this.videoPlayer.setMediaPlayer(null, true);
+    if (this.mediaPlayer != null && this.mediaPlayer.getStatus() != MediaPlayer.Status.DISPOSED)
+      this.mediaPlayer.dispose();
     this.fileNameLabel.setText(null);
     this.fileNameLabel.setTooltip(null);
     this.fileNameLabel.setGraphic(null);
@@ -164,17 +168,20 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
         this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
       } else {
         this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
-        if (picture.isVideo() && FileUtils.isSupportedVideoFile(path))
-          FileUtils.loadVideo(
-              path,
-              mediaPlayer -> {
-                this.videoPlayer.setMediaPlayer(mediaPlayer, true);
-                final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, this.config);
-                this.updateImageViewBoxContent(this.videoPlayer, metadata);
-              },
-              this::onFileLoadingError
-          );
-        else
+        if (picture.isVideo() && FileUtils.isSupportedVideoFile(path)) {
+          try {
+            this.mediaPlayer = FileUtils.loadVideo(
+                path,
+                mediaPlayer -> {
+                  this.videoPlayer.setMediaPlayer(mediaPlayer, true);
+                  final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, this.config);
+                  this.updateImageViewBoxContent(this.videoPlayer, metadata);
+                }
+            );
+          } catch (final MalformedURLException e) {
+            this.onFileLoadingError(e);
+          }
+        } else
           FileUtils.loadImage(
               path,
               image -> {

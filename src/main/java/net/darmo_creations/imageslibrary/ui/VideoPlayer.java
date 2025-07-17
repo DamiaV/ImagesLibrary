@@ -165,6 +165,7 @@ public class VideoPlayer extends VBox {
       mediaPlayer.setOnStopped(() -> {
         mediaPlayer.pause(); // Exit from STOPPED status as it causes issues with controls
         mediaPlayer.seek(Duration.ZERO);
+        // Small hack to circumvent currentTimeProperty() not being updtated at this stage
         this.progressSlider.setValue(0);
         this.updateControls();
       });
