@@ -5,14 +5,16 @@ This is a full re-implementation of my [Python-based application](https://github
 
 Main features:
 
-- Image and video file tagging
+- Image and video file tagging:
+    - Supported image formats: BMP, GIF, JPEG, PNG, WEBP
+    - Supported video formats: AVI, MOV, MP4, OGV, WEBM
 - Tagged files searching with a simple querying language
 - Replace/move files while keeping all associated tags
 - Manage tags (create, remove, organize with types)
 - Tag completion in queries and tags editor
 - Apply pattern-based transformations to file paths and tags
 - List similar images (hash-based); not available for video files
-- Custom-built video player for video files
+- Custom-built video player for video files (only supports MP4 for now, other formats only show the first frame)
 - Fully translated interface, available in English, French, and Esperanto
 
 # Installation
