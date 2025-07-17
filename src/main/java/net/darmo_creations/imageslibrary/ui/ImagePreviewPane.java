@@ -126,6 +126,13 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   }
 
   /**
+   * Return the currently loaded {@link Picture}.
+   */
+  public Optional<Picture> getImage() {
+    return Optional.ofNullable(this.picture);
+  }
+
+  /**
    * Set the image to show.
    *
    * @param picture          The image to show.

@@ -480,7 +480,9 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     if (selection.size() == 1) {
       final PictureEntry entry = selectedItems.get(0);
       final Picture picture = entry.picture();
-      this.imagePreviewPane.setImage(picture, entry.tags(), this.hasSimilarImages(picture));
+      final var image = this.imagePreviewPane.getImage();
+      if (image.isEmpty() || image.get() != picture)
+        this.imagePreviewPane.setImage(picture, entry.tags(), this.hasSimilarImages(picture));
     }
     this.imageSelectionListeners.forEach(listener -> listener.onSelectionChange(selection));
   }
