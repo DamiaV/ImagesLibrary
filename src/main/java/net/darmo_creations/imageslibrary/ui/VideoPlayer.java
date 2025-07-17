@@ -1,5 +1,6 @@
 package net.darmo_creations.imageslibrary.ui;
 
+import javafx.beans.property.*;
 import javafx.beans.value.*;
 import javafx.geometry.*;
 import javafx.scene.control.*;
@@ -11,7 +12,6 @@ import net.darmo_creations.imageslibrary.themes.*;
 
 import java.util.*;
 
-// TODO remember volume and loop settings when media is changed
 public class VideoPlayer extends VBox {
   private final Config config;
 
@@ -29,9 +29,11 @@ public class VideoPlayer extends VBox {
   private boolean isManuallyAdjustingTime;
   private boolean hasSound;
   private double volumeBeforeMute;
+  private final DoubleProperty volume = new SimpleDoubleProperty(this, "volume", -1);
+  private boolean loop;
   private ChangeListener<Number> progressListener;
 
-  public VideoPlayer(final Config config) {
+  public VideoPlayer(Config config) {
     this.config = config;
 
     this.setAlignment(Pos.CENTER);
@@ -54,7 +56,7 @@ public class VideoPlayer extends VBox {
     this.progressSlider.setOnMouseReleased(event -> this.onProgressBarReleased());
     HBox.setHgrow(this.progressSlider, Priority.ALWAYS);
 
-    this.loopButton.setOnAction(event -> this.toggleRepeat());
+    this.loopButton.setOnAction(event -> this.toggleRepeat(null));
     this.loopButton.setPadding(Insets.EMPTY);
 
     this.toggleSoundButton.setOnAction(event -> this.toggleSound());
@@ -100,11 +102,17 @@ public class VideoPlayer extends VBox {
     mediaPlayer.stop();
   }
 
-  private void toggleRepeat() {
+  private void toggleRepeat(Boolean repeat) {
     final MediaPlayer mediaPlayer = this.mediaView.getMediaPlayer();
     if (mediaPlayer == null) return;
 
-    mediaPlayer.setCycleCount(mediaPlayer.getCycleCount() == MediaPlayer.INDEFINITE ? 1 : MediaPlayer.INDEFINITE);
+    final int inf = MediaPlayer.INDEFINITE;
+    final int cycleCount;
+    if (repeat != null) cycleCount = repeat ? inf : 1;
+    else cycleCount = mediaPlayer.getCycleCount() == inf ? 1 : inf;
+    mediaPlayer.setCycleCount(cycleCount);
+
+    this.loop = cycleCount == inf;
     this.updateControls();
   }
 
@@ -130,10 +138,11 @@ public class VideoPlayer extends VBox {
    * @param disposePrevious If true, any {@link MediaPlayer} that was previously passed will be disposed of.
    */
   public void setMediaPlayer(MediaPlayer mediaPlayer, boolean disposePrevious) {
-    if (disposePrevious && this.mediaView.getMediaPlayer() != null) {
-      this.mediaView.getMediaPlayer().dispose();
+    this.volume.unbind();
+    if (this.progressListener != null)
       this.progressSlider.valueProperty().removeListener(this.progressListener);
-    }
+    if (disposePrevious && this.mediaView.getMediaPlayer() != null)
+      this.mediaView.getMediaPlayer().dispose();
 
     this.mediaView.setMediaPlayer(mediaPlayer);
 
@@ -143,6 +152,8 @@ public class VideoPlayer extends VBox {
           .stream()
           .anyMatch(track -> track instanceof AudioTrack);
       this.soundSlider.valueProperty().bindBidirectional(mediaPlayer.volumeProperty());
+      if (this.volume.get() >= 0) mediaPlayer.setVolume(this.volume.getValue());
+      this.volume.bind(mediaPlayer.volumeProperty());
 
       this.progressSlider.setMax(mediaPlayer.getTotalDuration().toMillis());
       this.progressSlider.setValue(0);
@@ -159,6 +170,8 @@ public class VideoPlayer extends VBox {
         if (!this.isManuallyAdjustingTime)
           this.progressSlider.setValue(newValue.toMillis());
       });
+
+      this.toggleRepeat(this.loop);
 
       mediaPlayer.setOnPlaying(this::updateControls);
       mediaPlayer.setOnPaused(this::updateControls);
