@@ -2,11 +2,13 @@ package net.darmo_creations.imageslibrary.ui.dialogs;
 
 import javafx.event.*;
 import javafx.geometry.*;
+import javafx.scene.*;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
+import javafx.scene.media.*;
 import javafx.stage.*;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.*;
@@ -31,6 +33,7 @@ import java.util.stream.*;
 public class EditImagesDialog extends DialogBase<Boolean> {
   private final HBox imageViewBox;
   private final ImageView imageView = new ImageView();
+  private final VideoPlayer videoPlayer;
   private final TextField fileNameField = new TextField();
   private final Label fileMetadataLabel = new Label();
   private final Button viewSimilarImagesButton = new Button();
@@ -81,6 +84,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         config
     );
 
+    this.videoPlayer = new VideoPlayer(config);
+
     this.nextButton = (Button) this.getDialogPane().lookupButton(ButtonTypes.NEXT);
     this.nextButton.addEventFilter(ActionEvent.ACTION, event -> {
       if (this.applyChanges())
@@ -111,8 +116,11 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       if (this.preventClosing) {
         event.consume();
         this.preventClosing = false;
-      } else // Hide the similar images dialog when this one closes
+      } else {
+        // Hide the similar images dialog when this one closes
         this.similarImagesDialog.hide();
+        this.videoPlayer.setMediaPlayer(null, true);
+      }
     });
   }
 
@@ -271,12 +279,23 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   }
 
   private void updateImageViewSize() {
-    final Image image = this.imageView.getImage();
-    if (image != null) {
-      final double width = Math.min(image.getWidth(), this.stage().getWidth() - 20);
-      this.imageView.setFitWidth(width);
-      final double height = Math.min(image.getHeight(), this.imageViewBox.getHeight() - 10);
-      this.imageView.setFitHeight(height);
+    if (this.imageViewBox.getChildren().contains(this.imageView)) {
+      final Image image = this.imageView.getImage();
+      if (image != null) {
+        final double width = Math.min(image.getWidth(), this.stage().getWidth() - 20);
+        this.imageView.setFitWidth(width);
+        final double height = Math.min(image.getHeight(), this.imageViewBox.getHeight() - 10);
+        this.imageView.setFitHeight(height);
+      }
+    } else {
+      final Optional<MediaPlayer> mediaPlayer = this.videoPlayer.getMediaPlayer();
+      if (mediaPlayer.isPresent()) {
+        final Media media = mediaPlayer.get().getMedia();
+        final double width = Math.min(media.getWidth(), this.getWidth() - 10);
+        this.videoPlayer.setFitWidth(width);
+        final double height = Math.min(media.getHeight(), this.imageViewBox.getHeight() - 10);
+        this.videoPlayer.setFitHeight(height);
+      }
     }
   }
 
@@ -313,17 +332,27 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
     } else {
       this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
-      FileUtils.loadImage(
-          path,
-          image -> {
-            this.imageView.setImage(image);
-            final String text = FileUtils.formatImageMetadata(path, image, this.config);
-            this.fileMetadataLabel.setText(text);
-            this.fileMetadataLabel.setTooltip(new Tooltip(text));
-            this.updateImageViewSize();
-          },
-          error -> this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"))
-      );
+      if (this.currentPicture.isVideo() && FileUtils.isSupportedVideoFile(this.currentPicture.path()))
+        FileUtils.loadVideo(
+            path,
+            mediaPlayer -> {
+              this.videoPlayer.setMediaPlayer(mediaPlayer, true);
+              final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, this.config);
+              this.updateImageViewBoxContent(this.videoPlayer, metadata);
+            },
+            this::onFileLoadingError
+        );
+      else
+        FileUtils.loadImage(
+            path,
+            image -> {
+              this.imageView.setImage(image);
+              final String metadata = FileUtils.formatImageMetadata(path, image, this.config);
+              this.updateImageViewBoxContent(this.imageView, metadata);
+              this.videoPlayer.setMediaPlayer(null, true); // Dispose of any remaining video
+            },
+            this::onFileLoadingError
+        );
     }
     final var joiner = new StringJoiner(" ");
     if (!this.insert) {
@@ -352,6 +381,17 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.viewSimilarImagesButton.setDisable(similarPictures.isEmpty());
     this.similarImagesDialog.setPictures(similarPictures);
     this.refreshTitle();
+  }
+
+  private void updateImageViewBoxContent(@NotNull Node content, @NotNull String metadata) {
+    this.fileMetadataLabel.setText(metadata);
+    this.fileMetadataLabel.setTooltip(new Tooltip(metadata));
+    this.imageViewBox.getChildren().set(0, content);
+    this.updateImageViewSize();
+  }
+
+  private void onFileLoadingError(Exception error) {
+    this.fileMetadataLabel.setText(this.config.language().translate("image_preview.missing_file"));
   }
 
   private boolean applyChanges() {
