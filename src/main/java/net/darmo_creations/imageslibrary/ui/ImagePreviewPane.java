@@ -215,6 +215,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.fileMetadataLabel.setText(metadata);
     this.fileMetadataLabel.setTooltip(new Tooltip(metadata));
     this.imageViewBox.getChildren().set(0, content);
+    this.openInExplorerButton.setDisable(false);
     this.updateImageViewSize();
   }
 
