@@ -178,7 +178,7 @@ public class VideoPlayer extends VBox {
       final Duration totalDuration = mediaPlayer.getTotalDuration();
       final int totalHours = (int) totalDuration.toHours();
       final int totalMinutes = (int) (totalDuration.toMinutes() % 60);
-      final int totalSeconds = (int) (totalDuration.toSeconds() % 3600);
+      final int totalSeconds = (int) (totalDuration.toSeconds() % 60);
       final String totalTime = totalHours != 0
           ? "%02d:%02d:%02d".formatted(totalHours, totalMinutes, totalSeconds)
           : "%02d:%02d".formatted(totalMinutes, totalSeconds);
@@ -187,7 +187,7 @@ public class VideoPlayer extends VBox {
         System.out.println("update currentTimeProperty: " + newValue); // DEBUG
         final int hours = (int) newValue.toHours();
         final int minutes = (int) (newValue.toMinutes() % 60);
-        final int seconds = (int) (newValue.toSeconds() % 3600);
+        final int seconds = (int) (newValue.toSeconds() % 60);
         final String time = totalHours != 0
             ? "%02d:%02d:%02d".formatted(hours, minutes, seconds)
             : "%02d:%02d".formatted(minutes, seconds);

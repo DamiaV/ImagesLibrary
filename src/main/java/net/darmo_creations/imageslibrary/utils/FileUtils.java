@@ -151,8 +151,8 @@ public class FileUtils {
     final Media media = mediaPlayer.getMedia();
     final var formattedSize = size >= 0 ? formatBytesSize(size, language) : new Pair<>("?", "");
     final Duration duration = mediaPlayer.getCycleDuration();
-    final int seconds = (int) Math.round(duration.toSeconds());
-    final int minutes = (int) duration.toMinutes();
+    final int seconds = (int) Math.round(duration.toSeconds()) % 60;
+    final int minutes = (int) duration.toMinutes() % 60;
     final int hours = (int) duration.toHours();
     final String formattedDuration;
     if (hours > 0) formattedDuration = "%d:%02d:%02d".formatted(hours, minutes, seconds);
