@@ -79,7 +79,7 @@ public class AboutDialog extends DialogBase<Void> {
         version,
         new Text("\n\nDevelopped by Damia Vergnet ("),
         createLink("@DamiaV", "https://github.com/DamiaV"),
-        new Text(") on GitHub).\nThis application is available under "),
+        new Text(" on GitHub).\nThis application is available under "),
         createLink("GPL-3.0 license", "https://github.com/DamiaV/ImagesLibrary/blob/master/LICENSE"),
         new Text(".\nCheck for updates at "),
         createLink("https://github.com/DamiaV/ImagesLibrary", "https://github.com/DamiaV/ImagesLibrary"),
