@@ -295,7 +295,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
       final Optional<MediaPlayer> mediaPlayer = this.videoPlayer.getMediaPlayer();
       if (mediaPlayer.isPresent()) {
         final Media media = mediaPlayer.get().getMedia();
-        final double width = Math.min(media.getWidth(), this.getWidth() - 10);
+        final double width = Math.min(media.getWidth(), this.stage().getWidth() - 20);
         this.videoPlayer.setFitWidth(width);
         final double height = Math.min(media.getHeight(), this.imageViewBox.getHeight() - 10);
         this.videoPlayer.setFitHeight(height);
@@ -400,6 +400,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   }
 
   private void onFileLoadingError(Exception error) {
+    App.logger().error("Error while loading a file", error);
     this.fileMetadataLabel.setText(this.config.language().translate("image_preview.missing_file"));
   }
 
