@@ -71,6 +71,9 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
       if (this.preventClosing) {
         event.consume();
         this.preventClosing = false;
+      } else {
+        this.videoPlayer1.setMediaPlayer(null, true);
+        this.videoPlayer2.setMediaPlayer(null, true);
       }
     });
 
