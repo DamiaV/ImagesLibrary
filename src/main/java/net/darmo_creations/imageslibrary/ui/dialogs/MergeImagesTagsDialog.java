@@ -6,7 +6,9 @@ import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
 import javafx.scene.layout.*;
+import javafx.scene.media.*;
 import javafx.stage.*;
+import net.darmo_creations.imageslibrary.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.themes.*;
@@ -14,6 +16,7 @@ import net.darmo_creations.imageslibrary.ui.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
 
+import java.net.*;
 import java.nio.file.*;
 import java.util.*;
 
@@ -25,8 +28,10 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
   private final HBox imageViewBox2;
   private final ImageView imageView1 = new ImageView();
   private final ImageView imageView2 = new ImageView();
-  private final PictureMetadataView pictureMetadataView1 = new PictureMetadataView(this.imageView1);
-  private final PictureMetadataView pictureMetadataView2 = new PictureMetadataView(this.imageView2);
+  private final VideoPlayer videoPlayer1;
+  private final VideoPlayer videoPlayer2;
+  private final PictureMetadataView pictureMetadataView1;
+  private final PictureMetadataView pictureMetadataView2;
   private final Button swapButton = new Button();
   private final CheckBox deleteFromDiskCheckBox = new CheckBox();
 
@@ -39,8 +44,14 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
     super(config, "merge_images_tags", true, ButtonTypes.CANCEL, ButtonTypes.OK);
     this.db = Objects.requireNonNull(db);
 
+    this.videoPlayer1 = new VideoPlayer(config);
+    this.videoPlayer2 = new VideoPlayer(config);
+
     this.imageViewBox1 = new HBox(this.imageView1);
     this.imageViewBox2 = new HBox(this.imageView2);
+
+    this.pictureMetadataView1 = new PictureMetadataView(this.imageView1, this.videoPlayer1);
+    this.pictureMetadataView2 = new PictureMetadataView(this.imageView2, this.videoPlayer2);
 
     this.getDialogPane().setContent(this.createContent());
 
@@ -124,19 +135,36 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
   }
 
   private void updateImageViewsSizes() {
-    this.resizeImageView(this.imageView1, this.imageViewBox1);
-    this.resizeImageView(this.imageView2, this.imageViewBox2);
+    this.resizeImageView(this.imageViewBox1);
+    this.resizeImageView(this.imageViewBox2);
   }
 
-  private void resizeImageView(@NotNull ImageView imageView, @NotNull HBox imageViewBox) {
+  private void resizeImageView(@NotNull HBox imageViewBox) {
     if (this.getDialogPane().getScene() == null)
       return;
+
     final double halfStageW = this.stage().getWidth() / 2;
-    final Image image = imageView.getImage();
-    if (image != null) {
-      imageViewBox.setPrefWidth(halfStageW - 10);
-      imageView.setFitWidth(Math.min(image.getWidth(), halfStageW - 20));
-      imageView.setFitHeight(Math.min(image.getHeight(), imageViewBox.getHeight() - 10));
+
+    final Node node = imageViewBox.getChildren().get(0);
+    if (node instanceof ImageView imageView) {
+      final Image image = imageView.getImage();
+      if (image != null) {
+        imageViewBox.setPrefWidth(halfStageW - 10);
+        final double width = Math.min(image.getWidth(), halfStageW - 20);
+        imageView.setFitWidth(width);
+        final double height = Math.min(image.getHeight(), imageViewBox.getHeight() - 10);
+        imageView.setFitHeight(height);
+      }
+    } else if (node instanceof VideoPlayer videoPlayer) {
+      final Optional<MediaPlayer> mediaPlayer = videoPlayer.getMediaPlayer();
+      if (mediaPlayer.isPresent()) {
+        imageViewBox.setPrefWidth(halfStageW - 10);
+        final Media media = mediaPlayer.get().getMedia();
+        final double width = Math.min(media.getWidth(), halfStageW - 20);
+        videoPlayer.setFitWidth(width);
+        final double height = Math.min(media.getHeight(), imageViewBox.getHeight() - 10);
+        videoPlayer.setFitHeight(height);
+      }
     }
   }
 
@@ -157,7 +185,22 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
     this.picture2 = Objects.requireNonNull(picture2);
     this.pictureMetadataView1.setPicture(picture1, tags1);
     this.pictureMetadataView2.setPicture(picture2, tags2);
+
+    this.updatePictureViewContent(picture1, this.imageView1, this.videoPlayer1, this.imageViewBox1);
+    this.updatePictureViewContent(picture2, this.imageView2, this.videoPlayer2, this.imageViewBox2);
+
     this.updateImageViewsSizes();
+  }
+
+  private void updatePictureViewContent(
+      @NotNull Picture picture,
+      @NotNull ImageView imageView,
+      @NotNull VideoPlayer videoPlayer,
+      @NotNull HBox imageViewBox
+  ) {
+    if (picture.isVideo() && FileUtils.isSupportedVideoFile(picture.path()))
+      imageViewBox.getChildren().set(0, videoPlayer);
+    else imageViewBox.getChildren().set(0, imageView);
   }
 
   private void updateSwapButton() {
@@ -190,12 +233,15 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
     private final Button openInExplorerButton = new Button();
     private final ListView<TagView> tagsList = new ListView<>();
     private final ImageView imageView;
+    private final VideoPlayer videoPlayer;
 
     private Picture picture;
+    private MediaPlayer mediaPlayer;
 
-    public PictureMetadataView(@NotNull ImageView imageView) {
+    public PictureMetadataView(@NotNull ImageView imageView, @NotNull VideoPlayer videoPlayer) {
       super(5);
       this.imageView = Objects.requireNonNull(imageView);
+      this.videoPlayer = Objects.requireNonNull(videoPlayer);
 
       final Config config = MergeImagesTagsDialog.this.config;
       final Language language = config.language();
@@ -230,6 +276,8 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
 
     public void setPicture(@NotNull Picture picture, @NotNull Set<Tag> tags) {
       this.picture = Objects.requireNonNull(picture);
+      if (this.mediaPlayer != null) this.mediaPlayer.dispose();
+      this.videoPlayer.setMediaPlayer(null, true);
 
       this.fileNameLabel.setText(null);
       this.fileNameLabel.setTooltip(null);
@@ -255,27 +303,49 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
         this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
       } else {
         this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
-        FileUtils.loadImage(
-            path,
-            image -> {
-              this.imageView.setImage(image);
-              final String text = FileUtils.formatImageMetadata(path, image, config);
-              this.fileMetadataLabel.setText(text);
-              this.fileMetadataLabel.setTooltip(new Tooltip(text));
-              this.openInExplorerButton.setDisable(false);
-              MergeImagesTagsDialog.this.updateImageViewsSizes();
-            },
-            error -> {
-              this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
-              this.openInExplorerButton.setDisable(true);
-            }
-        );
+        if (picture.isVideo() && FileUtils.isSupportedVideoFile(picture.path())) {
+          try {
+            this.mediaPlayer = FileUtils.loadVideo(
+                path,
+                mediaPlayer -> {
+                  this.videoPlayer.setMediaPlayer(mediaPlayer, true);
+                  final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, config);
+                  this.updateImageViewBoxContent(metadata);
+                }
+            );
+          } catch (final MalformedURLException e) {
+            this.onFileLoadingError(e);
+          }
+        } else {
+          FileUtils.loadImage(
+              path,
+              image -> {
+                this.imageView.setImage(image);
+                final String metadata = FileUtils.formatImageMetadata(path, image, config);
+                this.updateImageViewBoxContent(metadata);
+              },
+              this::onFileLoadingError
+          );
+        }
       }
       final var tagsEntries = tags.stream()
           .sorted()
           .map(TagView::new)
           .toList();
       this.tagsList.getItems().addAll(tagsEntries);
+    }
+
+    private void updateImageViewBoxContent(@NotNull String metadata) {
+      this.fileMetadataLabel.setText(metadata);
+      this.fileMetadataLabel.setTooltip(new Tooltip(metadata));
+      this.openInExplorerButton.setDisable(false);
+      MergeImagesTagsDialog.this.updateImageViewsSizes();
+    }
+
+    private void onFileLoadingError(Exception error) {
+      App.logger().error("Error while loading a file", error);
+      this.fileMetadataLabel.setText(MergeImagesTagsDialog.this.config.language().translate("image_preview.missing_file"));
+      this.openInExplorerButton.setDisable(true);
     }
 
     private void onOpenFile() {
