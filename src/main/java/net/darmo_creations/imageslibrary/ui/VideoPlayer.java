@@ -159,9 +159,6 @@ public class VideoPlayer extends VBox {
       this.progressSlider.setValue(0);
       // Need to keep track of this as it references a MediaPlayer object that may be disposed of
       this.progressListener = (observable, oldValue, newValue) -> {
-        System.out.println(mediaPlayer.getStatus()); // DEBUG
-        System.out.println("progressSlider: " + newValue);
-        System.out.println("isManuallyAdjustingTime: " + this.isManuallyAdjustingTime);
         if (this.isManuallyAdjustingTime)
           mediaPlayer.seek(Duration.millis(newValue.longValue()));
       };
@@ -198,7 +195,6 @@ public class VideoPlayer extends VBox {
           : "%02d:%02d".formatted(totalMinutes, totalSeconds);
       // FIXME not triggered when the progress bar is clicked or dragged after the media was stopped
       mediaPlayer.currentTimeProperty().addListener((observable, oldValue, newValue) -> {
-        System.out.println("update currentTimeProperty: " + newValue); // DEBUG
         final int hours = (int) newValue.toHours();
         final int minutes = (int) (newValue.toMinutes() % 60);
         final int seconds = (int) (newValue.toSeconds() % 60);
