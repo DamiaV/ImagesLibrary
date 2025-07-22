@@ -155,7 +155,7 @@ public final class FileChoosers {
       final @NotNull List<String> extensions
   ) {
     final var fileChooser = new FileChooser();
-    fileChooser.setTitle(config.language().translate("dialog.%s.title".formatted(dialogName)));
+    fileChooser.setTitle(config.language().translate("dialog.%s.title".formatted(dialogName)) + " – " + App.NAME);
     final List<String> exts = extensions.stream().map(e -> "*." + e).toList();
     final String desc = config.language().translate(
         "dialog.%s.filter_description".formatted(dialogName),

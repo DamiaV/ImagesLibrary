@@ -5,6 +5,7 @@ import javafx.geometry.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
+import net.darmo_creations.bildumilo.*;
 import net.darmo_creations.bildumilo.config.*;
 import net.darmo_creations.bildumilo.data.*;
 import net.darmo_creations.bildumilo.utils.*;
@@ -291,7 +292,7 @@ public final class Alerts {
     if (titleKey == null)
       titleKey = "alert.%s.title".formatted(type.key());
     final Language language = config.language();
-    alert.setTitle(language.translate(titleKey, contentArgs));
+    alert.setTitle(language.translate(titleKey, contentArgs) + " – " + App.NAME);
     alert.setHeaderText(language.translate(headerKey, contentArgs));
     config.theme().getAppIcon().ifPresent(
         icon -> ((Stage) dialogPane.getScene().getWindow()).getIcons().add(icon));

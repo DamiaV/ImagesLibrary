@@ -4,6 +4,7 @@ import javafx.event.*;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
 import javafx.stage.*;
+import net.darmo_creations.bildumilo.*;
 import net.darmo_creations.bildumilo.config.*;
 import net.darmo_creations.bildumilo.utils.*;
 import org.jetbrains.annotations.*;
@@ -18,6 +19,7 @@ import java.util.*;
 public abstract class DialogBase<T> extends Dialog<T> {
   protected String name;
   protected final Config config;
+  private boolean internalTitleUpdate;
   private final EventHandler<KeyEvent> keyEventEventHandler;
 
   /**
@@ -58,6 +60,12 @@ public abstract class DialogBase<T> extends Dialog<T> {
     config.theme().applyTo(this.stage().getScene());
     this.initModality(modal ? Modality.APPLICATION_MODAL : Modality.NONE);
     this.setResizable(resizable);
+    this.titleProperty().addListener((observable, oldValue, newValue) -> {
+      if (this.internalTitleUpdate) return;
+      this.internalTitleUpdate = true;
+      this.titleProperty().setValue(newValue + " – " + App.NAME);
+      this.internalTitleUpdate = false;
+    });
     this.refreshTitle();
     this.getDialogPane().getButtonTypes().addAll(buttonTypes);
     config.theme().getAppIcon().ifPresent(this.stage().getIcons()::add);
