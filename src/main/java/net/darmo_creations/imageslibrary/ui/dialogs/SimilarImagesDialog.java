@@ -119,7 +119,7 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
   }
 
   private void updateMediaViewerSize() {
-    this.mediaViewer.updateImageViewSize(
+    this.mediaViewer.updateSize(
         this.stage().getWidth() - 20,
         this.mediaViewerBox.getHeight() - 10
     );

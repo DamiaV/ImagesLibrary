@@ -87,7 +87,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   }
 
   private void updateImageViewSize() {
-    this.mediaViewer.updateImageViewSize(
+    this.mediaViewer.updateSize(
         this.getWidth() - 10,
         this.mediaViewerBox.getHeight() - 10
     );

@@ -13,6 +13,9 @@ import org.jetbrains.annotations.*;
 
 import java.util.*;
 
+/**
+ * A simple video player with basic controls: play/pause, stop, loop, mute/unmute, volume slider, and progress bar.
+ */
 public class VideoPlayer extends VBox {
   private final Config config;
 
@@ -34,6 +37,11 @@ public class VideoPlayer extends VBox {
   private boolean loop;
   private ChangeListener<Number> progressListener;
 
+  /**
+   * Create a new video player for the current app config.
+   *
+   * @param config The config to use.
+   */
   public VideoPlayer(@NotNull Config config) {
     this.config = Objects.requireNonNull(config);
 
@@ -128,12 +136,18 @@ public class VideoPlayer extends VBox {
     this.updateControls();
   }
 
+  /**
+   * Get the currently loaded {@link MediaPlayer}.
+   *
+   * @return An {@link Optional} containing the currently loaded {@link MediaPlayer},
+   * an empty {@link Optional} if none is loaded.
+   */
   public Optional<MediaPlayer> getMediaPlayer() {
     return Optional.ofNullable(this.mediaView.getMediaPlayer());
   }
 
   /**
-   * Set the {@link MediaPlayer} that should be played.
+   * Set the {@link MediaPlayer} that should be loaded into this video player.
    *
    * @param mediaPlayer     The {@link MediaPlayer} to play.
    * @param disposePrevious If true, any {@link MediaPlayer} that was previously passed will be disposed of.
@@ -275,10 +289,20 @@ public class VideoPlayer extends VBox {
     this.soundSlider.setDisable(disable || !this.hasSound);
   }
 
+  /**
+   * Set the fit width of the video player.
+   *
+   * @param width The new fit width.
+   */
   public void setFitWidth(double width) {
     this.mediaView.setFitWidth(width);
   }
 
+  /**
+   * Set the fit height of the video player.
+   *
+   * @param height The new fit height.
+   */
   public void setFitHeight(double height) {
     this.mediaView.setFitHeight(height - this.controlsBox.getHeight());
   }

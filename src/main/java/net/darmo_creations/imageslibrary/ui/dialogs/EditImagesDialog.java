@@ -269,7 +269,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   }
 
   private void updateImageViewSize() {
-    this.mediaViewer.updateImageViewSize(
+    this.mediaViewer.updateSize(
         this.stage().getWidth() - 20,
         this.mediaViewerBox.getHeight() - 10
     );

@@ -18,18 +18,30 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;
 
+/**
+ * A view that can display videos and images and their metadata.
+ * <p>
+ * If the passed media is a supported video file, a {@link VideoPlayer} will be shown.
+ * Otherwise, only the first frame will be displayed.
+ */
 public class MediaViewer extends VBox {
   private final Config config;
 
   private final ImageView imageView = new ImageView();
   private final VideoPlayer videoPlayer;
-  private MediaPlayer mediaPlayer; // Keep a reference to avoid garbage collection
   private final Label fileNameLabel = new Label();
   private final Label fileMetadataLabel = new Label();
+
+  private MediaPlayer mediaPlayer; // Keep a reference to avoid garbage collection
 
   private Consumer<Either<Image, MediaPlayer>> onLoadedCallback;
   private Consumer<Exception> onLoadErrorCallback;
 
+  /**
+   * Create a new {@link MediaViewer} for the current app config.
+   *
+   * @param config The config to use.
+   */
   public MediaViewer(@NotNull Config config) {
     super(5);
     this.config = Objects.requireNonNull(config);
@@ -41,16 +53,17 @@ public class MediaViewer extends VBox {
     this.getChildren().addAll(this.imageView, this.fileNameLabel, this.fileMetadataLabel);
   }
 
-  public Image getImage() {
-    return this.imageView.getImage();
-  }
-
-  public void setMedia(Picture picture) {
+  /**
+   * Set the media to show in this viewer.
+   *
+   * @param mediaFile The media file to show. Can be null.
+   */
+  public void setMedia(Picture mediaFile) {
     this.imageView.setImage(null);
     this.videoPlayer.setMediaPlayer(null, true);
     this.mediaPlayer = null;
 
-    if (picture == null) {
+    if (mediaFile == null) {
       this.fileNameLabel.setText(null);
       this.fileNameLabel.setTooltip(null);
       this.fileNameLabel.setGraphic(null);
@@ -58,11 +71,11 @@ public class MediaViewer extends VBox {
       this.fileMetadataLabel.setTooltip(null);
     } else {
       final Language language = this.config.language();
-      final Path path = picture.path();
+      final Path path = mediaFile.path();
       final String fileName = path.getFileName().toString();
       this.fileNameLabel.setText(fileName);
       this.fileNameLabel.setTooltip(new Tooltip(fileName));
-      final Icon icon = picture.isVideo() ? Icon.VIDEO : Icon.IMAGE;
+      final Icon icon = mediaFile.isVideo() ? Icon.VIDEO : Icon.IMAGE;
       this.fileNameLabel.setGraphic(this.config.theme().getIcon(icon, Icon.Size.SMALL));
 
       boolean exists;
@@ -78,7 +91,7 @@ public class MediaViewer extends VBox {
       }
 
       this.fileMetadataLabel.setText(language.translate("media_viewer.loading"));
-      if (picture.isVideo() && FileUtils.isSupportedVideoFile(path)) {
+      if (mediaFile.isVideo() && FileUtils.isSupportedVideoFile(path)) {
         try {
           this.mediaPlayer = FileUtils.loadVideo(
               path,
@@ -131,7 +144,13 @@ public class MediaViewer extends VBox {
       this.onLoadedCallback.accept(isVideo ? Either.right(this.mediaPlayer) : Either.left(this.imageView.getImage()));
   }
 
-  public void updateImageViewSize(double containerWidth, double containerHeight) {
+  /**
+   * Update this viewer’s size using the given container width and height.
+   *
+   * @param containerWidth  Width of the container.
+   * @param containerHeight Height of the container.
+   */
+  public void updateSize(double containerWidth, double containerHeight) {
     final double hOffset = this.fileNameLabel.getHeight() + this.fileMetadataLabel.getHeight() + 2 * this.getSpacing();
 
     if (this.getChildren().contains(this.imageView)) {
@@ -154,10 +173,20 @@ public class MediaViewer extends VBox {
     }
   }
 
+  /**
+   * Set the callback to invoke whenever a media file is successfully loaded from disk.
+   *
+   * @param onLoadedCallback A callback that takes in the loaded media: either an {@link Image} or a {@link MediaPlayer}.
+   */
   public void setOnLoadedCallback(Consumer<Either<Image, MediaPlayer>> onLoadedCallback) {
     this.onLoadedCallback = onLoadedCallback;
   }
 
+  /**
+   * Set the callback to invoke whenever a media file could not be loaded.
+   *
+   * @param onLoadErrorCallback A callback that takes in the exception that was thrown.
+   */
   public void setOnLoadErrorCallback(Consumer<Exception> onLoadErrorCallback) {
     this.onLoadErrorCallback = onLoadErrorCallback;
   }

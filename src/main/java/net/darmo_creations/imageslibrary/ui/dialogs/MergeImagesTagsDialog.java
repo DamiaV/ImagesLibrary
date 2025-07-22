@@ -139,7 +139,7 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
     final double halfStageW = this.stage().getWidth() / 2;
     final MediaViewer mediaViewer = (MediaViewer) imageViewBox.getChildren().get(0);
     imageViewBox.setPrefWidth(halfStageW - 10);
-    mediaViewer.updateImageViewSize(halfStageW - 20, imageViewBox.getHeight() - 10);
+    mediaViewer.updateSize(halfStageW - 20, imageViewBox.getHeight() - 10);
   }
 
   /**
