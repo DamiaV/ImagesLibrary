@@ -91,6 +91,8 @@ public enum Icon {
   CONTROL_SOUND_OFF("sound_mute"),
   CONTROL_SOUND_LOWER("sound_low"),
   CONTROL_SOUND_LOWEST("sound_none"),
+
+  TRANS_FLAG("trans_flag"),
   ;
 
   private final String baseName;

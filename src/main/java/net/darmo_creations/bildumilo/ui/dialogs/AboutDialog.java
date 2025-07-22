@@ -51,7 +51,7 @@ public class AboutDialog extends DialogBase<Void> {
     systemPropsTextArea.setEditable(false);
     VBox.setVgrow(systemPropsTextArea, Priority.ALWAYS);
 
-    final VBox vBox = new VBox(5, titleLabel, getTextArea(), buttonBox, systemPropsTextArea);
+    final VBox vBox = new VBox(5, titleLabel, this.getTextArea(), buttonBox, systemPropsTextArea);
     HBox.setHgrow(vBox, Priority.ALWAYS);
 
     final ImageView logo = new ImageView(config.theme().getAppIcon().orElse(null));
@@ -70,7 +70,7 @@ public class AboutDialog extends DialogBase<Void> {
     this.setResultConverter(buttonType -> null);
   }
 
-  private static Node getTextArea() {
+  private Node getTextArea() {
     final TextFlow textFlow = new TextFlow();
     final Text version = new Text(App.VERSION);
     version.setStyle("-fx-font-weight: bold");
@@ -85,7 +85,8 @@ public class AboutDialog extends DialogBase<Void> {
         createLink("https://github.com/DamiaV/ImagesLibrary", "https://github.com/DamiaV/ImagesLibrary"),
         new Text(".\n\nIcons from "),
         createLink("FatCow", "https://github.com/gammasoft/fatcow"),
-        new Text(".")
+        new Text(".\n\n"),
+        new Label("Trans rights are human rights!", this.config.theme().getIcon(Icon.TRANS_FLAG, Icon.Size.SMALL))
     );
     return textFlow;
   }
