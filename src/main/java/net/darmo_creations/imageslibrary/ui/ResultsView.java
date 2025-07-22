@@ -278,9 +278,9 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
             this.imagesList.getSelectionModel().select(entry);
             this.imagesList.requestFocus();
           } else if (this.db.pictureExists(picture.id())) {
-            this.imagePreviewPane.setImage(picture, this.db.getImageTags(picture), this.hasSimilarImages(picture));
+            this.imagePreviewPane.setMedia(picture, this.db.getImageTags(picture), this.hasSimilarImages(picture));
           } else
-            this.imagePreviewPane.setImage(null, null, false);
+            this.imagePreviewPane.setMedia(null, null, false);
         } catch (final DatabaseOperationException e) {
           Alerts.databaseError(this.config, e.errorCode());
         }
@@ -482,7 +482,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       final Picture picture = entry.picture();
       final var image = this.imagePreviewPane.getImage();
       if (image.isEmpty() || image.get() != picture)
-        this.imagePreviewPane.setImage(picture, entry.tags(), this.hasSimilarImages(picture));
+        this.imagePreviewPane.setMedia(picture, entry.tags(), this.hasSimilarImages(picture));
     }
     this.imageSelectionListeners.forEach(listener -> listener.onSelectionChange(selection));
   }

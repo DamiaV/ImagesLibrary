@@ -1,7 +1,6 @@
 package net.darmo_creations.imageslibrary.ui.dialogs;
 
 import javafx.geometry.*;
-import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
 import javafx.scene.layout.*;
@@ -22,10 +21,8 @@ import java.util.stream.*;
  * Dialog that shows images that are similar to a given one.
  */
 public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
-  private final HBox imageViewBox;
-  private final ImageView imageView = new ImageView();
-  private final Label fileNameLabel = new Label();
-  private final Label fileMetadataLabel = new Label();
+  private final HBox mediaViewerBox;
+  private final MediaViewer mediaViewer;
   private final ListView<PictureView> picturesList = new ListView<>();
   private final ListView<TagView> tagsList = new ListView<>();
   private final Button copyTagsButton = new Button();
@@ -36,34 +33,29 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
   public SimilarImagesDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
     super(config, "similar_images", true, false, ButtonTypes.CLOSE);
     this.db = db;
-    this.imageViewBox = new HBox(this.imageView);
+    this.mediaViewer = new MediaViewer(config);
+    this.mediaViewer.setOnLoadedCallback(ignored -> this.updateMediaViewerSize());
+    this.mediaViewerBox = new HBox(this.mediaViewer);
     this.getDialogPane().setContent(this.createContent());
     final Stage stage = this.stage();
     stage.setMinWidth(800);
     stage.setMinHeight(600);
     this.setResultConverter(buttonType -> null);
+    // Dispose of any loaded MediaPlayer
+    this.setOnCloseRequest(event -> this.mediaViewer.setMedia(null));
   }
 
-  private Node createContent() {
+  private SplitPane createContent() {
     final Language language = this.config.language();
 
-    this.imageViewBox.setAlignment(Pos.CENTER);
-    this.imageViewBox.setMinHeight(200);
-    this.imageViewBox.heightProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
-    this.stage().widthProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
-    this.imageView.setPreserveRatio(true);
-
-    final HBox fileNameBox = new HBox(this.fileNameLabel);
-    fileNameBox.setAlignment(Pos.CENTER);
-    fileNameBox.setPadding(new Insets(0, 5, 0, 5));
-
-    final HBox metadataBox = new HBox(this.fileMetadataLabel);
-    metadataBox.setAlignment(Pos.CENTER);
-    metadataBox.setPadding(new Insets(0, 5, 0, 5));
+    this.mediaViewerBox.setAlignment(Pos.CENTER);
+    this.mediaViewerBox.setMinHeight(200);
+    this.mediaViewerBox.heightProperty().addListener((observable, oldValue, newValue) -> this.updateMediaViewerSize());
+    this.stage().widthProperty().addListener((observable, oldValue, newValue) -> this.updateMediaViewerSize());
 
     this.picturesList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
       if (newValue != null)
-        this.setPicture(newValue);
+        this.setMedia(newValue);
     });
 
     VBox.setVgrow(this.tagsList, Priority.ALWAYS);
@@ -82,18 +74,13 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
     hBox.setAlignment(Pos.CENTER_LEFT);
 
     final SplitPane splitPane = new SplitPane(
-        this.imageViewBox,
-        new VBox(
-            5,
-            fileNameBox,
-            metadataBox,
-            new SplitPane(
-                this.picturesList,
-                new VBox(
-                    5,
-                    hBox,
-                    this.tagsList
-                )
+        this.mediaViewerBox,
+        new SplitPane(
+            this.picturesList,
+            new VBox(
+                5,
+                hBox,
+                this.tagsList
             )
         )
     );
@@ -105,15 +92,15 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
   }
 
   /**
-   * Set the list of pictures to display.
+   * Set the list of medias to display.
    *
-   * @param pictures The pictures to show.
+   * @param medias The medias to show.
    */
-  public void setPictures(final @NotNull Collection<Pair<Picture, Float>> pictures) {
-    this.setPicture(null);
+  public void setMedias(final @NotNull Collection<Pair<Picture, Float>> medias) {
+    this.setMedia(null);
     this.picturesList.getItems().clear();
     this.picturesList.getItems().addAll(
-        pictures.stream()
+        medias.stream()
             .sorted(Comparator.comparing(entry -> -entry.getValue()))
             .map(entry -> new PictureView(entry.getKey(), entry.getValue()))
             .toList()
@@ -131,30 +118,20 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
     this.tagCopyListeners.forEach(l -> l.onTagCopy(tags));
   }
 
-  private void updateImageViewSize() {
-    final Image image = this.imageView.getImage();
-    if (image != null) {
-      final double width = Math.min(image.getWidth(), this.stage().getWidth() - 20);
-      this.imageView.setFitWidth(width);
-      final double height = Math.min(image.getHeight(), this.imageViewBox.getHeight() - 10);
-      this.imageView.setFitHeight(height);
-    }
+  private void updateMediaViewerSize() {
+    this.mediaViewer.updateImageViewSize(
+        this.stage().getWidth() - 20,
+        this.mediaViewerBox.getHeight() - 10
+    );
   }
 
-  private void setPicture(PictureView pictureView) {
-    this.imageView.setImage(null);
-    this.fileMetadataLabel.setText(null);
-    this.fileMetadataLabel.setTooltip(null);
+  private void setMedia(PictureView pictureView) {
+    this.mediaViewer.setMedia(null);
     this.tagsList.getItems().clear();
+
     if (pictureView != null) {
       final Picture picture = pictureView.picture();
-      final String fileName = picture.path().getFileName().toString();
-      this.fileNameLabel.setText(fileName);
-      this.fileNameLabel.setTooltip(new Tooltip(fileName));
-      this.fileMetadataLabel.setText(
-          pictureView.metadata().orElse(this.config.language().translate("image_preview.missing_file")));
-      pictureView.image().ifPresent(this.imageView::setImage);
-      this.updateImageViewSize();
+      this.mediaViewer.setMedia(picture);
       try {
         this.db.getImageTags(picture).stream()
             .sorted()
@@ -162,17 +139,13 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
       } catch (final DatabaseOperationException e) {
         Alerts.databaseError(this.config, e.errorCode());
       }
-    } else {
-      this.fileNameLabel.setText(null);
-      this.fileNameLabel.setTooltip(new Tooltip(null));
     }
+
     this.copyTagsButton.setDisable(this.tagsList.getItems().isEmpty());
   }
 
   private class PictureView extends HBox {
-    private Image image;
     private final Picture picture;
-    private String metadata;
 
     private PictureView(@NotNull Picture picture, float confidence) {
       super(5);
@@ -184,34 +157,35 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
       final Label fileMetadataLabel = new Label();
       final Config config = SimilarImagesDialog.this.config;
       final Language language = config.language();
+
       boolean exists;
       try {
         exists = Files.exists(path);
       } catch (final SecurityException e) {
         exists = false;
       }
-      if (!exists) {
-        fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
-      } else {
-        fileMetadataLabel.setText(language.translate("image_preview.loading"));
+
+      if (!exists) fileMetadataLabel.setText(language.translate("media_viewer.missing_file"));
+      else {
+        fileMetadataLabel.setText(language.translate("media_viewer.loading"));
         FileUtils.loadImage(
             path,
             image -> {
-              this.image = image;
               imageView.setImage(image);
               imageView.setFitWidth(Math.min(image.getWidth(), 100));
               imageView.setFitHeight(Math.min(image.getHeight(), 100));
-              this.metadata = FileUtils.formatImageMetadata(path, image, config);
-              fileMetadataLabel.setText(this.metadata);
-              fileMetadataLabel.setTooltip(new Tooltip(this.metadata));
+              final String metadata = FileUtils.formatImageMetadata(path, image, config);
+              fileMetadataLabel.setText(metadata);
+              fileMetadataLabel.setTooltip(new Tooltip(metadata));
             },
-            error -> fileMetadataLabel.setText(language.translate("image_preview.missing_file"))
+            error -> fileMetadataLabel.setText(language.translate("media_viewer.file_loading_error"))
         );
       }
+
       final Label fileNameLabel = new Label(path.toString());
       final Label confidenceLabel = new Label(language.translate(
           "dialog.similar_images.confidence",
-          new FormatArg("confidence", "%.2f".formatted(100 * confidence))
+          new FormatArg("confidence", "%.1f".formatted(100 * confidence))
       ));
       this.getChildren().addAll(
           imageView,
@@ -221,14 +195,6 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
 
     public Picture picture() {
       return this.picture;
-    }
-
-    public Optional<Image> image() {
-      return Optional.ofNullable(this.image);
-    }
-
-    public Optional<String> metadata() {
-      return Optional.ofNullable(this.metadata);
     }
   }
 

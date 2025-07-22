@@ -117,7 +117,7 @@ public class FileUtils {
     final Language language = config.language();
     final var formattedSize = size >= 0 ? formatBytesSize(size, language) : new Pair<>("?", "");
     return language.translate(
-        "image_preview.image_file_metadata.label",
+        "file_metadata.image.label",
         new FormatArg("width", (int) image.getWidth()),
         new FormatArg("height", (int) image.getHeight()),
         new FormatArg("abbr_bytes", formattedSize.getKey()),
@@ -158,7 +158,7 @@ public class FileUtils {
     if (hours > 0) formattedDuration = "%d:%02d:%02d".formatted(hours, minutes, seconds);
     else formattedDuration = "%d:%02d".formatted(minutes, seconds);
     return language.translate(
-        "image_preview.video_file_metadata.label",
+        "file_metadata.video.label",
         new FormatArg("duration", formattedDuration),
         new FormatArg("width", media.getWidth()),
         new FormatArg("height", media.getHeight()),

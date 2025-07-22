@@ -1,19 +1,14 @@
 package net.darmo_creations.imageslibrary.ui;
 
 import javafx.geometry.*;
-import javafx.scene.*;
 import javafx.scene.control.*;
-import javafx.scene.image.*;
 import javafx.scene.layout.*;
-import javafx.scene.media.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.themes.*;
 import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
 
-import java.net.*;
-import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;
 
@@ -24,21 +19,15 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
 
   private final Button openInExplorerButton = new Button();
   private final Button showSimilarImagesButton = new Button();
-  private final Label fileNameLabel = new Label();
-  private final Label fileMetadataLabel = new Label();
-  private final HBox imageViewBox;
-  private final ImageView imageView = new ImageView();
-  private final VideoPlayer videoPlayer;
+  private final HBox mediaViewerBox;
+  private final MediaViewer mediaViewer;
   private final Button editTagsButton = new Button();
   private final ListView<TagView> tagsList = new ListView<>();
 
-  private final Config config;
   @Nullable
   private Picture picture;
-  private MediaPlayer mediaPlayer; // Keep a reference to avoid garbage collection
 
   public ImagePreviewPane(final @NotNull Config config) {
-    this.config = config;
     this.setMinWidth(300);
 
     final Language language = config.language();
@@ -52,24 +41,17 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.showSimilarImagesButton.setGraphic(theme.getIcon(Icon.SHOW_SILIMAR_IMAGES, Icon.Size.SMALL));
     this.showSimilarImagesButton.setOnAction(e -> this.showSimilarImages());
 
-    final HBox fileNameBox = new HBox(this.fileNameLabel);
-    fileNameBox.setAlignment(Pos.CENTER);
-    fileNameBox.setPadding(new Insets(0, 5, 0, 5));
+    this.mediaViewer = new MediaViewer(config);
+    this.mediaViewer.setOnLoadedCallback(ignored -> this.onMediaLoaded());
+    this.mediaViewer.setOnLoadErrorCallback(this::onFileLoadingError);
 
-    final HBox metadataBox = new HBox(this.fileMetadataLabel);
-    metadataBox.setAlignment(Pos.CENTER);
-    metadataBox.setPadding(new Insets(0, 5, 0, 5));
-
-    this.imageViewBox = new HBox(this.imageView);
-    this.imageViewBox.setAlignment(Pos.CENTER);
-    this.imageViewBox.setMinHeight(200);
-    this.imageViewBox.heightProperty().addListener(
+    this.mediaViewerBox = new HBox(this.mediaViewer);
+    this.mediaViewerBox.setAlignment(Pos.CENTER);
+    this.mediaViewerBox.setMinHeight(200);
+    this.mediaViewerBox.heightProperty().addListener(
         (observable, oldValue, newValue) -> this.updateImageViewSize());
     this.widthProperty().addListener(
         (observable, oldValue, newValue) -> this.updateImageViewSize());
-    this.imageView.setPreserveRatio(true);
-
-    this.videoPlayer = new VideoPlayer(config);
 
     final HBox tagsLabelBox = new HBox(new Label(language.translate("image_preview.section.tags.title")));
     tagsLabelBox.getStyleClass().add("section-title");
@@ -97,32 +79,18 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
 
     this.setOrientation(Orientation.VERTICAL);
     this.getItems().addAll(
-        this.imageViewBox,
-        new VBox(5, fileNameBox, metadataBox, tagsTitleBox, this.tagsList)
+        this.mediaViewerBox,
+        new VBox(5, tagsTitleBox, this.tagsList)
     );
     this.setDividerPositions(0.75);
-    this.setImage(null, null, false);
+    this.setMedia(null, null, false);
   }
 
   private void updateImageViewSize() {
-    if (this.imageViewBox.getChildren().contains(this.imageView)) {
-      final Image image = this.imageView.getImage();
-      if (image != null) {
-        final double width = Math.min(image.getWidth(), this.getWidth() - 10);
-        this.imageView.setFitWidth(width);
-        final double height = Math.min(image.getHeight(), this.imageViewBox.getHeight() - 10);
-        this.imageView.setFitHeight(height);
-      }
-    } else {
-      final Optional<MediaPlayer> mediaPlayer = this.videoPlayer.getMediaPlayer();
-      if (mediaPlayer.isPresent()) {
-        final Media media = mediaPlayer.get().getMedia();
-        final double width = Math.min(media.getWidth(), this.getWidth() - 10);
-        this.videoPlayer.setFitWidth(width);
-        final double height = Math.min(media.getHeight(), this.imageViewBox.getHeight() - 10);
-        this.videoPlayer.setFitHeight(height);
-      }
-    }
+    this.mediaViewer.updateImageViewSize(
+        this.getWidth() - 10,
+        this.mediaViewerBox.getHeight() - 10
+    );
   }
 
   /**
@@ -140,61 +108,16 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
    * @param hasSimilarImages Whether the given picture has similar images.
    */
   @Contract("!null, null, _ -> fail")
-  public void setImage(Picture picture, Set<Tag> tags, boolean hasSimilarImages) {
+  public void setMedia(Picture picture, Set<Tag> tags, boolean hasSimilarImages) {
     if (picture != null)
       Objects.requireNonNull(tags);
     this.picture = picture;
 
-    this.imageView.setImage(null);
-    this.videoPlayer.setMediaPlayer(null, true);
-    if (this.mediaPlayer != null && this.mediaPlayer.getStatus() != MediaPlayer.Status.DISPOSED)
-      this.mediaPlayer.dispose();
-    this.fileNameLabel.setText(null);
-    this.fileNameLabel.setTooltip(null);
-    this.fileNameLabel.setGraphic(null);
-    this.fileMetadataLabel.setText(null);
-    this.fileMetadataLabel.setTooltip(null);
+    this.mediaViewer.setMedia(picture);
     this.editTagsButton.setDisable(picture == null);
     this.tagsList.getItems().clear();
 
     if (picture != null) {
-      final Language language = this.config.language();
-      final Path path = picture.path();
-      final String fileName = path.getFileName().toString();
-      this.fileNameLabel.setText(fileName);
-      this.fileNameLabel.setTooltip(new Tooltip(fileName));
-      this.fileNameLabel.setGraphic(
-          this.config.theme().getIcon(picture.isVideo() ? Icon.VIDEO : Icon.IMAGE, Icon.Size.SMALL));
-      boolean exists;
-      try {
-        exists = Files.exists(path);
-      } catch (final SecurityException e) {
-        exists = false;
-      }
-      if (!exists) {
-        this.fileMetadataLabel.setText(language.translate("image_preview.missing_file"));
-      } else {
-        this.fileMetadataLabel.setText(language.translate("image_preview.loading"));
-        if (picture.isVideo() && FileUtils.isSupportedVideoFile(path)) {
-          try {
-            this.mediaPlayer = FileUtils.loadVideo(
-                path,
-                mediaPlayer -> {
-                  final Media media = mediaPlayer.getMedia();
-                  if (media.getWidth() == 0 || media.getHeight() == 0)
-                    this.loadImage(path);
-                  else {
-                    this.videoPlayer.setMediaPlayer(mediaPlayer, true);
-                    final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, this.config);
-                    this.updateImageViewBoxContent(this.videoPlayer, metadata);
-                  }
-                }
-            );
-          } catch (final MalformedURLException e) {
-            this.onFileLoadingError(e);
-          }
-        } else this.loadImage(path);
-      }
       final var tagsEntries = tags.stream()
           .sorted()
           .map(TagView::new)
@@ -207,28 +130,12 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     }
   }
 
-  private void loadImage(@NotNull Path path) {
-    FileUtils.loadImage(
-        path,
-        image -> {
-          this.imageView.setImage(image);
-          final String metadata = FileUtils.formatImageMetadata(path, image, this.config);
-          this.updateImageViewBoxContent(this.imageView, metadata);
-        },
-        this::onFileLoadingError
-    );
-  }
-
-  private void updateImageViewBoxContent(@NotNull Node content, @NotNull String metadata) {
-    this.fileMetadataLabel.setText(metadata);
-    this.fileMetadataLabel.setTooltip(new Tooltip(metadata));
-    this.imageViewBox.getChildren().set(0, content);
+  private void onMediaLoaded() {
     this.openInExplorerButton.setDisable(false);
     this.updateImageViewSize();
   }
 
   private void onFileLoadingError(Exception error) {
-    this.fileMetadataLabel.setText(this.config.language().translate("image_preview.missing_file"));
     this.openInExplorerButton.setDisable(true);
   }
 

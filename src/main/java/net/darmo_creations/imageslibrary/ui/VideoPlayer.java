@@ -9,6 +9,7 @@ import javafx.scene.media.*;
 import javafx.util.*;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.themes.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -33,8 +34,8 @@ public class VideoPlayer extends VBox {
   private boolean loop;
   private ChangeListener<Number> progressListener;
 
-  public VideoPlayer(Config config) {
-    this.config = config;
+  public VideoPlayer(@NotNull Config config) {
+    this.config = Objects.requireNonNull(config);
 
     this.setAlignment(Pos.CENTER);
     this.getStyleClass().add("video-player");
