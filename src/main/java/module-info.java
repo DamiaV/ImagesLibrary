@@ -1,4 +1,4 @@
-module net.darmo_creations.imageslibrary {
+module net.darmo_creations.bildumilo {
   // JavaFX
   requires javafx.controls;
   requires javafx.media;
@@ -35,8 +35,8 @@ module net.darmo_creations.imageslibrary {
   requires org.jetbrains.annotations;
   requires org.bytedeco.opencv;
 
-  exports net.darmo_creations.imageslibrary;
-  exports net.darmo_creations.imageslibrary.ui;
-  exports net.darmo_creations.imageslibrary.ui.syntax_highlighting;
-  exports net.darmo_creations.imageslibrary.ui.dialogs;
+  exports net.darmo_creations.bildumilo;
+  exports net.darmo_creations.bildumilo.ui;
+  exports net.darmo_creations.bildumilo.ui.syntax_highlighting;
+  exports net.darmo_creations.bildumilo.ui.dialogs;
 }

@@ -1,7 +1,7 @@
 grammar TagQueryLanguage;
 
 @header {
-    package net.darmo_creations.imageslibrary.query_parser.generated;
+    package net.darmo_creations.bildumilo.query_parser.generated;
 }
 
 WS: [ \n\r\t]+;

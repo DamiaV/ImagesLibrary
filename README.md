@@ -1,6 +1,6 @@
-# Image Library
+# Bildumilo
 
-**Image Library** lets you manage images and videos by associating tags to them.
+**Bildumilo** lets you manage images and videos by associating tags to them.
 This is a full re-implementation of my [Python-based application](https://github.com/DamiaV/ImageDatabase).
 
 Main features:
