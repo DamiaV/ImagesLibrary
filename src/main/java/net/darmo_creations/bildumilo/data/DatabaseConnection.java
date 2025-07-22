@@ -1084,9 +1084,9 @@ public final class DatabaseConnection implements AutoCloseable {
     this.ensureInDatabase(source);
     this.ensureInDatabase(destination);
     if (source.id() == destination.id())
-      throw this.logThrownError(new IllegalArgumentException("Both pictures have the same ID"));
+      throw this.logThrownError(new IllegalArgumentException("Both files have the same ID"));
     if (source.path().equals(destination.path()))
-      throw this.logThrownError(new IllegalArgumentException("Both pictures have the same path"));
+      throw this.logThrownError(new IllegalArgumentException("Both files have the same path"));
 
     final var sourceTags = this.getMediaTags(source).stream()
         .map(t -> new ParsedTag(t.type(), t.label()))

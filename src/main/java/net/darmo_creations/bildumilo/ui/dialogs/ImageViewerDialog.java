@@ -152,7 +152,7 @@ public class ImageViewerDialog extends DialogBase<Void> {
     }
 
     /**
-     * Reset the delay before the next picture change.
+     * Reset the delay before the next image change.
      */
     public void resetDelay() {
       this.prevTime = System.currentTimeMillis();

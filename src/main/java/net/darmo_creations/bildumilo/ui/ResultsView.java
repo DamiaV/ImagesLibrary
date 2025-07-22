@@ -234,7 +234,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   /**
-   * Add a listener that will be notified whenever a request to show similar images of a given picture is made.
+   * Add a listener that will be notified whenever a request to show similar images of a given image is made.
    */
   public void addSimilarImagesListener(@NotNull SimilarImagesActionListener listener) {
     this.similarImagesActionListeners.add(Objects.requireNonNull(listener));
