@@ -86,7 +86,7 @@ public class AboutDialog extends DialogBase<Void> {
         new Text(".\n\nIcons from "),
         createLink("FatCow", "https://github.com/gammasoft/fatcow"),
         new Text(".\n\n"),
-        new Label("Trans rights are human rights!", this.config.theme().getIcon(Icon.TRANS_FLAG, Icon.Size.SMALL))
+        new Label("Trans rights are human rights! :3", this.config.theme().getIcon(Icon.TRANS_FLAG, Icon.Size.SMALL))
     );
     return textFlow;
   }
