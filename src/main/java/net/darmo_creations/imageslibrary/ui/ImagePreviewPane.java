@@ -180,24 +180,20 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
             this.mediaPlayer = FileUtils.loadVideo(
                 path,
                 mediaPlayer -> {
-                  this.videoPlayer.setMediaPlayer(mediaPlayer, true);
-                  final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, this.config);
-                  this.updateImageViewBoxContent(this.videoPlayer, metadata);
+                  final Media media = mediaPlayer.getMedia();
+                  if (media.getWidth() == 0 || media.getHeight() == 0)
+                    this.loadImage(path);
+                  else {
+                    this.videoPlayer.setMediaPlayer(mediaPlayer, true);
+                    final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, this.config);
+                    this.updateImageViewBoxContent(this.videoPlayer, metadata);
+                  }
                 }
             );
           } catch (final MalformedURLException e) {
             this.onFileLoadingError(e);
           }
-        } else
-          FileUtils.loadImage(
-              path,
-              image -> {
-                this.imageView.setImage(image);
-                final String metadata = FileUtils.formatImageMetadata(path, image, this.config);
-                this.updateImageViewBoxContent(this.imageView, metadata);
-              },
-              this::onFileLoadingError
-          );
+        } else this.loadImage(path);
       }
       final var tagsEntries = tags.stream()
           .sorted()
@@ -209,6 +205,18 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
       this.openInExplorerButton.setDisable(true);
       this.showSimilarImagesButton.setDisable(true);
     }
+  }
+
+  private void loadImage(@NotNull Path path) {
+    FileUtils.loadImage(
+        path,
+        image -> {
+          this.imageView.setImage(image);
+          final String metadata = FileUtils.formatImageMetadata(path, image, this.config);
+          this.updateImageViewBoxContent(this.imageView, metadata);
+        },
+        this::onFileLoadingError
+    );
   }
 
   private void updateImageViewBoxContent(@NotNull Node content, @NotNull String metadata) {

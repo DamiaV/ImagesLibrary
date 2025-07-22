@@ -311,24 +311,21 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
             this.mediaPlayer = FileUtils.loadVideo(
                 path,
                 mediaPlayer -> {
-                  this.videoPlayer.setMediaPlayer(mediaPlayer, true);
-                  final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, config);
-                  this.updateImageViewBoxContent(metadata);
+                  final Media media = mediaPlayer.getMedia();
+                  if (media.getWidth() == 0 || media.getHeight() == 0)
+                    this.loadImage(path);
+                  else {
+                    this.videoPlayer.setMediaPlayer(mediaPlayer, true);
+                    final String metadata = FileUtils.formatVideoMetadata(path, mediaPlayer, config);
+                    this.updateImageViewBoxContent(metadata);
+                  }
                 }
             );
           } catch (final MalformedURLException e) {
             this.onFileLoadingError(e);
           }
         } else {
-          FileUtils.loadImage(
-              path,
-              image -> {
-                this.imageView.setImage(image);
-                final String metadata = FileUtils.formatImageMetadata(path, image, config);
-                this.updateImageViewBoxContent(metadata);
-              },
-              this::onFileLoadingError
-          );
+          this.loadImage(path);
         }
       }
       final var tagsEntries = tags.stream()
@@ -336,6 +333,18 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
           .map(TagView::new)
           .toList();
       this.tagsList.getItems().addAll(tagsEntries);
+    }
+
+    private void loadImage(@NotNull Path path) {
+      FileUtils.loadImage(
+          path,
+          image -> {
+            this.imageView.setImage(image);
+            final String metadata = FileUtils.formatImageMetadata(path, image, MergeImagesTagsDialog.this.config);
+            this.updateImageViewBoxContent(metadata);
+          },
+          this::onFileLoadingError
+      );
     }
 
     private void updateImageViewBoxContent(@NotNull String metadata) {
