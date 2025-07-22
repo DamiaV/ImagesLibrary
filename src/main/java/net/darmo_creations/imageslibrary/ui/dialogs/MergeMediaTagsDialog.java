@@ -16,24 +16,24 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * A dialog that allows merging the tags of two images, discarding one of the two afterwards.
+ * A dialog that allows merging the tags of two media files, discarding one of the two afterwards.
  */
-public class MergeImagesTagsDialog extends DialogBase<Boolean> {
+public class MergeMediaTagsDialog extends DialogBase<Boolean> {
   private final HBox mediaViewerBox1;
   private final HBox mediaViewerBox2;
   private final MediaViewer mediaViewer1;
   private final MediaViewer mediaViewer2;
-  private final PictureMetadataView pictureMetadataView1;
-  private final PictureMetadataView pictureMetadataView2;
+  private final MediaMetadataView mediaMetadataView1;
+  private final MediaMetadataView mediaMetadataView2;
   private final Button swapButton = new Button();
   private final CheckBox deleteFromDiskCheckBox = new CheckBox();
 
   private final DatabaseConnection db;
-  private Picture picture1, picture2;
+  private MediaFile mediaFile1, mediaFile2;
   private final BooleanProperty leftToRight = new SimpleBooleanProperty(this, "leftToRight", true);
   private boolean preventClosing;
 
-  public MergeImagesTagsDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
+  public MergeMediaTagsDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
     super(config, "merge_images_tags", true, ButtonTypes.CANCEL, ButtonTypes.OK);
     this.db = Objects.requireNonNull(db);
 
@@ -43,8 +43,8 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
     this.mediaViewerBox1 = new HBox(this.mediaViewer1);
     this.mediaViewerBox2 = new HBox(this.mediaViewer2);
 
-    this.pictureMetadataView1 = new PictureMetadataView(this.mediaViewer1);
-    this.pictureMetadataView2 = new PictureMetadataView(this.mediaViewer2);
+    this.mediaMetadataView1 = new MediaMetadataView(this.mediaViewer1);
+    this.mediaMetadataView2 = new MediaMetadataView(this.mediaViewer2);
 
     this.getDialogPane().setContent(this.createContent());
 
@@ -77,15 +77,15 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
   private Node createContent() {
     this.mediaViewerBox1.setAlignment(Pos.CENTER);
     this.mediaViewerBox1.setMinHeight(200);
-    this.mediaViewerBox1.heightProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewsSizes());
+    this.mediaViewerBox1.heightProperty().addListener((observable, oldValue, newValue) -> this.updateMediaViewersSizes());
     this.mediaViewerBox2.setAlignment(Pos.CENTER);
     this.mediaViewerBox2.setMinHeight(200);
-    this.mediaViewerBox2.heightProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewsSizes());
-    this.stage().widthProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewsSizes());
+    this.mediaViewerBox2.heightProperty().addListener((observable, oldValue, newValue) -> this.updateMediaViewersSizes());
+    this.stage().widthProperty().addListener((observable, oldValue, newValue) -> this.updateMediaViewersSizes());
 
-    HBox.setHgrow(this.pictureMetadataView1, Priority.ALWAYS);
-    HBox.setHgrow(this.pictureMetadataView2, Priority.ALWAYS);
-    this.pictureMetadataView1.prefWidthProperty().bindBidirectional(this.pictureMetadataView2.prefWidthProperty());
+    HBox.setHgrow(this.mediaMetadataView1, Priority.ALWAYS);
+    HBox.setHgrow(this.mediaMetadataView2, Priority.ALWAYS);
+    this.mediaMetadataView1.prefWidthProperty().bindBidirectional(this.mediaMetadataView2.prefWidthProperty());
 
     this.swapButton.setTooltip(new Tooltip(this.config.language().translate("dialog.merge_images_tags.swap_button.tooltip")));
     this.swapButton.setOnAction(event -> this.leftToRight.set(!this.leftToRight.get()));
@@ -94,9 +94,9 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
 
     final HBox metadataBox = new HBox(
         5,
-        this.pictureMetadataView1,
+        this.mediaMetadataView1,
         new VBox(new VerticalSpacer(), this.swapButton, new VerticalSpacer()),
-        this.pictureMetadataView2
+        this.mediaMetadataView2
     );
     VBox.setVgrow(metadataBox, Priority.ALWAYS);
 
@@ -127,40 +127,40 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
     return splitPane;
   }
 
-  private void updateImageViewsSizes() {
-    this.resizeImageView(this.mediaViewerBox1);
-    this.resizeImageView(this.mediaViewerBox2);
+  private void updateMediaViewersSizes() {
+    this.resizeMediaViewer(this.mediaViewerBox1);
+    this.resizeMediaViewer(this.mediaViewerBox2);
   }
 
-  private void resizeImageView(@NotNull HBox imageViewBox) {
+  private void resizeMediaViewer(@NotNull HBox mediaViewerBox) {
     if (this.getDialogPane().getScene() == null)
       return;
 
     final double halfStageW = this.stage().getWidth() / 2;
-    final MediaViewer mediaViewer = (MediaViewer) imageViewBox.getChildren().get(0);
-    imageViewBox.setPrefWidth(halfStageW - 10);
-    mediaViewer.updateSize(halfStageW - 20, imageViewBox.getHeight() - 10);
+    final MediaViewer mediaViewer = (MediaViewer) mediaViewerBox.getChildren().get(0);
+    mediaViewerBox.setPrefWidth(halfStageW - 10);
+    mediaViewer.updateSize(halfStageW - 20, mediaViewerBox.getHeight() - 10);
   }
 
   /**
-   * Set the pictures to merge.
+   * Set the medias to merge.
    *
-   * @param picture1 A picture.
-   * @param tags1    The first picture’s tags.
-   * @param picture2 Another picture.
-   * @param tags2    The second picture’s tags.
+   * @param mediaFile1 A media.
+   * @param tags1      The first media’s tags.
+   * @param mediaFile2 Another media.
+   * @param tags2      The second media’s tags.
    */
-  public void setPictures(
-      @NotNull Picture picture1, @NotNull Set<Tag> tags1,
-      @NotNull Picture picture2, @NotNull Set<Tag> tags2
+  public void setMedias(
+      @NotNull MediaFile mediaFile1, @NotNull Set<Tag> tags1,
+      @NotNull MediaFile mediaFile2, @NotNull Set<Tag> tags2
   ) {
     this.leftToRight.set(true);
-    this.picture1 = Objects.requireNonNull(picture1);
-    this.picture2 = Objects.requireNonNull(picture2);
-    this.pictureMetadataView1.setMedia(picture1, tags1);
-    this.pictureMetadataView2.setMedia(picture2, tags2);
+    this.mediaFile1 = Objects.requireNonNull(mediaFile1);
+    this.mediaFile2 = Objects.requireNonNull(mediaFile2);
+    this.mediaMetadataView1.setMedia(mediaFile1, tags1);
+    this.mediaMetadataView2.setMedia(mediaFile2, tags2);
 
-    this.updateImageViewsSizes();
+    this.updateMediaViewersSizes();
   }
 
   private void updateSwapButton() {
@@ -169,17 +169,17 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
   }
 
   private boolean applyChanges() {
-    final Picture source, dest;
+    final MediaFile source, dest;
     if (this.leftToRight.get()) {
-      source = this.picture1;
-      dest = this.picture2;
+      source = this.mediaFile1;
+      dest = this.mediaFile2;
     } else {
-      source = this.picture2;
-      dest = this.picture1;
+      source = this.mediaFile2;
+      dest = this.mediaFile1;
     }
 
     try {
-      this.db.mergePictures(source, dest, this.deleteFromDiskCheckBox.isSelected());
+      this.db.mergeMedias(source, dest, this.deleteFromDiskCheckBox.isSelected());
     } catch (final DatabaseOperationException e) {
       Alerts.databaseError(this.config, e.errorCode());
       return false;
@@ -187,20 +187,20 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
     return true;
   }
 
-  private class PictureMetadataView extends VBox {
+  private class MediaMetadataView extends VBox {
     private final Button openInExplorerButton = new Button();
     private final ListView<TagView> tagsList = new ListView<>();
     private final MediaViewer mediaViewer;
 
-    private Picture picture;
+    private MediaFile mediaFile;
 
-    public PictureMetadataView(@NotNull MediaViewer mediaViewer) {
+    public MediaMetadataView(@NotNull MediaViewer mediaViewer) {
       super(5);
       this.mediaViewer = Objects.requireNonNull(mediaViewer);
-      this.mediaViewer.setOnLoadedCallback(ignored -> this.updateImageViewBoxContent());
+      this.mediaViewer.setOnLoadedCallback(ignored -> this.onMediaLoaded());
       this.mediaViewer.setOnLoadErrorCallback(this::onFileLoadingError);
 
-      final Config config = MergeImagesTagsDialog.this.config;
+      final Config config = MergeMediaTagsDialog.this.config;
       final Language language = config.language();
       final Theme theme = config.theme();
 
@@ -223,10 +223,10 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
       this.getChildren().addAll(tagsTitleBox, this.tagsList);
     }
 
-    public void setMedia(@NotNull Picture picture, @NotNull Set<Tag> tags) {
-      this.picture = Objects.requireNonNull(picture);
+    public void setMedia(@NotNull MediaFile mediaFile, @NotNull Set<Tag> tags) {
+      this.mediaFile = Objects.requireNonNull(mediaFile);
 
-      this.mediaViewer.setMedia(this.picture);
+      this.mediaViewer.setMedia(this.mediaFile);
 
       this.tagsList.getItems().clear();
       final var tagsEntries = tags.stream()
@@ -236,9 +236,9 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
       this.tagsList.getItems().addAll(tagsEntries);
     }
 
-    private void updateImageViewBoxContent() {
+    private void onMediaLoaded() {
       this.openInExplorerButton.setDisable(false);
-      MergeImagesTagsDialog.this.updateImageViewsSizes();
+      MergeMediaTagsDialog.this.updateMediaViewersSizes();
     }
 
     private void onFileLoadingError(Exception error) {
@@ -246,8 +246,8 @@ public class MergeImagesTagsDialog extends DialogBase<Boolean> {
     }
 
     private void onOpenFile() {
-      if (this.picture != null)
-        FileUtils.openInFileExplorer(this.picture.path().toString());
+      if (this.mediaFile != null)
+        FileUtils.openInFileExplorer(this.mediaFile.path().toString());
     }
   }
 }

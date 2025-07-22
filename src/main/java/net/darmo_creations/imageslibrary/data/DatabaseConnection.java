@@ -18,8 +18,9 @@ import java.lang.reflect.*;
 import java.nio.file.*;
 import java.sql.*;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.*;
+import java.util.function.Function;
+import java.util.regex.*;
 import java.util.regex.Pattern;
 import java.util.stream.*;
 
@@ -48,9 +49,9 @@ public final class DatabaseConnection implements AutoCloseable {
             try {
               p = PatternPseudoTag.getPattern(pattern, flags);
             } catch (final SQLException e) {
-              return (picture, tags, db) -> false;
+              return (mediaFile, tags, db) -> false;
             }
-            return (picture, tags, db) -> p.matcher(FileUtils.getExtension(picture.path().getFileName())).matches();
+            return (mediaFile, tags, db) -> p.matcher(FileUtils.getExtension(mediaFile.path().getFileName())).matches();
           },
           true
       ),
@@ -62,9 +63,9 @@ public final class DatabaseConnection implements AutoCloseable {
               FROM images
               WHERE NOT "FILE_EXISTS"(path)
               """,
-          (picture, tags, db) -> {
+          (mediaFile, tags, db) -> {
             try {
-              return !Files.exists(picture.path());
+              return !Files.exists(mediaFile.path());
             } catch (final SecurityException e) {
               return true;
             }
@@ -81,7 +82,7 @@ public final class DatabaseConnection implements AutoCloseable {
                 WHERE it.image_id = i.id
               ) = 0
               """,
-          (picture, tags, db) -> tags.isEmpty()
+          (mediaFile, tags, db) -> tags.isEmpty()
       ),
 
       "no_hash",
@@ -91,7 +92,7 @@ public final class DatabaseConnection implements AutoCloseable {
               FROM images
               WHERE NOT "IS_VIDEO"(path) AND hash IS NULL
               """,
-          (picture, tags, db) -> !picture.isVideo() && picture.hash().isEmpty()
+          (mediaFile, tags, db) -> !mediaFile.isVideo() && mediaFile.hash().isEmpty()
       ),
 
       "video",
@@ -101,7 +102,7 @@ public final class DatabaseConnection implements AutoCloseable {
               FROM images
               WHERE "IS_VIDEO"(path)
               """,
-          (picture, tags, db) -> picture.isVideo()
+          (mediaFile, tags, db) -> mediaFile.isVideo()
       ),
 
       "name",
@@ -116,9 +117,9 @@ public final class DatabaseConnection implements AutoCloseable {
             try {
               p = PatternPseudoTag.getPattern(pattern, flags);
             } catch (final SQLException e) {
-              return (picture, tags, db) -> false;
+              return (mediaFile, tags, db) -> false;
             }
-            return (picture, tags, db) -> p.matcher(picture.path().getFileName().toString()).matches();
+            return (mediaFile, tags, db) -> p.matcher(mediaFile.path().getFileName().toString()).matches();
           },
           true
       ),
@@ -135,9 +136,9 @@ public final class DatabaseConnection implements AutoCloseable {
             try {
               p = PatternPseudoTag.getPattern(pattern, flags);
             } catch (final SQLException e) {
-              return (picture, tags, db) -> false;
+              return (mediaFile, tags, db) -> false;
             }
-            return (picture, tags, db) -> p.matcher(picture.path().toString()).matches();
+            return (mediaFile, tags, db) -> p.matcher(mediaFile.path().toString()).matches();
           },
           true
       ),
@@ -154,23 +155,23 @@ public final class DatabaseConnection implements AutoCloseable {
                   WHERE path = '%s'
                 ))
               """,
-          (pattern, flags) -> (picture, tags, db) -> {
-            if (picture.hash().isEmpty())
+          (pattern, flags) -> (mediaFile, tags, db) -> {
+            if (mediaFile.hash().isEmpty())
               return false;
             final Hash hash;
             try {
-              final Optional<Hash> hashOpt = db.getPictures("""
+              final Optional<Hash> hashOpt = db.getMedias("""
                   SELECT id, path, hash
                   FROM images
                   WHERE path = '%s'
-                  """).findFirst().flatMap(Picture::hash);
+                  """).findFirst().flatMap(MediaFile::hash);
               if (hashOpt.isEmpty())
                 return false;
               hash = hashOpt.get();
             } catch (final DatabaseOperationException e) {
               return false;
             }
-            return hash.computeSimilarity(picture.hash().get()).hammingDistance() <= Hash.SIM_DIST_THRESHOLD;
+            return hash.computeSimilarity(mediaFile.hash().get()).hammingDistance() <= Hash.SIM_DIST_THRESHOLD;
           },
           false
       )
@@ -243,8 +244,7 @@ public final class DatabaseConnection implements AutoCloseable {
   private void injectCustomFunctions() throws SQLException {
     this.logger.info("Injecting custom SQL functions…");
     // Cannot use reflection to get classes as it does not work in tests
-    @SuppressWarnings("unchecked")
-    final Class<? extends org.sqlite.Function>[] functions = new Class[] {
+    @SuppressWarnings("unchecked") final Class<? extends org.sqlite.Function>[] functions = new Class[] {
         FileExistsFunction.class,
         HashesSimilarityFunction.class,
         IsVideoFunction.class,
@@ -651,21 +651,21 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
-  private static final String SELECT_PICTURES_FOR_TAG_QUERY = """
+  private static final String SELECT_MEDIAS_FOR_TAG_QUERY = """
       SELECT *
       FROM image_tag
       WHERE tag_id = ?
       """;
 
   /**
-   * Check whether the given tag is associated to any picture.
+   * Check whether the given tag is associated to any media.
    *
    * @param tag The tag to check.
-   * @return True if the tag is associated to at least one picture, false otherwise.
+   * @return True if the tag is associated to at least one media, false otherwise.
    * @throws SQLException If any database error occurs.
    */
   private boolean isTagUsed(final @NotNull TagLike tag) throws SQLException {
-    try (final var statement = this.connection.prepareStatement(SELECT_PICTURES_FOR_TAG_QUERY)) {
+    try (final var statement = this.connection.prepareStatement(SELECT_MEDIAS_FOR_TAG_QUERY)) {
       statement.setInt(1, tag.id());
       try (final var resultSet = statement.executeQuery()) {
         return resultSet.next();
@@ -721,47 +721,47 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   /**
-   * Fetch all images that match the given tag query.
+   * Fetch all medias that match the given tag query.
    *
    * @param query A tag query.
-   * @return The set of images that match the query.
+   * @return The set of medias that match the query.
    * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Set<Picture> queryPictures(@NotNull TagQuery query) throws DatabaseOperationException {
+  public Set<MediaFile> queryMedias(@NotNull TagQuery query) throws DatabaseOperationException {
     final var sql = query.asSQL();
     if (sql.isEmpty())
       return Set.of();
     try {
-      return this.getPictures(sql.get()).collect(Collectors.toSet());
+      return this.getMedias(sql.get()).collect(Collectors.toSet());
     } catch (final DatabaseOperationException e) {
       throw this.logThrownError(new DatabaseOperationException(e.errorCode(), e));
     }
   }
 
   @SQLite
-  private static final String SELECT_ALL_IMAGES_QUERY = """
+  private static final String SELECT_ALL_MEDIAS_QUERY = """
       SELECT id, path, hash
       FROM images
       """;
 
   /**
-   * Fetch all registered pictures.
+   * Fetch all registered medias.
    * The returned stream may throw {@link DatabaseOperationRuntimeException}s
    * when iterating if any database error occurs.
    *
-   * @return An unordered stream of all registered pictures.
+   * @return An unordered stream of all registered medias.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public Stream<Picture> getAllPictures() throws DatabaseOperationException {
-    return this.getPictures(SELECT_ALL_IMAGES_QUERY);
+  public Stream<MediaFile> getAllMedias() throws DatabaseOperationException {
+    return this.getMedias(SELECT_ALL_MEDIAS_QUERY);
   }
 
-  private Stream<Picture> getPictures(@SQLite @NotNull String query) throws DatabaseOperationException {
+  private Stream<MediaFile> getMedias(@SQLite @NotNull String query) throws DatabaseOperationException {
     try {
       final var statement = this.connection.prepareStatement(query);
       final var resultSet = statement.executeQuery();
-      final var iterator = new ResultSetIterator<>(statement, resultSet, DatabaseConnection::newPicture);
+      final var iterator = new ResultSetIterator<>(statement, resultSet, DatabaseConnection::newMediaFile);
       return StreamSupport
           .stream(Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false)
           .onClose(() -> {
@@ -778,20 +778,20 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   /**
-   * Check whether the given picture matches the specified tag query.
+   * Check whether the given media matches the specified tag query.
    *
-   * @param picture  The picture to check.
-   * @param tagQuery A tag query.
-   * @return True if the picture matches the query, false otherwise.
+   * @param mediaFile The media to check.
+   * @param tagQuery  A tag query.
+   * @return True if the media matches the query, false otherwise.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public boolean pictureMatchesQuery(@NotNull Picture picture, @NotNull TagQuery tagQuery)
+  public boolean mediaMatchesQuery(@NotNull MediaFile mediaFile, @NotNull TagQuery tagQuery)
       throws DatabaseOperationException {
-    return tagQuery.predicate().test(picture, this.getImageTags(picture), this);
+    return tagQuery.predicate().test(mediaFile, this.getMediaTags(mediaFile), this);
   }
 
   @SQLite
-  private static final String SELECT_IMAGE_TAGS_QUERY = """
+  private static final String SELECT_MEDIA_TAGS_QUERY = """
       SELECT t.id
       FROM tags AS t, image_tag AS it
       WHERE it.image_id = ?
@@ -799,17 +799,17 @@ public final class DatabaseConnection implements AutoCloseable {
       """;
 
   /**
-   * Fetch all tags for the given image.
+   * Fetch all tags for the given media.
    *
-   * @param picture The picture to fetch the tags of.
-   * @return The set of all tags attached to the image.
+   * @param mediaFile The media to fetch the tags of.
+   * @return The set of all tags attached to the media.
    * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "_ -> new")
-  public Set<Tag> getImageTags(@NotNull Picture picture) throws DatabaseOperationException {
+  public Set<Tag> getMediaTags(@NotNull MediaFile mediaFile) throws DatabaseOperationException {
     final Set<Tag> tags = new HashSet<>();
-    try (final var statement = this.connection.prepareStatement(SELECT_IMAGE_TAGS_QUERY)) {
-      statement.setInt(1, picture.id());
+    try (final var statement = this.connection.prepareStatement(SELECT_MEDIA_TAGS_QUERY)) {
+      statement.setInt(1, mediaFile.id());
       try (final var resultSet = statement.executeQuery()) {
         while (resultSet.next())
           tags.add(this.tagsCache.get(resultSet.getInt("id")));
@@ -821,7 +821,7 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
-  private static final String IMAGES_WITH_PATH_QUERY = """
+  private static final String MEDIAS_WITH_PATH_QUERY = """
       SELECT *
       FROM images
       WHERE path = ?1
@@ -830,7 +830,7 @@ public final class DatabaseConnection implements AutoCloseable {
   /**
    * Check whether the given file path is already registered in this database.
    * <p>
-   * A path is considered registered if any picture has the <em>exact</em> same path.
+   * A path is considered registered if any media has the <em>exact</em> same path.
    *
    * @param path The path to check.
    * @return True if the path is already registered, false otherwise.
@@ -838,7 +838,7 @@ public final class DatabaseConnection implements AutoCloseable {
    */
   @Contract(pure = true)
   public boolean isFileRegistered(@NotNull Path path) throws DatabaseOperationException {
-    try (final var statement = this.connection.prepareStatement(IMAGES_WITH_PATH_QUERY)) {
+    try (final var statement = this.connection.prepareStatement(MEDIAS_WITH_PATH_QUERY)) {
       statement.setString(1, path.toAbsolutePath().toString());
       try (final var resultSet = statement.executeQuery()) {
         return resultSet.next(); // Check if there are any rows
@@ -849,22 +849,22 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
-  private static final String PICTURE_ID_EXISTS_QUERY = """
+  private static final String MEDIA_ID_EXISTS_QUERY = """
       SELECT COUNT(*)
       FROM images
       WHERE id = ?1
       """;
 
   /**
-   * Check whether the given picture ID exists.
+   * Check whether the given media ID exists.
    *
-   * @param pictureId A picture ID.
+   * @param mediaId A media ID.
    * @return True if it exists in the database, false otherwise.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public boolean pictureExists(int pictureId) throws DatabaseOperationException {
-    try (final var statement = this.connection.prepareStatement(PICTURE_ID_EXISTS_QUERY)) {
-      statement.setInt(1, pictureId);
+  public boolean mediaExists(int mediaId) throws DatabaseOperationException {
+    try (final var statement = this.connection.prepareStatement(MEDIA_ID_EXISTS_QUERY)) {
+      statement.setInt(1, mediaId);
       try (final var resultSet = statement.executeQuery()) {
         resultSet.next();
         return resultSet.getInt(1) != 0;
@@ -884,65 +884,65 @@ public final class DatabaseConnection implements AutoCloseable {
       """;
 
   /**
-   * Fetch all images that have a hash similar to the given one,
+   * Fetch all medias that have a hash similar to the given one,
    * according to the {@link Hash#computeSimilarity(Hash)} method.
    *
    * @param hash    The reference hash.
-   * @param exclude A picture that should be excluded from the result. May be null.
-   * @return A list of pairs each containing a picture whose hash is similar the argument
+   * @param exclude A media that should be excluded from the result. May be null.
+   * @return A list of pairs each containing a media whose hash is similar the argument
    * and the similarity confidence index. Pairs are sorted in descending confidence index order.
    * @throws DatabaseOperationException If any database error occurs.
    */
   @Contract(pure = true, value = "_, _ -> new")
-  public List<Pair<Picture, Float>> getSimilarImages(@NotNull Hash hash, Picture exclude)
+  public List<Pair<MediaFile, Float>> getSimilarImages(@NotNull Hash hash, MediaFile exclude)
       throws DatabaseOperationException {
-    final List<Pair<Picture, Float>> pictures = new LinkedList<>();
+    final List<Pair<MediaFile, Float>> images = new LinkedList<>();
     try (final var statement = this.connection.prepareStatement(SELECT_SIMILAR_IMAGES_QUERY)) {
       statement.setLong(1, hash.bytes());
       statement.setInt(2, exclude != null ? exclude.id() : -1);
       try (final var resultSet = statement.executeQuery()) {
         while (resultSet.next())
-          pictures.add(new Pair<>(
-              newPicture(resultSet),
+          images.add(new Pair<>(
+              newMediaFile(resultSet),
               resultSet.getFloat("confidence")
           ));
       }
     } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
-    return pictures;
+    return images;
   }
 
   @SQLite
-  private static final String INSERT_IMAGE_QUERY = """
+  private static final String INSERT_MEDIA_QUERY = """
       INSERT INTO images (path, hash)
       VALUES (?, ?)
       """;
   @SQLite
-  private static final String IMAGE_WITH_ID_QUERY = """
+  private static final String MEDIA_WITH_ID_QUERY = """
       SELECT id, path, hash
       FROM images
       WHERE id = ?1
       """;
 
   /**
-   * Insert the given picture.
+   * Insert the given media.
    *
-   * @param pictureUpdate The picture to insert.
-   * @return The inserted picture.
+   * @param mediaFileUpdate The media to insert.
+   * @return The inserted media.
    * @throws DatabaseOperationException If any data base error occurs.
    * @throws IllegalArgumentException   If the {@code tagsToRemove} property is not empty.
    */
-  public Picture insertPicture(@NotNull PictureUpdate pictureUpdate) throws DatabaseOperationException {
-    if (!pictureUpdate.tagsToRemove().isEmpty())
-      throw this.logThrownError(new IllegalArgumentException("Cannot remove tags from a picture that is not yet registered"));
+  public MediaFile insertMedia(@NotNull MediaFileUpdate mediaFileUpdate) throws DatabaseOperationException {
+    if (!mediaFileUpdate.tagsToRemove().isEmpty())
+      throw this.logThrownError(new IllegalArgumentException("Cannot remove tags from a media that is not yet registered"));
 
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
     final int newId;
-    try (final var statement = this.connection.prepareStatement(INSERT_IMAGE_QUERY, Statement.RETURN_GENERATED_KEYS)) {
-      statement.setString(1, pictureUpdate.path().toString());
-      if (pictureUpdate.hash().isPresent())
-        statement.setLong(2, pictureUpdate.hash().get().bytes());
+    try (final var statement = this.connection.prepareStatement(INSERT_MEDIA_QUERY, Statement.RETURN_GENERATED_KEYS)) {
+      statement.setString(1, mediaFileUpdate.path().toString());
+      if (mediaFileUpdate.hash().isPresent())
+        statement.setLong(2, mediaFileUpdate.hash().get().bytes());
       else
         statement.setNull(2, Types.INTEGER);
       statement.executeUpdate();
@@ -950,7 +950,7 @@ public final class DatabaseConnection implements AutoCloseable {
       if (id.isEmpty())
         throw this.logThrownError(new SQLException("Query did not generate any key"));
       newId = id.get();
-      result = this.updatePictureTagsNoCommit(pictureUpdate.withId(newId));
+      result = this.updateMediaTagsNoCommit(mediaFileUpdate.withId(newId));
     } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
@@ -961,20 +961,20 @@ public final class DatabaseConnection implements AutoCloseable {
     this.commit();
     this.updateTagsCache(result.getKey(), result.getValue());
 
-    try (final var statement = this.connection.prepareStatement(IMAGE_WITH_ID_QUERY)) {
+    try (final var statement = this.connection.prepareStatement(MEDIA_WITH_ID_QUERY)) {
       statement.setInt(1, newId);
       try (final var resultSet = statement.executeQuery()) {
         resultSet.next();
-        return newPicture(resultSet);
+        return newMediaFile(resultSet);
       }
     } catch (final SQLException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
   }
 
-  private static Picture newPicture(final @NotNull ResultSet resultSet) throws SQLException {
+  private static MediaFile newMediaFile(final @NotNull ResultSet resultSet) throws SQLException {
     final boolean hashIsNull = resultSet.getString("hash") == null;
-    return new Picture(
+    return new MediaFile(
         resultSet.getInt("id"),
         Path.of(resultSet.getString("path")),
         hashIsNull ? null : new Hash(resultSet.getLong("hash"))
@@ -982,34 +982,34 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
-  private static final String UPDATE_IMAGE_QUERY = """
+  private static final String UPDATE_MEDIA_QUERY = """
       UPDATE images
       SET path = ?1, hash = ?2
       WHERE id = ?3
       """;
 
   /**
-   * Update the given picture’s hash and tags.
+   * Update the given media’s hash and tags.
    * <p>
    * <strong>Updating the path will not move or rename the associated file.</strong>
-   * To move or rename a picture, see {@link #moveOrRenamePicture(Picture, Path, boolean)}.
-   * To merge two pictures, see {@link #mergePictures(Picture, Picture, boolean)}.
+   * To move or rename a media, see {@link #moveOrRenameMedia(MediaFile, Path, boolean)}.
+   * To merge two medias, see {@link #mergeMedias(MediaFile, MediaFile, boolean)}.
    *
-   * @param pictureUpdate The picture to update.
+   * @param mediaFileUpdate The media to update.
    * @throws DatabaseOperationException If any data base error occurs.
    */
-  public void updatePicture(@NotNull PictureUpdate pictureUpdate) throws DatabaseOperationException {
-    this.ensureInDatabase(pictureUpdate);
+  public void updateMedia(@NotNull MediaFileUpdate mediaFileUpdate) throws DatabaseOperationException {
+    this.ensureInDatabase(mediaFileUpdate);
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
-    try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_QUERY)) {
-      statement.setString(1, pictureUpdate.path().toString());
-      if (pictureUpdate.hash().isPresent())
-        statement.setLong(2, pictureUpdate.hash().get().bytes());
+    try (final var statement = this.connection.prepareStatement(UPDATE_MEDIA_QUERY)) {
+      statement.setString(1, mediaFileUpdate.path().toString());
+      if (mediaFileUpdate.hash().isPresent())
+        statement.setLong(2, mediaFileUpdate.hash().get().bytes());
       else
         statement.setNull(2, Types.INTEGER);
-      statement.setInt(3, pictureUpdate.id());
+      statement.setInt(3, mediaFileUpdate.id());
       statement.executeUpdate();
-      result = this.updatePictureTagsNoCommit(pictureUpdate);
+      result = this.updateMediaTagsNoCommit(mediaFileUpdate);
     } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
@@ -1022,45 +1022,45 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
-  private static final String UPDATE_IMAGE_PATH_QUERY = """
+  private static final String UPDATE_MEDIA_PATH_QUERY = """
       UPDATE images
       SET path = ?1
       WHERE id = ?2
       """;
 
   /**
-   * Move/rename the given picture. If the underlying file does not exist,
-   * the picture’s path still gets updated in the database.
+   * Move/rename the given media. If the underlying file does not exist,
+   * the media’s path still gets updated in the database.
    *
-   * @param picture              The picture to move/rename.
+   * @param mediaFile            The media to move/rename.
    * @param newPath              The destination path.
    * @param overwriteDestination Indicate whether to overwrite any pre-existing file with the same name as the target.
    * @return True if the file was moved or renamed, false otherwise.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  public boolean moveOrRenamePicture(@NotNull Picture picture, @NotNull Path newPath, boolean overwriteDestination)
+  public boolean moveOrRenameMedia(@NotNull MediaFile mediaFile, @NotNull Path newPath, boolean overwriteDestination)
       throws DatabaseOperationException {
-    this.ensureInDatabase(picture);
+    this.ensureInDatabase(mediaFile);
 
-    if (picture.path().equals(newPath))
+    if (mediaFile.path().equals(newPath))
       return false;
     try {
-      if (!overwriteDestination && Files.exists(picture.path()) && Files.exists(newPath))
+      if (!overwriteDestination && Files.exists(mediaFile.path()) && Files.exists(newPath))
         throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.FILE_ALREADY_EXISTS_ERROR));
     } catch (final SecurityException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e)));
     }
 
     try {
-      Files.move(picture.path(), newPath);
+      Files.move(mediaFile.path(), newPath);
     } catch (final NoSuchFileException ignored) {
     } catch (final IOException | SecurityException e) {
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
 
-    try (final var statement = this.connection.prepareStatement(UPDATE_IMAGE_PATH_QUERY)) {
+    try (final var statement = this.connection.prepareStatement(UPDATE_MEDIA_PATH_QUERY)) {
       statement.setString(1, newPath.toString());
-      statement.setInt(2, picture.id());
+      statement.setInt(2, mediaFile.id());
       statement.executeUpdate();
     } catch (final SQLException e) {
       this.rollback();
@@ -1074,13 +1074,13 @@ public final class DatabaseConnection implements AutoCloseable {
    * Merge the tags of {@code source} into those of {@code destination},
    * deleting {@code source} from the database and optionaly from the disk.
    *
-   * @param source         The picture whose tags ought to be merged into those of {@code destination}.
-   * @param destination    The picture which should receive the tags of {@code source}.
+   * @param source         The media whose tags ought to be merged into those of {@code destination}.
+   * @param destination    The media which should receive the tags of {@code source}.
    * @param deleteFromDisk Whether {@code source} should be deleted from the disk.
    * @throws DatabaseOperationException If any database error occurs.
-   * @throws IllegalArgumentException   If the two pictures have the same ID and/or path.
+   * @throws IllegalArgumentException   If the two medias have the same ID and/or path.
    */
-  public void mergePictures(@NotNull Picture source, @NotNull Picture destination, boolean deleteFromDisk)
+  public void mergeMedias(@NotNull MediaFile source, @NotNull MediaFile destination, boolean deleteFromDisk)
       throws DatabaseOperationException {
     this.ensureInDatabase(source);
     this.ensureInDatabase(destination);
@@ -1089,29 +1089,29 @@ public final class DatabaseConnection implements AutoCloseable {
     if (source.path().equals(destination.path()))
       throw this.logThrownError(new IllegalArgumentException("Both pictures have the same path"));
 
-    final var sourceTags = this.getImageTags(source).stream()
+    final var sourceTags = this.getMediaTags(source).stream()
         .map(t -> new ParsedTag(t.type(), t.label()))
         .collect(Collectors.toSet());
     final Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> result;
     try {
-      // Add tags of picture1 to picture2
-      result = this.updatePictureTagsNoCommit(new PictureUpdate(destination.id(), destination.path(), destination.hash(), sourceTags, Set.of()));
+      // Add tags of source to destination
+      result = this.updateMediaTagsNoCommit(new MediaFileUpdate(destination.id(), destination.path(), destination.hash(), sourceTags, Set.of()));
     } catch (final SQLException e) {
       this.rollback();
       throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
     }
     this.commit();
     this.updateTagsCache(result.getKey(), result.getValue());
-    this.deletePicture(source, deleteFromDisk);
+    this.deleteMedia(source, deleteFromDisk);
   }
 
   /**
    * Update the tags cache and counts.
    *
-   * @param addedTags   The set of tags that were added to an image.
+   * @param addedTags   The set of tags that were added to a media.
    *                    A boolean value of true indicates that the tag was created,
    *                    false indicates that it already existed.
-   * @param removedTags The set of tags that were removed from an image.
+   * @param removedTags The set of tags that were removed from a media.
    */
   private void updateTagsCache(final @NotNull Set<Pair<Tag, Boolean>> addedTags, final @NotNull Set<Tag> removedTags) {
     for (final var addedTag : addedTags) {
@@ -1137,30 +1137,30 @@ public final class DatabaseConnection implements AutoCloseable {
       WHERE label = ?
       """;
   @SQLite
-  private static final String REMOVE_TAG_FROM_IMAGE_QUERY = """
+  private static final String REMOVE_TAG_FROM_MEDIA_QUERY = """
       DELETE FROM image_tag
       WHERE image_id = ?1
         AND tag_id = ?2
       """;
 
   /**
-   * Update the tags of the given image. This method does not perform any kind of transaction managment,
+   * Update the tags of the given media. This method does not perform any kind of transaction managment,
    * it is the responsablity of the caller to do so.
    *
-   * @param pictureUpdate The image to update.
-   * @return A pair containing the set of tags that were added to the image
+   * @param mediaFileUpdate The media to update.
+   * @return A pair containing the set of tags that were added to the media
    * and the set of those that were removed from it. In the left set,
    * a boolean value of true indicates that the tag was created,
    * false indicates that it already existed.
    * @throws SQLException               If any database error occurs.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  private Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> updatePictureTagsNoCommit(@NotNull PictureUpdate pictureUpdate)
+  private Pair<Set<Pair<Tag, Boolean>>, Set<Tag>> updateMediaTagsNoCommit(@NotNull MediaFileUpdate mediaFileUpdate)
       throws SQLException, DatabaseOperationException {
     // Insert tags
     final Set<Pair<Tag, Boolean>> addedTags = new HashSet<>();
     final List<TagUpdate> toInsert = new LinkedList<>();
-    for (final var tagUpdate : pictureUpdate.tagsToAdd()) {
+    for (final var tagUpdate : mediaFileUpdate.tagsToAdd()) {
       final Optional<TagType> tagType = tagUpdate.tagType();
       if (tagType.isPresent())
         this.ensureInDatabase(tagType.get());
@@ -1170,8 +1170,8 @@ public final class DatabaseConnection implements AutoCloseable {
         final Tag tag = tagOpt.get();
         if (tag.definition().isPresent())
           throw this.logThrownError(new DatabaseOperationException(DatabaseErrorCode.BOUND_TAG_HAS_DEFINITION));
-        if (!this.imageHasTag(pictureUpdate.id(), tag.id())) {
-          this.addTagToImageNoCommit(pictureUpdate.id(), tag.id());
+        if (!this.mediaHasTag(mediaFileUpdate.id(), tag.id())) {
+          this.addTagToMediaNoCommit(mediaFileUpdate.id(), tag.id());
           addedTags.add(new Pair<>(this.tagsCache.get(tag.id()), false));
         }
       } else
@@ -1181,9 +1181,9 @@ public final class DatabaseConnection implements AutoCloseable {
 
     // Remove tags
     final Set<Tag> removedTags = new HashSet<>();
-    try (final var statement = this.connection.prepareStatement(REMOVE_TAG_FROM_IMAGE_QUERY)) {
-      statement.setInt(1, pictureUpdate.id());
-      for (final var toRemove : pictureUpdate.tagsToRemove()) {
+    try (final var statement = this.connection.prepareStatement(REMOVE_TAG_FROM_MEDIA_QUERY)) {
+      statement.setInt(1, mediaFileUpdate.id());
+      for (final var toRemove : mediaFileUpdate.tagsToRemove()) {
         final int tagId = toRemove.id();
         this.ensureInDatabase(toRemove);
         statement.setInt(2, tagId);
@@ -1195,14 +1195,14 @@ public final class DatabaseConnection implements AutoCloseable {
     for (int i = 0, generatedIdsSize = generatedIds.size(); i < generatedIdsSize; i++) {
       final var generatedId = generatedIds.get(i);
       final var tagUpdate = toInsert.get(i);
-      this.addTagToImageNoCommit(pictureUpdate.id(), generatedId);
+      this.addTagToMediaNoCommit(mediaFileUpdate.id(), generatedId);
       addedTags.add(new Pair<>(new Tag(generatedId, tagUpdate.label(), tagUpdate.type().orElse(null), null), true));
     }
     return new Pair<>(addedTags, removedTags);
   }
 
   @SQLite
-  private static final String SELECT_IMAGE_TAG_QUERY = """
+  private static final String SELECT_MEDIA_TAG_QUERY = """
       SELECT COUNT(*)
       FROM image_tag
       WHERE image_id = ?1
@@ -1210,16 +1210,16 @@ public final class DatabaseConnection implements AutoCloseable {
       """;
 
   /**
-   * Check whether a picture has a specific tag.
+   * Check whether a media has a specific tag.
    *
-   * @param pictureId The picture’s ID.
-   * @param tagId     The tag’s ID.
-   * @return True if the picture has the tag, false otherwise.
+   * @param mediaId The media’s ID.
+   * @param tagId   The tag’s ID.
+   * @return True if the media has the tag, false otherwise.
    * @throws SQLException If any database error occurs.
    */
-  private boolean imageHasTag(int pictureId, int tagId) throws SQLException {
-    try (final var statement = this.connection.prepareStatement(SELECT_IMAGE_TAG_QUERY)) {
-      statement.setInt(1, pictureId);
+  private boolean mediaHasTag(int mediaId, int tagId) throws SQLException {
+    try (final var statement = this.connection.prepareStatement(SELECT_MEDIA_TAG_QUERY)) {
+      statement.setInt(1, mediaId);
       statement.setInt(2, tagId);
       try (final var resultSet = statement.executeQuery()) {
         return resultSet.next() && resultSet.getInt(1) != 0;
@@ -1250,56 +1250,56 @@ public final class DatabaseConnection implements AutoCloseable {
   }
 
   @SQLite
-  private static final String ADD_TAG_TO_IMAGE_QUERY = """
+  private static final String ADD_TAG_TO_MEDIA_QUERY = """
       INSERT INTO image_tag (image_id, tag_id)
       VALUES (?, ?)
       """;
 
   /**
-   * Add a tag to an image. This method does not perform any kind of transaction managment,
+   * Add a tag to a media. This method does not perform any kind of transaction managment,
    * it is the responsablity of the caller to do so.
    *
-   * @param imageId The ID of the image to add the tag to.
+   * @param mediaId The ID of the media to add the tag to.
    * @param tagId   The ID of the tag to add.
    * @throws SQLException If any database error occurs.
    */
-  private void addTagToImageNoCommit(int imageId, int tagId) throws SQLException {
-    try (final var statement1 = this.connection.prepareStatement(ADD_TAG_TO_IMAGE_QUERY)) {
-      statement1.setInt(1, imageId);
+  private void addTagToMediaNoCommit(int mediaId, int tagId) throws SQLException {
+    try (final var statement1 = this.connection.prepareStatement(ADD_TAG_TO_MEDIA_QUERY)) {
+      statement1.setInt(1, mediaId);
       statement1.setInt(2, tagId);
       statement1.executeUpdate();
     }
   }
 
   @SQLite
-  private static final String DELETE_IMAGE_QUERY = """
+  private static final String DELETE_MEDIA_QUERY = """
       DELETE FROM images
       WHERE id = ?
       """;
 
   /**
-   * Delete the given picture from the database.
+   * Delete the given media from the database.
    * If the file cannot be deleted, the associated database entry will not be deleted.
    * If the file does not exist, the database entry still gets deleted.
    *
-   * @param picture  The picture to delete.
-   * @param fromDisk If true, the associated files will be deleted from the disk.
+   * @param mediaFile The media to delete.
+   * @param fromDisk  If true, the associated files will be deleted from the disk.
    * @throws DatabaseOperationException If any database or file system error occurs.
    */
-  public void deletePicture(final @NotNull Picture picture, boolean fromDisk) throws DatabaseOperationException {
-    this.ensureInDatabase(picture);
+  public void deleteMedia(final @NotNull MediaFile mediaFile, boolean fromDisk) throws DatabaseOperationException {
+    this.ensureInDatabase(mediaFile);
     if (fromDisk) {
       try {
-        Files.delete(picture.path());
+        Files.delete(mediaFile.path());
       } catch (final NoSuchFileException ignored) {
       } catch (final IOException | SecurityException e) {
         throw this.logThrownError(new DatabaseOperationException(getErrorCode(e), e));
       }
     }
 
-    final Set<Tag> imageTags = this.getImageTags(picture);
-    try (final var statement = this.connection.prepareStatement(DELETE_IMAGE_QUERY)) {
-      statement.setInt(1, picture.id());
+    final Set<Tag> mediaTags = this.getMediaTags(mediaFile);
+    try (final var statement = this.connection.prepareStatement(DELETE_MEDIA_QUERY)) {
+      statement.setInt(1, mediaFile.id());
       statement.executeUpdate();
     } catch (final SQLException e) {
       this.rollback();
@@ -1308,7 +1308,7 @@ public final class DatabaseConnection implements AutoCloseable {
     this.commit();
 
     // Update tag counts
-    imageTags.forEach(imageTag -> this.tagsCounts.put(imageTag.id(), this.tagsCounts.get(imageTag.id()) - 1));
+    mediaTags.forEach(mediaTag -> this.tagsCounts.put(mediaTag.id(), this.tagsCounts.get(mediaTag.id()) - 1));
   }
 
   @SQLite
@@ -1535,13 +1535,12 @@ public final class DatabaseConnection implements AutoCloseable {
    * @throws DatabaseOperationException If the object is not in the database or any database error occurs.
    */
   private void ensureInDatabase(final @NotNull DatabaseElement element) throws DatabaseOperationException {
-    @Language(value = "sqlite", prefix = "SELECT * FROM ", suffix = " WHERE 1")
-    final String tableName;
+    @Language(value = "sqlite", prefix = "SELECT * FROM ", suffix = " WHERE 1") final String tableName;
     if (element instanceof TagTypeLike)
       tableName = "tag_types";
     else if (element instanceof TagLike)
       tableName = "tags";
-    else if (element instanceof PictureLike)
+    else if (element instanceof MediaLike)
       tableName = "images";
     else
       throw this.logThrownError(new IllegalArgumentException("Unsupported type: " + element.getClass().getName()));
@@ -1615,8 +1614,7 @@ public final class DatabaseConnection implements AutoCloseable {
          final var countStatement = this.connection.prepareStatement("SELECT COUNT(*) FROM image_tag WHERE tag_id = ?")) {
       while (resultSet.next()) {
         final int id = resultSet.getInt("id");
-        @Nullable
-        final TagType tagType = this.tagTypesCache.get(resultSet.getInt("type_id"));
+        @Nullable final TagType tagType = this.tagTypesCache.get(resultSet.getInt("type_id"));
         this.tagsCache.put(id, new Tag(
             id,
             resultSet.getString("label"),
@@ -1810,7 +1808,7 @@ public final class DatabaseConnection implements AutoCloseable {
       final var tags = db.getAllTags().stream()
           .collect(Collectors.toMap(Tag::label, Function.identity()));
 
-      if (!convertImages(progressManager, conn, db, tags, oldTagIds)) {
+      if (!convertMedias(progressManager, conn, db, tags, oldTagIds)) {
         App.logger().info("Conversion cancelled.");
         deleteConvertedFile(outputPath);
         return Optional.empty();
@@ -1885,7 +1883,7 @@ public final class DatabaseConnection implements AutoCloseable {
     return true;
   }
 
-  private static boolean convertImages(
+  private static boolean convertMedias(
       @NotNull ProgressManager progressManager,
       @NotNull Connection connection,
       @NotNull DatabaseConnection db,
@@ -1905,17 +1903,17 @@ public final class DatabaseConnection implements AutoCloseable {
         final Path path = Path.of(resultSet.getString("path"));
         final Optional<Hash> hash = Hash.computeForFile(path);
         // Fetch associated tags
-        final Set<ParsedTag> imageTags = new HashSet<>();
+        final Set<ParsedTag> mediaTags = new HashSet<>();
         tagsStatement.setInt(1, id);
         try (final var tagsResultSet = tagsStatement.executeQuery()) {
           while (tagsResultSet.next()) {
             if (progressManager.isCancelled())
               return false;
             final Tag tag = tags.get(oldTagIds.get(tagsResultSet.getInt("tag_id")));
-            imageTags.add(new ParsedTag(tag.type(), tag.label()));
+            mediaTags.add(new ParsedTag(tag.type(), tag.label()));
           }
         }
-        db.insertPicture(new PictureUpdate(0, path.toAbsolutePath(), hash, imageTags, Set.of()));
+        db.insertMedia(new MediaFileUpdate(0, path.toAbsolutePath(), hash, mediaTags, Set.of()));
         counter++;
         notifyProgress(progressManager, "progress.converting_python_db.images", total, counter);
       }

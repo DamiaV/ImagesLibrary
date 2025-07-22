@@ -19,9 +19,9 @@ import java.nio.file.*;
 import java.util.*;
 
 /**
- * This dialog allows moving several images at once.
+ * This dialog allows moving several media files at once.
  */
-public class MovePicturesDialog extends DialogBase<Boolean> {
+public class MoveMediaFilesDialog extends DialogBase<Boolean> {
   private final Label warningLabel = new Label();
   private final Label destDirLabel = new Label();
   private final CheckBox deleteEmptyDirsCheckBox = new CheckBox();
@@ -32,7 +32,7 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
   private final ProgressDialog progressDialog;
 
   private final DatabaseConnection db;
-  private final List<Picture> pictures = new LinkedList<>();
+  private final List<MediaFile> mediaFiles = new LinkedList<>();
   private final ObjectProperty<Path> destDir = new SimpleObjectProperty<>();
   private boolean anyUpdate;
 
@@ -42,7 +42,7 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
    * @param config The app’s config.
    * @param db     The database.
    */
-  public MovePicturesDialog(final @NotNull Config config, @NotNull DatabaseConnection db) {
+  public MoveMediaFilesDialog(final @NotNull Config config, @NotNull DatabaseConnection db) {
     super(config, "move_pictures", true, ButtonTypes.CLOSE, ButtonTypes.APPLY);
     this.db = Objects.requireNonNull(db);
 
@@ -96,18 +96,18 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
   }
 
   /**
-   * Set the pictures to move.
+   * Set the medias to move.
    *
-   * @param pictures The pictures.
+   * @param mediaFiles The medias.
    */
-  public void setPictures(final @NotNull Collection<Picture> pictures) {
-    this.pictures.clear();
-    this.pictures.addAll(pictures);
+  public void setMedias(final @NotNull Collection<MediaFile> mediaFiles) {
+    this.mediaFiles.clear();
+    this.mediaFiles.addAll(mediaFiles);
     this.errorsListView.getItems().clear();
     final Set<String> names = new HashSet<>();
     boolean showWarning = false;
-    for (final Picture picture : pictures) {
-      final String fileName = picture.path().getFileName().toString();
+    for (final MediaFile mediaFile : mediaFiles) {
+      final String fileName = mediaFile.path().getFileName().toString();
       if (names.contains(fileName)) {
         showWarning = true;
         break;
@@ -135,35 +135,35 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
     this.disableInteractions();
     final boolean overwriteTarget = this.overwriteTargetFilesCheckBox.isSelected();
     new Thread(() -> {
-      final List<Picture> errors = new LinkedList<>();
-      final int total = this.pictures.size();
+      final List<MediaFile> errors = new LinkedList<>();
+      final int total = this.mediaFiles.size();
       int counter = 0;
       this.notifyProgress(total, counter);
-      for (final Picture picture : this.pictures) {
+      for (final MediaFile mediaFile : this.mediaFiles) {
         if (this.progressDialog.isCancelled()) {
           App.logger().info("File moving cancelled.");
           Platform.runLater(this::restoreInteractions);
           return;
         }
-        final Path newPath = this.destDir.get().resolve(picture.path().getFileName());
+        final Path newPath = this.destDir.get().resolve(mediaFile.path().getFileName());
         try {
-          this.db.moveOrRenamePicture(picture, newPath, overwriteTarget);
+          this.db.moveOrRenameMedia(mediaFile, newPath, overwriteTarget);
         } catch (final DatabaseOperationException e) {
-          errors.add(picture);
+          errors.add(mediaFile);
         }
         counter++;
         this.notifyProgress(total, counter);
       }
 
       Platform.runLater(() -> this.onMoveDone(errors));
-    }, "Pictures Mover Thread").start();
+    }, "Media Files Mover Thread").start();
   }
 
   private void notifyProgress(int total, int counter) {
     Platform.runLater(() -> this.progressDialog.notifyProgress("progress.moving_files", total, counter));
   }
 
-  private void onMoveDone(final @NotNull List<Picture> errors) {
+  private void onMoveDone(final @NotNull List<MediaFile> errors) {
     this.progressDialog.hide();
     if (!errors.isEmpty()) {
       Alerts.warning(this.config, "alert.file_moving_errors.header", null, null);
@@ -175,11 +175,11 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
 
     final Set<Path> paths = new HashSet<>();
     if (this.deleteEmptyDirsCheckBox.isSelected())
-      // Go through the direct parent folder of each moved picture and delete any that are empty
-      for (final Picture picture : this.pictures) {
-        if (errors.contains(picture))
+      // Go through the direct parent folder of each moved file and delete any that are empty
+      for (final MediaFile mediaFile : this.mediaFiles) {
+        if (errors.contains(mediaFile))
           continue;
-        final Path directory = picture.path().getParent();
+        final Path directory = mediaFile.path().getParent();
         if (!paths.contains(directory)) {
           paths.add(directory);
           if (Files.isDirectory(directory))
@@ -191,12 +191,12 @@ public class MovePicturesDialog extends DialogBase<Boolean> {
             }
         }
       }
-    this.pictures.retainAll(errors);
+    this.mediaFiles.retainAll(errors);
     this.anyUpdate = true;
     this.restoreInteractions();
   }
 
   private void updateButtons() {
-    this.applyButton.setDisable(this.destDir.get() == null || this.pictures.isEmpty());
+    this.applyButton.setDisable(this.destDir.get() == null || this.mediaFiles.isEmpty());
   }
 }

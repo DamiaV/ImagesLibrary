@@ -8,14 +8,14 @@ import java.util.*;
  * Enumeration of all icons used throughout the app.
  */
 public enum Icon {
-  IMPORT_IMAGES("folder_picture"),
+  IMPORT_MEDIA_FILES("folder_picture"),
   IMPORT_DIRECTORIES("folder"),
   SETTINGS("cog"),
   QUIT("door_in"),
-  EDIT_IMAGES("picture_edit"),
-  MOVE_IMAGES("picture_go"),
-  MERGE_IMAGES_TAGS("two_pictures"),
-  DELETE_IMAGES("picture_delete"),
+  EDIT_MEDIA_FILES("picture_edit"),
+  MOVE_MEDIAS("picture_go"),
+  MERGE_MEDIA_FILES_TAGS("two_pictures"),
+  DELETE_MEDIA_FILES("picture_delete"),
   EDIT_TAG("tag_blue_edit"),
   DELETE_TAGS("tag_blue_delete"),
   CREATE_TAG("tag_blue_add"),

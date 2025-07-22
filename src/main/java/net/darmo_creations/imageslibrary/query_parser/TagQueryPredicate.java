@@ -6,19 +6,19 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * Represents a predicate (boolean-valued function) of two arguments, a {@link Picture} and its tags.
+ * Represents a predicate (boolean-valued function) of two arguments, a {@link MediaFile} and its tags.
  */
 @FunctionalInterface
 public interface TagQueryPredicate {
   /**
    * Evaluates this predicate on the given arguments.
    *
-   * @param picture A {@link Picture}.
-   * @param tags    The picture’s tags.
-   * @param db      The database to get data from.
+   * @param mediaFile A {@link MediaFile}.
+   * @param tags      The media’s tags.
+   * @param db        The database to get data from.
    * @return True if the input arguments match the predicate, otherwise false.
    */
-  boolean test(@NotNull Picture picture, final @NotNull Set<Tag> tags, final @NotNull DatabaseConnection db);
+  boolean test(@NotNull MediaFile mediaFile, final @NotNull Set<Tag> tags, final @NotNull DatabaseConnection db);
 
   /**
    * Returns a composed predicate that represents a short-circuiting logical
@@ -37,7 +37,7 @@ public interface TagQueryPredicate {
    */
   default TagQueryPredicate and(@NotNull TagQueryPredicate other) {
     Objects.requireNonNull(other);
-    return (picture, tags, db) -> this.test(picture, tags, db) && other.test(picture, tags, db);
+    return (mediaFile, tags, db) -> this.test(mediaFile, tags, db) && other.test(mediaFile, tags, db);
   }
 
   /**
@@ -46,7 +46,7 @@ public interface TagQueryPredicate {
    * @return A predicate that represents the logical negation of this predicate
    */
   default TagQueryPredicate negate() {
-    return (picture, tags, db) -> !this.test(picture, tags, db);
+    return (mediaFile, tags, db) -> !this.test(mediaFile, tags, db);
   }
 
   /**
@@ -66,6 +66,6 @@ public interface TagQueryPredicate {
    */
   default TagQueryPredicate or(@NotNull TagQueryPredicate other) {
     Objects.requireNonNull(other);
-    return (picture, tags, db) -> this.test(picture, tags, db) || other.test(picture, tags, db);
+    return (mediaFile, tags, db) -> this.test(mediaFile, tags, db) || other.test(mediaFile, tags, db);
   }
 }

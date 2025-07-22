@@ -35,14 +35,14 @@ public final class FileChoosers {
   }
 
   /**
-   * Open a dialog to choose image/video files.
+   * Open a dialog to choose media files.
    *
    * @param config The app’s config.
    * @param stage  The parent stage object.
    * @return The selected file.
    */
   @Unmodifiable
-  public static List<Path> showImagesFileChooser(
+  public static List<Path> showMediaFilesChooser(
       final @NotNull Config config,
       final @NotNull Window stage
   ) {

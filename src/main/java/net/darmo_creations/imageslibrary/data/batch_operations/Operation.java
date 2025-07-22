@@ -8,9 +8,9 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * This class represents an operation that can be applied to a {@link Picture}.
+ * This class represents an operation that can be applied to a {@link MediaFile}.
  * <p>
- * {@link Operation}s may feature a {@link Condition} that restricts which {@link Picture}s it should be applied to.
+ * {@link Operation}s may feature a {@link Condition} that restricts which {@link MediaFile}s it should be applied to.
  */
 public abstract sealed class Operation implements StringSerializable
     permits UpdateTagsOperation, MoveOperation, DeleteOperation, RecomputeHashOperation, TransformPathOperation {
@@ -19,46 +19,46 @@ public abstract sealed class Operation implements StringSerializable
   /**
    * Create a new operation.
    *
-   * @param condition An optional condition to restrict which pictures this operation may be applied to.
-   *                  If null, all pictures will be eligible.
+   * @param condition An optional condition to restrict which medias this operation may be applied to.
+   *                  If null, all medias will be eligible.
    */
   protected Operation(Condition condition) {
     this.condition = condition;
   }
 
   /**
-   * Apply this operation to the given picture.
+   * Apply this operation to the given media.
    * <p>
-   * If the passed condition evaluates to false on the given picture, no operation will be applied.
+   * If the passed condition evaluates to false on the given media, no operation will be applied.
    *
-   * @param picture The picture to apply this operation to.
-   * @param db      A database to apply changes to.
-   * @param config  The app’s config.
-   * @return A pair containing a boolean indicating whether this operation was applied to the given picture or not,
-   * and a {@link Picture} object containing the updated data of the passed picture.
+   * @param mediaFile The media to apply this operation to.
+   * @param db        A database to apply changes to.
+   * @param config    The app’s config.
+   * @return A pair containing a boolean indicating whether this operation was applied to the given media or not,
+   * and a {@link MediaFile} object containing the updated data of the passed media.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  public final Pair<Boolean, Picture> apply(@NotNull Picture picture, @NotNull DatabaseConnection db, @NotNull Config config)
+  public final Pair<Boolean, MediaFile> apply(@NotNull MediaFile mediaFile, @NotNull DatabaseConnection db, @NotNull Config config)
       throws DatabaseOperationException {
-    boolean apply = this.condition == null || this.condition.test(picture, db, config);
+    boolean apply = this.condition == null || this.condition.test(mediaFile, db, config);
     if (apply) {
-      final var result = this.execute(picture, db);
+      final var result = this.execute(mediaFile, db);
       apply = result.getKey();
-      picture = result.getValue();
+      mediaFile = result.getValue();
     }
-    return new Pair<>(apply, picture);
+    return new Pair<>(apply, mediaFile);
   }
 
   /**
-   * Apply this operation to the given picture.
+   * Apply this operation to the given media.
    *
-   * @param picture The picture to apply this operation to.
-   * @param db      A database to apply changes to.
-   * @return A pair containing a boolean indicating whether this operation was applied to the given picture or not,
-   * and a {@link Picture} object containing the updated data of the passed picture.
+   * @param mediaFile The media to apply this operation to.
+   * @param db        A database to apply changes to.
+   * @return A pair containing a boolean indicating whether this operation was applied to the given media or not,
+   * and a {@link MediaFile} object containing the updated data of the passed media.
    * @throws DatabaseOperationException If any database error occurs.
    */
-  protected abstract Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+  protected abstract Pair<Boolean, MediaFile> execute(@NotNull MediaFile mediaFile, @NotNull DatabaseConnection db)
       throws DatabaseOperationException;
 
   /**

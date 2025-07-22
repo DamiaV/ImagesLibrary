@@ -5,7 +5,7 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * This class represents an tag. Tags can be associated to images, unless their {@link #definition()} is not null.
+ * This class represents an tag. Tags can be associated to medias, unless their {@link #definition()} is not null.
  */
 public final class Tag extends DatabaseObject implements TagLike {
   private String label;

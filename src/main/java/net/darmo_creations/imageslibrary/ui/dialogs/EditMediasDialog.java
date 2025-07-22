@@ -24,9 +24,9 @@ import java.util.function.*;
 import java.util.stream.*;
 
 /**
- * Dialog to create/edit images.
+ * Dialog to create/edit medias.
  */
-public class EditImagesDialog extends DialogBase<Boolean> {
+public class EditMediasDialog extends DialogBase<Boolean> {
   private final HBox mediaViewerBox;
   private final MediaViewer mediaViewer;
   private final TextField fileNameField = new TextField();
@@ -49,23 +49,23 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
   private final DatabaseConnection db;
 
-  private int totalPictures;
-  private final Queue<Picture> pictures = new LinkedList<>();
+  private int totalMedias;
+  private final Queue<MediaFile> mediaFiles = new LinkedList<>();
   @Nullable
   private Hash computedHash;
-  private final Set<Tag> currentPictureTags = new HashSet<>();
+  private final Set<Tag> currentMediaTags = new HashSet<>();
   private Path targetPath;
-  private Picture currentPicture;
+  private MediaFile currentMediaFile;
   private boolean insert;
   private boolean anyUpdate;
   private boolean preventClosing;
 
-  public EditImagesDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
+  public EditMediasDialog(@NotNull Config config, @NotNull DatabaseConnection db) {
     super(config, "edit_images", true, ButtonTypes.FINISH, ButtonTypes.SKIP, ButtonTypes.NEXT, ButtonTypes.CANCEL);
     this.db = Objects.requireNonNull(db);
 
     this.mediaViewer = new MediaViewer(config);
-    this.mediaViewer.setOnLoadedCallback(ignored -> this.updateImageViewSize());
+    this.mediaViewer.setOnLoadedCallback(ignored -> this.updateMediaViewerSize());
 
     this.similarImagesDialog = new SimilarImagesDialog(config, db);
     this.similarImagesDialog.addTagCopyListener(this::onCopyTags);
@@ -124,8 +124,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
     this.mediaViewerBox.setAlignment(Pos.CENTER);
     this.mediaViewerBox.setMinHeight(200);
-    this.mediaViewerBox.heightProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
-    this.stage().widthProperty().addListener((observable, oldValue, newValue) -> this.updateImageViewSize());
+    this.mediaViewerBox.heightProperty().addListener((observable, oldValue, newValue) -> this.updateMediaViewerSize());
+    this.stage().widthProperty().addListener((observable, oldValue, newValue) -> this.updateMediaViewerSize());
 
     this.fileNameField.textProperty().addListener((observable, oldValue, newValue) -> this.updateState());
     HBox.setHgrow(this.fileNameField, Priority.ALWAYS);
@@ -141,7 +141,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     this.viewSimilarImagesButton.setOnAction(event -> this.onViewSimilarAction());
 
     this.moveButton.setText(language.translate("dialog.edit_images.move_image"));
-    this.moveButton.setGraphic(this.config.theme().getIcon(Icon.MOVE_IMAGES, Icon.Size.SMALL));
+    this.moveButton.setGraphic(this.config.theme().getIcon(Icon.MOVE_MEDIAS, Icon.Size.SMALL));
     this.moveButton.setOnAction(event -> this.onMoveAction());
 
     this.showInExplorerButton.setText(language.translate("dialog.edit_images.show_in_explorer"));
@@ -226,8 +226,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   @Override
   protected List<FormatArg> getTitleFormatArgs() {
     return List.of(
-        new FormatArg("count", this.totalPictures - (this.pictures != null ? this.pictures.size() : 0)),
-        new FormatArg("total", this.totalPictures)
+        new FormatArg("count", this.totalMedias - (this.mediaFiles != null ? this.mediaFiles.size() : 0)),
+        new FormatArg("total", this.totalMedias)
     );
   }
 
@@ -246,29 +246,29 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   }
 
   /**
-   * Set the list of pictures to insert or edit.
-   * If inserting, this dialog will compute each picture’s hash.
+   * Set the list of medias to insert or edit.
+   * If inserting, this dialog will compute each media’s hash.
    *
-   * @param pictures The pictures to insert/edit.
-   * @param insert   If true the pictures will be inserted, otherwise they will be updated.
+   * @param mediaFiles The medias to insert/edit.
+   * @param insert     If true the medias will be inserted, otherwise they will be updated.
    */
-  public void setPictures(final @NotNull Collection<Picture> pictures, boolean insert) {
-    if (pictures.isEmpty())
-      throw new IllegalArgumentException("pictures must not be empty");
+  public void setMedias(final @NotNull Collection<MediaFile> mediaFiles, boolean insert) {
+    if (mediaFiles.isEmpty())
+      throw new IllegalArgumentException("mediaFiles must not be empty");
     this.insert = insert;
     this.name = insert ? "insert_images" : "edit_images";
     this.refreshTitle();
-    this.pictures.clear();
-    this.pictures.addAll(pictures);
-    this.totalPictures = pictures.size();
-    this.currentPictureTags.clear();
+    this.mediaFiles.clear();
+    this.mediaFiles.addAll(mediaFiles);
+    this.totalMedias = mediaFiles.size();
+    this.currentMediaTags.clear();
     this.tagsField.setText("");
     this.anyUpdate = false;
     this.clearTargetPath();
     this.nextMedia();
   }
 
-  private void updateImageViewSize() {
+  private void updateMediaViewerSize() {
     this.mediaViewer.updateSize(
         this.stage().getWidth() - 20,
         this.mediaViewerBox.getHeight() - 10
@@ -276,24 +276,24 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   }
 
   /**
-   * Pop the next picture from the queue and reset the edit form with the image’s data.
+   * Pop the next media from the queue and reset the edit form with the media’s data.
    */
   private void nextMedia() {
-    if (this.pictures.isEmpty())
+    if (this.mediaFiles.isEmpty())
       return;
-    this.currentPicture = this.pictures.poll();
-    if (!this.insert) // Get all tage from the new current picture
+    this.currentMediaFile = this.mediaFiles.poll();
+    if (!this.insert) // Get all tage from the new current media
       try {
-        this.currentPictureTags.clear();
-        this.currentPictureTags.addAll(this.db.getImageTags(this.currentPicture));
+        this.currentMediaTags.clear();
+        this.currentMediaTags.addAll(this.db.getMediaTags(this.currentMediaFile));
       } catch (final DatabaseOperationException e) {
         Alerts.error(this.config, "dialog.edit_images.tags_querying_error.header", null, null);
       }
-    this.mediaViewer.setMedia(this.currentPicture);
+    this.mediaViewer.setMedia(this.currentMediaFile);
 
     final var joiner = new StringJoiner(" ");
     if (!this.insert) {
-      this.currentPictureTags.stream()
+      this.currentMediaTags.stream()
           .map(Tag::label)
           .sorted()
           .forEach(joiner::add);
@@ -301,31 +301,31 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     } else
       this.tagsField.refreshHighlighting();
     this.updateState();
-    List<Pair<Picture, Float>> similarPictures = List.of();
-    final Optional<Hash> hash = this.currentPicture.hash()
+    List<Pair<MediaFile, Float>> similarImages = List.of();
+    final Optional<Hash> hash = this.currentMediaFile.hash()
         // Try to compute missing hash
         .or(() -> {
-          final Optional<Hash> h = Hash.computeForFile(this.currentPicture.path());
+          final Optional<Hash> h = Hash.computeForFile(this.currentMediaFile.path());
           this.computedHash = h.orElse(null);
           return h;
         });
     if (hash.isPresent())
       try {
-        similarPictures = this.db.getSimilarImages(hash.get(), this.currentPicture);
+        similarImages = this.db.getSimilarImages(hash.get(), this.currentMediaFile);
       } catch (final DatabaseOperationException e) {
-        App.logger().error("Error fetching similar pictures", e);
+        App.logger().error("Error fetching similar images", e);
       }
-    this.viewSimilarImagesButton.setDisable(similarPictures.isEmpty());
-    this.similarImagesDialog.setMedias(similarPictures);
+    this.viewSimilarImagesButton.setDisable(similarImages.isEmpty());
+    this.similarImagesDialog.setMedias(similarImages);
     this.refreshTitle();
   }
 
   private boolean applyChanges() {
-    final Optional<PictureUpdate> update = this.getPictureUpdate(true);
+    final Optional<MediaFileUpdate> update = this.getMediaFileUpdate(true);
     if (update.isPresent()) {
       if (this.insert)
         try {
-          this.currentPicture = this.db.insertPicture(update.get());
+          this.currentMediaFile = this.db.insertMedia(update.get());
           this.anyUpdate = true;
         } catch (final DatabaseOperationException e) {
           Alerts.databaseError(this.config, e.errorCode());
@@ -333,7 +333,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
         }
       else
         try {
-          this.db.updatePicture(update.get());
+          this.db.updateMedia(update.get());
           this.anyUpdate = true;
         } catch (final DatabaseOperationException e) {
           Alerts.databaseError(this.config, e.errorCode());
@@ -345,12 +345,12 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     final String name = Objects.requireNonNull(StringUtils.stripNullable(this.fileNameField.getText()).get());
     Path targetPath = this.targetPath;
     if (targetPath == null)
-      targetPath = this.currentPicture.path().getParent();
+      targetPath = this.currentMediaFile.path().getParent();
     targetPath = targetPath.resolve(name);
 
-    if (!targetPath.equals(this.currentPicture.path()))
+    if (!targetPath.equals(this.currentMediaFile.path()))
       try {
-        this.db.moveOrRenamePicture(this.currentPicture, targetPath, this.overwriteTargetCheckBox.isSelected());
+        this.db.moveOrRenameMedia(this.currentMediaFile, targetPath, this.overwriteTargetCheckBox.isSelected());
         this.anyUpdate = true;
       } catch (final DatabaseOperationException e) {
         Alerts.databaseError(this.config, e.errorCode());
@@ -360,7 +360,7 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     return true;
   }
 
-  private Optional<PictureUpdate> getPictureUpdate(boolean recomputeHash) {
+  private Optional<MediaFileUpdate> getMediaFileUpdate(boolean recomputeHash) {
     if (!this.areTagsValid)
       return Optional.empty();
 
@@ -372,10 +372,10 @@ public class EditImagesDialog extends DialogBase<Boolean> {
     }
     final var toAdd = parsedTags.stream()
         // Parsed tags that are not in the current tags
-        .filter(parsedTag -> this.currentPictureTags.stream().noneMatch(tag -> tag.label().equals(parsedTag.label())))
+        .filter(parsedTag -> this.currentMediaTags.stream().noneMatch(tag -> tag.label().equals(parsedTag.label())))
         .map(parsedTag -> new ParsedTag(parsedTag.tagType(), parsedTag.label()))
         .collect(Collectors.toSet());
-    final var toRemove = this.currentPictureTags.stream()
+    final var toRemove = this.currentMediaTags.stream()
         // Current tags that are not in the parsed tags
         .filter(tag -> parsedTags.stream().noneMatch(pair -> pair.label().equals(tag.label())))
         .collect(Collectors.toSet());
@@ -386,11 +386,11 @@ public class EditImagesDialog extends DialogBase<Boolean> {
 
     Optional<Hash> hash = Optional.ofNullable(this.computedHash);
     if (recomputeHash && hash.isEmpty())
-      hash = Hash.computeForFile(this.currentPicture.path());
+      hash = Hash.computeForFile(this.currentMediaFile.path());
 
-    return Optional.of(new PictureUpdate(
-        this.insert ? 0 : this.currentPicture.id(),
-        this.currentPicture.path(),
+    return Optional.of(new MediaFileUpdate(
+        this.insert ? 0 : this.currentMediaFile.id(),
+        this.currentMediaFile.path(),
         hash,
         toAdd,
         toRemove
@@ -414,8 +414,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
   }
 
   private void onOpenFileAction() {
-    if (this.currentPicture != null)
-      FileUtils.openInFileExplorer(this.currentPicture.path().toString());
+    if (this.currentMediaFile != null)
+      FileUtils.openInFileExplorer(this.currentMediaFile.path().toString());
   }
 
   private void clearTargetPath() {
@@ -430,8 +430,8 @@ public class EditImagesDialog extends DialogBase<Boolean> {
    * Update the state of this dialog’s buttons.
    */
   private void updateState() {
-    final boolean noneRemaining = this.pictures.isEmpty();
-    final boolean invalid = this.getPictureUpdate(false).isEmpty();
+    final boolean noneRemaining = this.mediaFiles.isEmpty();
+    final boolean invalid = this.getMediaFileUpdate(false).isEmpty();
     this.nextButton.setDisable(noneRemaining || invalid);
     this.skipButton.setDisable(noneRemaining);
     this.finishButton.setDisable(!noneRemaining || invalid);

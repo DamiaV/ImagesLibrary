@@ -6,29 +6,29 @@ import java.nio.file.*;
 import java.util.*;
 
 /**
- * This class represents a picture file. Pictures hold the path to a file on the disk and a dHash of this file.
- * The hash is used to check which pictures are similar.
+ * This class represents a media file. {@link MediaFile} objects hold the path to a file on the disk and a dHash of this file.
+ * The hash is used to check which images are similar.
  */
-public final class Picture extends DatabaseObject implements PictureLike {
+public final class MediaFile extends DatabaseObject implements MediaLike {
   private final Path path;
   @Nullable
   private final Hash hash;
 
   /**
-   * Create a new picture.
+   * Create a new media file.
    *
-   * @param id   The picture’s database ID.
-   * @param path The path to the picture’s file.
+   * @param id   The file’s database ID.
+   * @param path The path to the file.
    * @param hash The hash of the file.
    */
-  public Picture(int id, final @NotNull Path path, Hash hash) {
+  public MediaFile(int id, final @NotNull Path path, Hash hash) {
     super(id);
     this.path = path.toAbsolutePath();
     this.hash = hash;
   }
 
   /**
-   * The absolute path to this picture’s file.
+   * The absolute path to this media file.
    */
   @Override
   public Path path() {
@@ -36,7 +36,7 @@ public final class Picture extends DatabaseObject implements PictureLike {
   }
 
   /**
-   * The hash of this picture’s file.
+   * The hash of this media file. Only available for images.
    */
   @Override
   public Optional<Hash> hash() {
@@ -47,10 +47,10 @@ public final class Picture extends DatabaseObject implements PictureLike {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || this.getClass() != o.getClass()) return false;
-    final Picture picture = (Picture) o;
-    return this.id() == picture.id()
-           && Objects.equals(this.path, picture.path)
-           && Objects.equals(this.hash, picture.hash);
+    final MediaFile that = (MediaFile) o;
+    return this.id() == that.id()
+        && Objects.equals(this.path, that.path)
+        && Objects.equals(this.hash, that.hash);
   }
 
   @Override
@@ -60,7 +60,7 @@ public final class Picture extends DatabaseObject implements PictureLike {
 
   @Override
   public String toString() {
-    return "Picture{id=%d, path=%s, hash=%s}"
+    return "MediaFile{id=%d, path=%s, hash=%s}"
         .formatted(this.id(), this.path, this.hash);
   }
 }

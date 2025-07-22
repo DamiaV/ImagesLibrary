@@ -12,10 +12,10 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 import java.util.function.*;
 
-public class ImagePreviewPane extends SplitPane implements ClickableListCellFactory.ClickListener<TagView> {
+public class MediaPreviewPane extends SplitPane implements ClickableListCellFactory.ClickListener<TagView> {
   private final Set<TagClickListener> tagClickListeners = new HashSet<>();
   private final Set<EditTagsListener> editTagsListeners = new HashSet<>();
-  private final Set<Consumer<Picture>> similarImagesListeners = new HashSet<>();
+  private final Set<Consumer<MediaFile>> similarImagesListeners = new HashSet<>();
 
   private final Button openInExplorerButton = new Button();
   private final Button showSimilarImagesButton = new Button();
@@ -25,9 +25,9 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   private final ListView<TagView> tagsList = new ListView<>();
 
   @Nullable
-  private Picture picture;
+  private MediaFile mediaFile;
 
-  public ImagePreviewPane(final @NotNull Config config) {
+  public MediaPreviewPane(final @NotNull Config config) {
     this.setMinWidth(300);
 
     final Language language = config.language();
@@ -49,16 +49,16 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.mediaViewerBox.setAlignment(Pos.CENTER);
     this.mediaViewerBox.setMinHeight(200);
     this.mediaViewerBox.heightProperty().addListener(
-        (observable, oldValue, newValue) -> this.updateImageViewSize());
+        (observable, oldValue, newValue) -> this.updateMediaViewerSize());
     this.widthProperty().addListener(
-        (observable, oldValue, newValue) -> this.updateImageViewSize());
+        (observable, oldValue, newValue) -> this.updateMediaViewerSize());
 
     final HBox tagsLabelBox = new HBox(new Label(language.translate("image_preview.section.tags.title")));
     tagsLabelBox.getStyleClass().add("section-title");
     tagsLabelBox.setAlignment(Pos.CENTER);
 
     this.editTagsButton.setOnAction(e -> this.editTagsListeners.forEach(
-        listener -> listener.onEditTags(Objects.requireNonNull(this.picture))));
+        listener -> listener.onEditTags(Objects.requireNonNull(this.mediaFile))));
     this.editTagsButton.setTooltip(new Tooltip(language.translate("image_preview.section.tags.edit_tags_button")));
     this.editTagsButton.setGraphic(theme.getIcon(Icon.EDIT_TAGS, Icon.Size.SMALL));
     this.editTagsButton.setDisable(true);
@@ -86,7 +86,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.setMedia(null, null, false);
   }
 
-  private void updateImageViewSize() {
+  private void updateMediaViewerSize() {
     this.mediaViewer.updateSize(
         this.getWidth() - 10,
         this.mediaViewerBox.getHeight() - 10
@@ -94,30 +94,30 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   }
 
   /**
-   * Return the currently loaded {@link Picture}.
+   * Return the currently loaded {@link MediaFile}.
    */
-  public Optional<Picture> getImage() {
-    return Optional.ofNullable(this.picture);
+  public Optional<MediaFile> getMediaFile() {
+    return Optional.ofNullable(this.mediaFile);
   }
 
   /**
-   * Set the image to show.
+   * Set the media to show.
    *
-   * @param picture          The image to show.
-   * @param tags             The tags for the image.
-   * @param hasSimilarImages Whether the given picture has similar images.
+   * @param mediaFile        The media to show.
+   * @param tags             The tags for the media.
+   * @param hasSimilarImages If the media is an image, whether it has similar images.
    */
   @Contract("!null, null, _ -> fail")
-  public void setMedia(Picture picture, Set<Tag> tags, boolean hasSimilarImages) {
-    if (picture != null)
+  public void setMedia(MediaFile mediaFile, Set<Tag> tags, boolean hasSimilarImages) {
+    if (mediaFile != null)
       Objects.requireNonNull(tags);
-    this.picture = picture;
+    this.mediaFile = mediaFile;
 
-    this.mediaViewer.setMedia(picture);
-    this.editTagsButton.setDisable(picture == null);
+    this.mediaViewer.setMedia(mediaFile);
+    this.editTagsButton.setDisable(mediaFile == null);
     this.tagsList.getItems().clear();
 
-    if (picture != null) {
+    if (mediaFile != null) {
       final var tagsEntries = tags.stream()
           .sorted()
           .map(TagView::new)
@@ -132,7 +132,7 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
 
   private void onMediaLoaded() {
     this.openInExplorerButton.setDisable(false);
-    this.updateImageViewSize();
+    this.updateMediaViewerSize();
   }
 
   private void onFileLoadingError(Exception error) {
@@ -148,12 +148,12 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
   }
 
   private void onOpenFile() {
-    if (this.picture != null)
-      FileUtils.openInFileExplorer(this.picture.path().toString());
+    if (this.mediaFile != null)
+      FileUtils.openInFileExplorer(this.mediaFile.path().toString());
   }
 
   private void showSimilarImages() {
-    this.similarImagesListeners.forEach(l -> l.accept(this.picture));
+    this.similarImagesListeners.forEach(l -> l.accept(this.mediaFile));
   }
 
   @Override
@@ -165,11 +165,11 @@ public class ImagePreviewPane extends SplitPane implements ClickableListCellFact
     this.tagClickListeners.forEach(listener -> listener.onTagClick(item.tag()));
   }
 
-  public void addSimilarImagesListeners(@NotNull Consumer<Picture> similarImagesListener) {
+  public void addSimilarImagesListeners(@NotNull Consumer<MediaFile> similarImagesListener) {
     this.similarImagesListeners.add(Objects.requireNonNull(similarImagesListener));
   }
 
   public interface EditTagsListener {
-    void onEditTags(@NotNull Picture picture);
+    void onEditTags(@NotNull MediaFile mediaFile);
   }
 }

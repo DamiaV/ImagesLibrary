@@ -9,7 +9,7 @@ import java.nio.file.*;
 import java.util.*;
 
 /**
- * An operation that moves a {@link Picture} and its associated file.
+ * An operation that moves a {@link MediaFile} and its associated file.
  */
 public final class MoveOperation extends Operation {
   public static final String KEY = "move";
@@ -19,9 +19,9 @@ public final class MoveOperation extends Operation {
   private final boolean overwriteTarget;
 
   /**
-   * Create a new operation that moves {@link Picture}s and their associated files.
+   * Create a new operation that moves {@link MediaFile}s and their associated files.
    *
-   * @param targetDirectory            The directory where to move {@link Picture}s to.
+   * @param targetDirectory            The directory where to move {@link MediaFile}s to.
    * @param deleteEmptySourceDirectory If true, delete source directories that end up empty after each move.
    * @param overwriteTarget            If true, overwrite target files that have conflicting names.
    * @param condition                  An optional condition.
@@ -39,17 +39,17 @@ public final class MoveOperation extends Operation {
   }
 
   @Override
-  protected Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+  protected Pair<Boolean, MediaFile> execute(@NotNull MediaFile mediaFile, @NotNull DatabaseConnection db)
       throws DatabaseOperationException {
-    final Path newPath = this.targetDirectory.resolve(picture.path().getFileName());
-    final boolean updated = db.moveOrRenamePicture(
-        picture,
+    final Path newPath = this.targetDirectory.resolve(mediaFile.path().getFileName());
+    final boolean updated = db.moveOrRenameMedia(
+        mediaFile,
         newPath,
         this.overwriteTarget
     );
     if (this.deleteEmptySourceDirectory)
-      FileUtils.deleteDirectoryIfEmpty(picture);
-    return new Pair<>(updated, new Picture(picture.id(), newPath, picture.hash().orElse(null)));
+      FileUtils.deleteDirectoryIfEmpty(mediaFile);
+    return new Pair<>(updated, new MediaFile(mediaFile.id(), newPath, mediaFile.hash().orElse(null)));
   }
 
   public Path targetPath() {

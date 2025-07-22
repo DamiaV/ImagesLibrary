@@ -7,7 +7,7 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * Base interface for classes representing picture tags.
+ * Base interface for classes representing media tags.
  */
 public interface TagLike extends DatabaseElement, Comparable<TagLike> {
   @Language("RegExp")

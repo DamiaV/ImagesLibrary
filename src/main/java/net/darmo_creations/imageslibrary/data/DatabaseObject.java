@@ -5,7 +5,7 @@ package net.darmo_creations.imageslibrary.data;
  */
 public abstract sealed class DatabaseObject
     implements DatabaseElement
-    permits Picture, Tag, TagType {
+    permits MediaFile, Tag, TagType {
   private final int id;
 
   /**

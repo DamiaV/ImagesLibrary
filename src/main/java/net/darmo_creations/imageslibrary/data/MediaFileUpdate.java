@@ -7,23 +7,23 @@ import java.nio.file.*;
 import java.util.*;
 
 /**
- * This class indicates how to update a picture in the database.
+ * This class indicates how to update a media in the database.
  *
- * @param id           The ID of the picture to update.
- * @param path         The picture’s new file location.
- * @param hash         The picture’s new hash.
- * @param tagsToAdd    The tags to add to this picture. Each entry associates a tag type to a tag name.
- * @param tagsToRemove The tags to remove from this picture. Each entry associates a tag type to a tag name.
+ * @param id           The ID of the media to update.
+ * @param path         The media’s new file location.
+ * @param hash         The media’s new hash.
+ * @param tagsToAdd    The tags to add to this media. Each entry associates a tag type to a tag name.
+ * @param tagsToRemove The tags to remove from this media. Each entry associates a tag type to a tag name.
  */
-public record PictureUpdate(
+public record MediaFileUpdate(
     int id,
     @NotNull Path path,
     Optional<Hash> hash,
     @NotNull Set<ParsedTag> tagsToAdd,
     @NotNull Set<Tag> tagsToRemove
-) implements PictureLike {
+) implements MediaLike {
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  public PictureUpdate(
+  public MediaFileUpdate(
       int id,
       @NotNull Path path,
       Optional<Hash> hash,
@@ -38,16 +38,16 @@ public record PictureUpdate(
   }
 
   /**
-   * Return a new {@link PictureUpdate} with the same field values as this one, but with the given ID.
+   * Return a new {@link MediaFileUpdate} with the same field values as this one, but with the given ID.
    *
    * @param id The ID to replace this one’s with.
-   * @return A new {@link PictureUpdate} object if the IDs are different, this object if they are identical.
+   * @return A new {@link MediaFileUpdate} object if the IDs are different, this object if they are identical.
    */
   @Contract(pure = true)
-  public PictureUpdate withId(int id) {
+  public MediaFileUpdate withId(int id) {
     if (id == this.id())
       return this;
-    return new PictureUpdate(
+    return new MediaFileUpdate(
         id,
         this.path,
         this.hash,

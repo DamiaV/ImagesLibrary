@@ -8,21 +8,21 @@ import java.nio.file.*;
 import java.util.*;
 
 /**
- * Base interface for classes representing pictures.
+ * Base interface for classes representing medias.
  */
-public interface PictureLike extends DatabaseElement, Comparable<PictureLike> {
+public interface MediaLike extends DatabaseElement, Comparable<MediaLike> {
   /**
-   * This picture’s path.
+   * This media’s path.
    */
   Path path();
 
   /**
-   * This picture’s hash.
+   * This media’s hash.
    */
   Optional<Hash> hash();
 
   /**
-   * Indicate whether this object represents a video file.
+   * Indicate whether this media is a video file.
    *
    * @return True if the path’s extension is contained in {@link App#VALID_VIDEO_EXTENSIONS}, false otherwise.
    */
@@ -31,7 +31,7 @@ public interface PictureLike extends DatabaseElement, Comparable<PictureLike> {
   }
 
   @Override
-  default int compareTo(@NotNull PictureLike o) {
+  default int compareTo(@NotNull MediaLike o) {
     return this.path().compareTo(o.path());
   }
 }

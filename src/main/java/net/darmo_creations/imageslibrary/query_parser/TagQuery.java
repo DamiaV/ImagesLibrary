@@ -3,6 +3,7 @@ package net.darmo_creations.imageslibrary.query_parser;
 import net.darmo_creations.imageslibrary.config.*;
 import net.darmo_creations.imageslibrary.data.*;
 import net.darmo_creations.imageslibrary.query_parser.ex.*;
+import org.intellij.lang.annotations.*;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.*;
 import org.logicng.formulas.*;
@@ -12,7 +13,7 @@ import java.util.*;
 import java.util.function.*;
 
 /**
- * A tag query is a logical expression that is used to filter images.
+ * A tag query is a logical expression that is used to filter medias.
  * Tag queries can be converted into a SQL query.
  */
 public final class TagQuery {
@@ -56,7 +57,7 @@ public final class TagQuery {
 
   /**
    * A {@link BiPredicate} that corresponds to this query.
-   * It takes a {@link Picture} and the set of its tags.
+   * It takes a {@link MediaFile} and the set of its tags.
    */
   @Contract(pure = true)
   public TagQueryPredicate predicate() {
@@ -118,10 +119,10 @@ public final class TagQuery {
     if (formula instanceof Not not)
       // language=sqlite
       return """
-                 SELECT id, path, hash
-                 FROM images
-                 EXCEPT
-                 """ + this.toSql_(not.operand(), pseudoTags);
+          SELECT id, path, hash
+          FROM images
+          EXCEPT
+          """ + this.toSql_(not.operand(), pseudoTags);
 
     if (formula instanceof And and)
       return this.joinOperands(and, pseudoTags, "INTERSECT");
@@ -137,10 +138,10 @@ public final class TagQuery {
       else // Negated variable
         // language=sqlite
         return """
-                   SELECT id, path, hash
-                   FROM images
-                   EXCEPT
-                   """ + subQuery;
+            SELECT id, path, hash
+            FROM images
+            EXCEPT
+            """ + subQuery;
     }
 
     throw new RuntimeException("Unsupported Formula type: " + formula.getClass());
@@ -258,7 +259,7 @@ public final class TagQuery {
           && !tagFlags.contains(String.valueOf(PatternPseudoTag.CASE_INSENSITIVE_FLAG)))
         tagFlags += this.config != null && this.config.caseSensitiveQueriesByDefault() ? "s" : "i";
       else if (tagFlags.contains(String.valueOf(PatternPseudoTag.CASE_SENSITIVE_FLAG))
-               && tagFlags.contains(String.valueOf(PatternPseudoTag.CASE_INSENSITIVE_FLAG)))
+          && tagFlags.contains(String.valueOf(PatternPseudoTag.CASE_INSENSITIVE_FLAG)))
         throw new InvalidPseudoTagException(tagName, tagName);
     }
 

@@ -9,7 +9,7 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * A condition that evaluates a {@link TagQuery} against {@link Picture}s.
+ * A condition that evaluates a {@link TagQuery} against {@link MediaFile}s.
  */
 public final class TagQueryCondition implements Condition {
   public static final String KEY = "tag_query";
@@ -20,7 +20,7 @@ public final class TagQueryCondition implements Condition {
   /**
    * Create a condition for the given tag query.
    * <p>
-   * The query will only be parsed the first time {@link #test(Picture, DatabaseConnection, Config)} is called,
+   * The query will only be parsed the first time {@link #test(MediaFile, DatabaseConnection, Config)} is called,
    * or after {@link #purgeCaches()} has been called.
    *
    * @param tagQuery The tag query.
@@ -30,7 +30,7 @@ public final class TagQueryCondition implements Condition {
   }
 
   @Override
-  public boolean test(@NotNull Picture picture, @NotNull DatabaseConnection db, @NotNull Config config)
+  public boolean test(@NotNull MediaFile mediaFile, @NotNull DatabaseConnection db, @NotNull Config config)
       throws DatabaseOperationException {
     if (this.tagQueryCache == null)
       try {
@@ -43,7 +43,7 @@ public final class TagQueryCondition implements Condition {
       } catch (final InvalidPseudoTagException | TagQuerySyntaxErrorException | TagQueryTooLargeException e) {
         throw new DatabaseOperationException(DatabaseErrorCode.UNKNOWN_ERROR, e);
       }
-    return db.pictureMatchesQuery(picture, this.tagQueryCache);
+    return db.mediaMatchesQuery(mediaFile, this.tagQueryCache);
   }
 
   public String tagQuery() {

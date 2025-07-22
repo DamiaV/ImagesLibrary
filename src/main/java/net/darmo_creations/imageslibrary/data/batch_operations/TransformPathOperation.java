@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.regex.*;
 
 /**
- * An operation that transforms the path of a {@link Picture}.
+ * An operation that transforms the path of a {@link MediaFile}.
  */
 public final class TransformPathOperation extends Operation {
   public static final String KEY = "transform_path";
@@ -20,7 +20,7 @@ public final class TransformPathOperation extends Operation {
   private final boolean asRegex;
 
   /**
-   * Create a new operation that transforms the path of {@link Picture}s.
+   * Create a new operation that transforms the path of {@link MediaFile}s.
    *
    * @param pattern    The search pattern.
    * @param substitute The substitution string.
@@ -41,16 +41,16 @@ public final class TransformPathOperation extends Operation {
   }
 
   @Override
-  protected Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+  protected Pair<Boolean, MediaFile> execute(@NotNull MediaFile mediaFile, @NotNull DatabaseConnection db)
       throws DatabaseOperationException {
-    final Path oldPath = picture.path();
+    final Path oldPath = mediaFile.path();
     final Path newPath;
     if (this.asRegex)
       newPath = Path.of(this.pattern.matcher(oldPath.toString()).replaceAll(this.substitute));
     else
       newPath = Path.of(oldPath.toString().replace(this.rawPattern, this.substitute));
-    db.updatePicture(new PictureUpdate(picture.id(), newPath, picture.hash(), Set.of(), Set.of()));
-    return new Pair<>(!oldPath.equals(newPath), new Picture(picture.id(), newPath, picture.hash().orElse(null)));
+    db.updateMedia(new MediaFileUpdate(mediaFile.id(), newPath, mediaFile.hash(), Set.of(), Set.of()));
+    return new Pair<>(!oldPath.equals(newPath), new MediaFile(mediaFile.id(), newPath, mediaFile.hash().orElse(null)));
   }
 
   public String pattern() {

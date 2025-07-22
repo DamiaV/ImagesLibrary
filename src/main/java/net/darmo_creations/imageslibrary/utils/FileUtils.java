@@ -300,12 +300,12 @@ public class FileUtils {
   private static final List<String> JAVAFX_VIDEO_FILE_EXTENSIONS = List.of("mp4");
 
   /**
-   * Delete the parent directory of the given picture if it is empty.
+   * Delete the parent directory of the given file if it is empty.
    *
-   * @param picture The picture whose parent directory is to be deleted.
+   * @param mediaFile The file whose parent directory is to be deleted.
    */
-  public static void deleteDirectoryIfEmpty(@NotNull Picture picture) {
-    final Path sourceDir = picture.path().getParent();
+  public static void deleteDirectoryIfEmpty(@NotNull MediaFile mediaFile) {
+    final Path sourceDir = mediaFile.path().getParent();
     try (final var stream = Files.newDirectoryStream(sourceDir)) {
       if (!stream.iterator().hasNext())
         Files.delete(sourceDir);

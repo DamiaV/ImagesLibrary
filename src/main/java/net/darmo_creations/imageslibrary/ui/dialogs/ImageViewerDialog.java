@@ -22,7 +22,7 @@ public class ImageViewerDialog extends DialogBase<Void> {
   private final HBox imageViewBox;
   private final ImageView imageView = new ImageView();
 
-  private final List<Picture> pictures = new LinkedList<>();
+  private final List<MediaFile> mediaFiles = new LinkedList<>();
   private int index = -1;
   private Thread animationThread;
   private Slideshow slideshow;
@@ -45,12 +45,12 @@ public class ImageViewerDialog extends DialogBase<Void> {
     stage.setMinHeight(600);
     stage.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
       if (event.getCode() == KeyCode.LEFT) {
-        this.advancePicture(-1);
+        this.advanceImage(-1);
         if (this.slideshow != null)
           this.slideshow.resetDelay();
         event.consume();
       } else if (event.getCode() == KeyCode.RIGHT) {
-        this.advancePicture(1);
+        this.advanceImage(1);
         if (this.slideshow != null)
           this.slideshow.resetDelay();
         event.consume();
@@ -58,7 +58,7 @@ public class ImageViewerDialog extends DialogBase<Void> {
     });
     stage.addEventFilter(MouseEvent.MOUSE_CLICKED, event -> {
       if (event.getButton() == MouseButton.PRIMARY) {
-        this.advancePicture(1);
+        this.advanceImage(1);
         event.consume();
       }
     });
@@ -73,30 +73,30 @@ public class ImageViewerDialog extends DialogBase<Void> {
   }
 
   /**
-   * Set the pictures to show as a slideshow.
+   * Set the images to show as a slideshow.
    *
-   * @param pictures The pictures to show.
+   * @param mediaFiles The images to show.
    */
-  public void setPictures(final @NotNull List<Picture> pictures) {
-    this.pictures.clear();
-    this.pictures.addAll(pictures);
+  public void setImages(final @NotNull List<MediaFile> mediaFiles) {
+    this.mediaFiles.clear();
+    this.mediaFiles.addAll(mediaFiles);
     if (this.config.isShuffleSlideshowsEnabled())
-      Collections.shuffle(this.pictures);
+      Collections.shuffle(this.mediaFiles);
     this.index = -1;
-    if (!pictures.isEmpty())
-      this.advancePicture(1);
+    if (!mediaFiles.isEmpty())
+      this.advanceImage(1);
   }
 
-  private void advancePicture(int direction) {
+  private void advanceImage(int direction) {
     this.imageView.setImage(null); // Clear in case a previous image is still loading
     if (direction > 0)
-      this.index = (this.index + 1) % this.pictures.size();
+      this.index = (this.index + 1) % this.mediaFiles.size();
     else if (this.index > 0)
       this.index = this.index - 1;
     else
-      this.index = this.pictures.size() - 1;
+      this.index = this.mediaFiles.size() - 1;
     FileUtils.loadImage(
-        this.pictures.get(this.index).path(),
+        this.mediaFiles.get(this.index).path(),
         image -> {
           this.imageView.setImage(image);
           this.imageView.setFitWidth(Math.min(image.getWidth(), this.imageViewBox.getWidth()));
@@ -145,7 +145,7 @@ public class ImageViewerDialog extends DialogBase<Void> {
       while (!dialog.animationThread.isInterrupted()) {
         final long time = System.currentTimeMillis();
         if (time - this.prevTime > this.delay) {
-          Platform.runLater(() -> dialog.advancePicture(1));
+          Platform.runLater(() -> dialog.advanceImage(1));
           this.prevTime = time;
         }
       }

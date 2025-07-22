@@ -23,7 +23,7 @@ import java.util.stream.*;
 public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
   private final HBox mediaViewerBox;
   private final MediaViewer mediaViewer;
-  private final ListView<PictureView> picturesList = new ListView<>();
+  private final ListView<MediaSnippetView> mediasList = new ListView<>();
   private final ListView<TagView> tagsList = new ListView<>();
   private final Button copyTagsButton = new Button();
 
@@ -53,7 +53,7 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
     this.mediaViewerBox.heightProperty().addListener((observable, oldValue, newValue) -> this.updateMediaViewerSize());
     this.stage().widthProperty().addListener((observable, oldValue, newValue) -> this.updateMediaViewerSize());
 
-    this.picturesList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+    this.mediasList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
       if (newValue != null)
         this.setMedia(newValue);
     });
@@ -76,7 +76,7 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
     final SplitPane splitPane = new SplitPane(
         this.mediaViewerBox,
         new SplitPane(
-            this.picturesList,
+            this.mediasList,
             new VBox(
                 5,
                 hBox,
@@ -96,13 +96,13 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
    *
    * @param medias The medias to show.
    */
-  public void setMedias(final @NotNull Collection<Pair<Picture, Float>> medias) {
+  public void setMedias(final @NotNull Collection<Pair<MediaFile, Float>> medias) {
     this.setMedia(null);
-    this.picturesList.getItems().clear();
-    this.picturesList.getItems().addAll(
+    this.mediasList.getItems().clear();
+    this.mediasList.getItems().addAll(
         medias.stream()
             .sorted(Comparator.comparing(entry -> -entry.getValue()))
-            .map(entry -> new PictureView(entry.getKey(), entry.getValue()))
+            .map(entry -> new MediaSnippetView(entry.getKey(), entry.getValue()))
             .toList()
     );
   }
@@ -125,15 +125,15 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
     );
   }
 
-  private void setMedia(PictureView pictureView) {
+  private void setMedia(MediaSnippetView mediaSnippetView) {
     this.mediaViewer.setMedia(null);
     this.tagsList.getItems().clear();
 
-    if (pictureView != null) {
-      final Picture picture = pictureView.picture();
-      this.mediaViewer.setMedia(picture);
+    if (mediaSnippetView != null) {
+      final MediaFile mediaFile = mediaSnippetView.mediaFile();
+      this.mediaViewer.setMedia(mediaFile);
       try {
-        this.db.getImageTags(picture).stream()
+        this.db.getMediaTags(mediaFile).stream()
             .sorted()
             .forEach(tag -> this.tagsList.getItems().add(new TagView(tag)));
       } catch (final DatabaseOperationException e) {
@@ -144,14 +144,14 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
     this.copyTagsButton.setDisable(this.tagsList.getItems().isEmpty());
   }
 
-  private class PictureView extends HBox {
-    private final Picture picture;
+  private class MediaSnippetView extends HBox {
+    private final MediaFile mediaFile;
 
-    private PictureView(@NotNull Picture picture, float confidence) {
+    private MediaSnippetView(@NotNull MediaFile mediaFile, float confidence) {
       super(5);
-      this.picture = Objects.requireNonNull(picture);
+      this.mediaFile = Objects.requireNonNull(mediaFile);
 
-      final Path path = picture.path();
+      final Path path = mediaFile.path();
       final ImageView imageView = new ImageView();
       imageView.setPreserveRatio(true);
       final Label fileMetadataLabel = new Label();
@@ -193,8 +193,8 @@ public class SimilarImagesDialog extends DialogBase<Set<Tag>> {
       );
     }
 
-    public Picture picture() {
-      return this.picture;
+    public MediaFile mediaFile() {
+      return this.mediaFile;
     }
   }
 

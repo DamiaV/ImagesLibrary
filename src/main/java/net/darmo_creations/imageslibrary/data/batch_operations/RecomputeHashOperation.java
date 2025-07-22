@@ -7,13 +7,13 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * An operation that computes the hash of a {@link Picture}.
+ * An operation that computes the hash of a {@link MediaFile}.
  */
 public final class RecomputeHashOperation extends Operation {
   public static final String KEY = "recompute_hash";
 
   /**
-   * Create a new operation that computes the hash of {@link Picture}s.
+   * Create a new operation that computes the hash of {@link MediaFile}s.
    *
    * @param condition An optional condition.
    */
@@ -22,12 +22,12 @@ public final class RecomputeHashOperation extends Operation {
   }
 
   @Override
-  protected Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+  protected Pair<Boolean, MediaFile> execute(@NotNull MediaFile mediaFile, @NotNull DatabaseConnection db)
       throws DatabaseOperationException {
-    final Optional<Hash> currentHash = picture.hash();
-    final Optional<Hash> hash = Hash.computeForFile(picture.path());
-    db.updatePicture(new PictureUpdate(picture.id(), picture.path(), hash, Set.of(), Set.of()));
-    return new Pair<>(!currentHash.equals(hash), new Picture(picture.id(), picture.path(), hash.orElse(null)));
+    final Optional<Hash> currentHash = mediaFile.hash();
+    final Optional<Hash> hash = Hash.computeForFile(mediaFile.path());
+    db.updateMedia(new MediaFileUpdate(mediaFile.id(), mediaFile.path(), hash, Set.of(), Set.of()));
+    return new Pair<>(!currentHash.equals(hash), new MediaFile(mediaFile.id(), mediaFile.path(), hash.orElse(null)));
   }
 
   @Override

@@ -6,7 +6,7 @@ import net.darmo_creations.imageslibrary.utils.*;
 import org.jetbrains.annotations.*;
 
 /**
- * An operation that deletes a {@link Picture} and optionally its associated file.
+ * An operation that deletes a {@link MediaFile} and optionally its associated file.
  */
 public final class DeleteOperation extends Operation {
   public static final String KEY = "delete";
@@ -15,9 +15,9 @@ public final class DeleteOperation extends Operation {
   private final boolean deleteEmptySourceDirectory;
 
   /**
-   * Create a new operation that deletes {@link Picture}s.
+   * Create a new operation that deletes {@link MediaFile}s.
    *
-   * @param fromDisk                   If true, the files of each {@link Picture} will be deleted.
+   * @param fromDisk                   If true, the files of each {@link MediaFile} will be deleted.
    * @param deleteEmptySourceDirectory If true, delete source directories that end up empty after each move.
    * @param condition                  An optional condition.
    */
@@ -28,12 +28,12 @@ public final class DeleteOperation extends Operation {
   }
 
   @Override
-  protected Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+  protected Pair<Boolean, MediaFile> execute(@NotNull MediaFile mediaFile, @NotNull DatabaseConnection db)
       throws DatabaseOperationException {
-    db.deletePicture(picture, this.fromDisk);
+    db.deleteMedia(mediaFile, this.fromDisk);
     if (this.fromDisk && this.deleteEmptySourceDirectory)
-      FileUtils.deleteDirectoryIfEmpty(picture);
-    return new Pair<>(true, picture);
+      FileUtils.deleteDirectoryIfEmpty(mediaFile);
+    return new Pair<>(true, mediaFile);
   }
 
   public boolean deleteFromDisk() {

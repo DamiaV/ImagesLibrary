@@ -23,12 +23,12 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
-public class ResultsView extends VBox implements ClickableListCellFactory.ClickListener<ResultsView.PictureEntry> {
+public class ResultsView extends VBox implements ClickableListCellFactory.ClickListener<ResultsView.MediaEntry> {
   private static final int MAX_HISTORY_SIZE = 20;
   private static int globalId = 0;
 
-  private final Set<ImageClickListener> imageClickListeners = new HashSet<>();
-  private final Set<ImageSelectionListener> imageSelectionListeners = new HashSet<>();
+  private final Set<MediaItemClickListener> mediaItemClickListeners = new HashSet<>();
+  private final Set<MediaItemSelectionListener> mediaItemSelectionListeners = new HashSet<>();
   private final Set<SimilarImagesActionListener> similarImagesActionListeners = new HashSet<>();
   private final Set<SearchListener> searchListeners = new HashSet<>();
 
@@ -42,8 +42,8 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   private final AutoCompleteField<Tag, Collection<String>> searchField;
   private final Button clearSearchButton = new Button();
   private final Label resultsLabel = new Label();
-  private final ListView<PictureEntry> imagesList = new ListView<>();
-  private final ImagePreviewPane imagePreviewPane;
+  private final ListView<MediaEntry> mediasList = new ListView<>();
+  private final MediaPreviewPane mediaPreviewPane;
   private final TextPopOver popup;
 
   public ResultsView(
@@ -60,9 +60,9 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     final Language language = config.language();
     final Theme theme = config.theme();
 
-    this.imagePreviewPane = new ImagePreviewPane(config);
-    this.imagePreviewPane.addEditTagsListener(picture -> this.onItemDoubleClick(new PictureEntry(picture, Set.of(), config, this.id)));
-    this.imagePreviewPane.addSimilarImagesListeners(this::onSimilarImages);
+    this.mediaPreviewPane = new MediaPreviewPane(config);
+    this.mediaPreviewPane.addEditTagsListener(media -> this.onItemDoubleClick(new MediaEntry(media, Set.of(), config, this.id)));
+    this.mediaPreviewPane.addSimilarImagesListeners(this::onSimilarImages);
 
     this.popup = new TextPopOver(PopOver.ArrowLocation.RIGHT_CENTER, config);
 
@@ -149,15 +149,15 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.resultsLabel.getStyleClass().add("results-label");
     this.resultsLabel.setPadding(new Insets(0, 2, 0, 2));
 
-    this.imagesList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-    this.imagesList.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+    this.mediasList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+    this.mediasList.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
       if (event.getCode() == KeyCode.C && event.isShortcutDown())
         this.copySelectedPaths();
     });
-    this.imagesList.getSelectionModel().selectedItemProperty().addListener(
+    this.mediasList.getSelectionModel().selectedItemProperty().addListener(
         (observable, oldValue, newValue) -> this.onSelectionChange());
-    this.imagesList.setCellFactory(item -> ClickableListCellFactory.forListener(this));
-    this.imagesList.focusedProperty().addListener((observable, wasFocused, isFocused) -> {
+    this.mediasList.setCellFactory(item -> ClickableListCellFactory.forListener(this));
+    this.mediasList.focusedProperty().addListener((observable, wasFocused, isFocused) -> {
       if (isFocused)
         this.onSelectionChange();
     });
@@ -176,28 +176,28 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     searchBox.setPadding(new Insets(2, 2, 0, 2));
     final HBox resultsLabelBox = new HBox(this.resultsLabel);
     resultsLabelBox.setAlignment(Pos.CENTER);
-    final SplitPane splitPane = new SplitPane(this.imagesList, this.imagePreviewPane);
+    final SplitPane splitPane = new SplitPane(this.mediasList, this.mediaPreviewPane);
     splitPane.setDividerPositions(0.95);
-    this.imagePreviewPane.addTagClickListener(this::searchTag);
+    this.mediaPreviewPane.addTagClickListener(this::searchTag);
     VBox.setVgrow(splitPane, Priority.ALWAYS);
     this.getChildren().addAll(searchBox, resultsLabelBox, splitPane);
   }
 
   /**
-   * Return a list of the images listed in this view.
+   * Return a list of the medias listed in this view.
    */
   @Unmodifiable
-  public List<Picture> pictures() {
-    return this.imagesList.getItems().stream().map(PictureEntry::picture).toList();
+  public List<MediaFile> mediasFiles() {
+    return this.mediasList.getItems().stream().map(MediaEntry::mediaFile).toList();
   }
 
   /**
-   * Return a list of the images that are currently selected in this view.
+   * Return a list of the medias that are currently selected in this view.
    */
   @Unmodifiable
-  public List<Picture> getSelectedImages() {
-    return this.imagesList.getSelectionModel().getSelectedItems().stream()
-        .map(PictureEntry::picture)
+  public List<MediaFile> getSelectedMediaFiles() {
+    return this.mediasList.getSelectionModel().getSelectedItems().stream()
+        .map(MediaEntry::mediaFile)
         .toList();
   }
 
@@ -220,17 +220,17 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   /**
-   * Add a listener that will be notified whenever an image item is double-clicked.
+   * Add a listener that will be notified whenever a media item is double-clicked.
    */
-  public void addImageDoubleClickListener(@NotNull ImageClickListener listener) {
-    this.imageClickListeners.add(Objects.requireNonNull(listener));
+  public void addMediaItemDoubleClickListener(@NotNull ResultsView.MediaItemClickListener listener) {
+    this.mediaItemClickListeners.add(Objects.requireNonNull(listener));
   }
 
   /**
    * Add a listener that will be notified whenever the list’s selection changes.
    */
-  public void addImageSelectionListener(@NotNull ImageSelectionListener listener) {
-    this.imageSelectionListeners.add(Objects.requireNonNull(listener));
+  public void addMediaItemSelectionListener(@NotNull ResultsView.MediaItemSelectionListener listener) {
+    this.mediaItemSelectionListeners.add(Objects.requireNonNull(listener));
   }
 
   /**
@@ -248,16 +248,21 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   /**
-   * Search for all images that match the given flag.
+   * Search for all medias that match the given flag.
    *
    * @param flag The name of the flag without the "#".
    */
-  public void searchImagesWithFlag(@NotNull String flag) {
+  public void searchMediasWithFlag(@NotNull String flag) {
     this.searchField.setText("#" + flag);
     this.searchField.requestFocus();
     this.search(null);
   }
 
+  /**
+   * Set the search bar’s query string.
+   *
+   * @param query A query string.
+   */
   public void searchQuery(@NotNull String query) {
     this.searchField.setText(query);
     this.searchField.requestFocus();
@@ -268,60 +273,60 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
    * Refresh this view by re-running the current tag query.
    */
   public void refresh() {
-    final var selection = this.imagesList.getSelectionModel().getSelectedItems();
-    final PictureEntry entry = !selection.isEmpty() ? selection.get(0) : null;
+    final var selection = this.mediasList.getSelectionModel().getSelectedItems();
+    final MediaEntry entry = !selection.isEmpty() ? selection.get(0) : null;
     this.search(() -> {
       if (entry != null) {
-        final Picture picture = entry.picture();
+        final MediaFile mediaFile = entry.mediaFile();
         try {
-          if (this.imagesList.getItems().contains(entry)) {
-            this.imagesList.getSelectionModel().select(entry);
-            this.imagesList.requestFocus();
-          } else if (this.db.pictureExists(picture.id())) {
-            this.imagePreviewPane.setMedia(picture, this.db.getImageTags(picture), this.hasSimilarImages(picture));
+          if (this.mediasList.getItems().contains(entry)) {
+            this.mediasList.getSelectionModel().select(entry);
+            this.mediasList.requestFocus();
+          } else if (this.db.mediaExists(mediaFile.id())) {
+            this.mediaPreviewPane.setMedia(mediaFile, this.db.getMediaTags(mediaFile), this.hasSimilarImages(mediaFile));
           } else
-            this.imagePreviewPane.setMedia(null, null, false);
+            this.mediaPreviewPane.setMedia(null, null, false);
         } catch (final DatabaseOperationException e) {
           Alerts.databaseError(this.config, e.errorCode());
         }
-        this.imagesList.requestFocus();
+        this.mediasList.requestFocus();
       }
     });
   }
 
   /**
-   * Show the given images in the list view.
+   * Show the given medias in the list view.
    *
-   * @param pictures The images to show.
+   * @param mediaFiles The medias to show.
    */
-  public void listImages(final @NotNull Collection<Picture> pictures) {
+  public void listMedias(final @NotNull Collection<MediaFile> mediaFiles) {
     final Language language = this.config.language();
-    final int count = pictures.size();
+    final int count = mediaFiles.size();
 
-    if (pictures.isEmpty())
+    if (mediaFiles.isEmpty())
       this.resultsLabel.setText(language.translate("images_view.no_results"));
     else
       this.resultsLabel.setText(language.translate("images_view.results", count,
           new FormatArg("count", language.formatNumber(count))));
 
-    final var listViewItems = this.imagesList.getItems();
+    final var listViewItems = this.mediasList.getItems();
     listViewItems.clear();
-    pictures.stream()
+    mediaFiles.stream()
         .sorted()
-        .forEach(picture -> {
-          Set<Tag> imageTags;
+        .forEach(media -> {
+          Set<Tag> mediaTags;
           try {
-            imageTags = this.db.getImageTags(picture);
+            mediaTags = this.db.getMediaTags(media);
           } catch (final DatabaseOperationException e) {
-            App.logger().error("Error getting tags for image {}", picture, e);
-            imageTags = Set.of();
+            App.logger().error("Error getting tags for media file {}", media, e);
+            mediaTags = Set.of();
           }
-          listViewItems.add(new PictureEntry(picture, imageTags, this.config, this.id));
+          listViewItems.add(new MediaEntry(media, mediaTags, this.config, this.id));
         });
   }
 
   /**
-   * Search for all images that match the current tag query.
+   * Search for all medias that match the current tag query.
    *
    * @param onSuccess An optional callback to run when the search succeeds.
    */
@@ -366,15 +371,15 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
       history.add(0, item);
     }
 
-    this.performSearch(query, () -> this.db.queryPictures(tagQuery), onSuccess);
+    this.performSearch(query, () -> this.db.queryMedias(tagQuery), onSuccess);
   }
 
   private void performSearch(@NotNull String query, @NotNull Search search, Runnable onSuccess) {
     this.searchListeners.forEach(l -> l.onSearchStart(query, this));
     new Thread(() -> {
-      final Set<Picture> pictures;
+      final Set<MediaFile> mediaFiles;
       try {
-        pictures = search.run();
+        mediaFiles = search.run();
       } catch (final DatabaseOperationException e) {
         Platform.runLater(() -> {
           Alerts.databaseError(this.config, e.errorCode());
@@ -383,7 +388,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         return;
       }
       Platform.runLater(() -> {
-        this.onSearchEnd(pictures);
+        this.onSearchEnd(mediaFiles);
         if (onSuccess != null)
           onSuccess.run();
       });
@@ -423,7 +428,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   private interface Search {
-    Set<Picture> run() throws DatabaseOperationException;
+    Set<MediaFile> run() throws DatabaseOperationException;
   }
 
   private void showPopup(@NotNull String text) {
@@ -431,9 +436,9 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     this.popup.show(this.searchField);
   }
 
-  private void onSearchEnd(final @NotNull Set<Picture> pictures) {
-    this.listImages(pictures);
-    this.searchListeners.forEach(listener -> listener.onSearchEnd(pictures.size()));
+  private void onSearchEnd(final @NotNull Set<MediaFile> mediaFiles) {
+    this.listMedias(mediaFiles);
+    this.searchListeners.forEach(listener -> listener.onSearchEnd(mediaFiles.size()));
     this.searchField.requestFocus();
   }
 
@@ -450,69 +455,69 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
   }
 
   @Override
-  public void onItemClick(@NotNull PictureEntry item) {
+  public void onItemClick(@NotNull ResultsView.MediaEntry item) {
   }
 
   @Override
-  public void onItemDoubleClick(@NotNull PictureEntry pictureEntry) {
-    this.imageClickListeners.forEach(listener -> listener.onImageClick(pictureEntry.picture()));
+  public void onItemDoubleClick(@NotNull ResultsView.MediaEntry mediaEntry) {
+    this.mediaItemClickListeners.forEach(listener -> listener.onMediaClick(mediaEntry.mediaFile()));
   }
 
-  public void onSimilarImages(@NotNull Picture picture) {
-    this.similarImagesActionListeners.forEach(l -> l.onSimilarImage(picture));
+  public void onSimilarImages(@NotNull MediaFile mediaFile) {
+    this.similarImagesActionListeners.forEach(l -> l.onSimilarImage(mediaFile));
   }
 
   private void copySelectedPaths() {
-    final var selectedItems = this.imagesList.getSelectionModel().getSelectedItems();
+    final var selectedItems = this.mediasList.getSelectionModel().getSelectedItems();
     final var joiner = new StringJoiner("\n");
-    selectedItems.forEach(e -> joiner.add(e.picture().path().toString()));
+    selectedItems.forEach(e -> joiner.add(e.mediaFile().path().toString()));
     final var clipboardContent = new ClipboardContent();
     clipboardContent.putString(joiner.toString());
     Clipboard.getSystemClipboard().setContent(clipboardContent);
   }
 
   private void onSelectionChange() {
-    final var selectedItems = this.imagesList.getSelectionModel().getSelectedItems();
+    final var selectedItems = this.mediasList.getSelectionModel().getSelectedItems();
     final var selection = selectedItems.stream()
         .filter(Objects::nonNull) // Selection model may return null values in the list
-        .map(PictureEntry::picture)
+        .map(MediaEntry::mediaFile)
         .toList();
     if (selection.size() == 1) {
-      final PictureEntry entry = selectedItems.get(0);
-      final Picture picture = entry.picture();
-      final var image = this.imagePreviewPane.getImage();
-      if (image.isEmpty() || image.get() != picture)
-        this.imagePreviewPane.setMedia(picture, entry.tags(), this.hasSimilarImages(picture));
+      final MediaEntry entry = selectedItems.get(0);
+      final MediaFile mediaFile = entry.mediaFile();
+      final var previewedMediaFile = this.mediaPreviewPane.getMediaFile();
+      if (previewedMediaFile.isEmpty() || previewedMediaFile.get() != mediaFile)
+        this.mediaPreviewPane.setMedia(mediaFile, entry.tags(), this.hasSimilarImages(mediaFile));
     }
-    this.imageSelectionListeners.forEach(listener -> listener.onSelectionChange(selection));
+    this.mediaItemSelectionListeners.forEach(listener -> listener.onSelectionChange(selection));
   }
 
-  private boolean hasSimilarImages(@NotNull Picture picture) {
-    if (picture.hash().isPresent()) {
+  private boolean hasSimilarImages(@NotNull MediaFile mediaFile) {
+    if (mediaFile.hash().isPresent()) {
       try {
-        return !this.db.getSimilarImages(picture.hash().get(), picture).isEmpty();
+        return !this.db.getSimilarImages(mediaFile.hash().get(), mediaFile).isEmpty();
       } catch (final DatabaseOperationException e) {
-        App.logger().error("Failed to get similar images of {}", picture.path(), e);
+        App.logger().error("Failed to get similar images of {}", mediaFile.path(), e);
       }
     }
     return false;
   }
 
-  public static final class PictureEntry extends HBox implements Comparable<PictureEntry> {
-    private final Picture picture;
+  public static final class MediaEntry extends HBox implements Comparable<MediaEntry> {
+    private final MediaFile mediaFile;
     private final Set<Tag> tags;
-    private final int viewId; // Prevents error if the same Picture is listed in two different ResultsView’s
+    private final int viewId; // Prevents error if the same media is listed in two different ResultsView’s
 
-    public PictureEntry(@NotNull Picture picture, final @NotNull Set<Tag> tags, final @NotNull Config config, int viewId) {
+    public MediaEntry(@NotNull MediaFile mediaFile, final @NotNull Set<Tag> tags, final @NotNull Config config, int viewId) {
       super(5);
-      this.picture = Objects.requireNonNull(picture);
+      this.mediaFile = Objects.requireNonNull(mediaFile);
       this.tags = Objects.requireNonNull(tags);
       this.viewId = viewId;
       final Language language = config.language();
       final Theme theme = config.theme();
       boolean exists;
       try {
-        exists = Files.exists(picture.path());
+        exists = Files.exists(mediaFile.path());
       } catch (final SecurityException e) {
         exists = false;
       }
@@ -526,16 +531,16 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         label.setTooltip(new Tooltip(language.translate("images_view.result.no_tags")));
         this.getChildren().add(label);
       }
-      if (!picture.isVideo() && picture.hash().isEmpty()) {
+      if (!mediaFile.isVideo() && mediaFile.hash().isEmpty()) {
         final Label label = new Label(null, theme.getIcon(Icon.NO_HASH, Icon.Size.SMALL));
         label.setTooltip(new Tooltip(language.translate("images_view.result.no_hash")));
         this.getChildren().add(label);
       }
-      this.getChildren().add(new Label(picture.path().toString()));
+      this.getChildren().add(new Label(mediaFile.path().toString()));
     }
 
-    public Picture picture() {
-      return this.picture;
+    public MediaFile mediaFile() {
+      return this.mediaFile;
     }
 
     public Set<Tag> tags() {
@@ -543,8 +548,8 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     }
 
     @Override
-    public int compareTo(ResultsView.PictureEntry o) {
-      return this.picture.path().compareTo(o.picture().path());
+    public int compareTo(MediaEntry o) {
+      return this.mediaFile.path().compareTo(o.mediaFile().path());
     }
 
     @Override
@@ -553,39 +558,39 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
         return true;
       if (o == null || this.getClass() != o.getClass())
         return false;
-      final PictureEntry that = (PictureEntry) o;
-      return Objects.equals(this.picture, that.picture) && this.viewId == that.viewId;
+      final MediaEntry that = (MediaEntry) o;
+      return Objects.equals(this.mediaFile, that.mediaFile) && this.viewId == that.viewId;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(this.picture, this.viewId);
+      return Objects.hash(this.mediaFile, this.viewId);
     }
 
     @Override
     public String toString() {
-      return this.picture.path().toString();
+      return this.mediaFile.path().toString();
     }
   }
 
   @FunctionalInterface
-  public interface ImageClickListener {
+  public interface MediaItemClickListener {
     /**
-     * Called when an item of the list is double-clicked.
+     * Called when an item of the media result list is double-clicked.
      *
-     * @param picture The clicked image.
+     * @param mediaFile The clicked media.
      */
-    void onImageClick(@NotNull Picture picture);
+    void onMediaClick(@NotNull MediaFile mediaFile);
   }
 
   @FunctionalInterface
-  public interface ImageSelectionListener {
+  public interface MediaItemSelectionListener {
     /**
-     * Called when the image list’s selection changes or the list regains focus.
+     * Called when the media list’s selection changes or the list regains focus.
      *
-     * @param pictures The selected pictures.
+     * @param mediaFiles The selected medias.
      */
-    void onSelectionChange(@NotNull List<Picture> pictures);
+    void onSelectionChange(@NotNull List<MediaFile> mediaFiles);
   }
 
   @FunctionalInterface
@@ -593,9 +598,9 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     /**
      * Called when a request for the images similar to the passed one is made.
      *
-     * @param picture The picture to get the similar pictures of.
+     * @param mediaFile The image to get the similar images of.
      */
-    void onSimilarImage(@NotNull Picture picture);
+    void onSimilarImage(@NotNull MediaFile mediaFile);
   }
 
   public interface SearchListener {
@@ -610,7 +615,7 @@ public class ResultsView extends VBox implements ClickableListCellFactory.ClickL
     /**
      * Called right after the search ended with no errors.
      *
-     * @param resultsCount The number of images that matched the search query.
+     * @param resultsCount The number of medias that matched the search query.
      */
     void onSearchEnd(int resultsCount);
 

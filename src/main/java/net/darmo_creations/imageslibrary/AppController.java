@@ -31,7 +31,7 @@ public class AppController implements ResultsView.SearchListener {
   private final Config config;
   private final SavedQueriesManager queriesManager;
 
-  private final EditImagesDialog editImagesDialog;
+  private final EditMediasDialog editMediasDialog;
   private final CreateTagDialog createTagDialog;
   private final CreateTagTypeDialog createTagTypeDialog;
   private final EditTagTypeDialog editTagTypeDialog;
@@ -39,21 +39,21 @@ public class AppController implements ResultsView.SearchListener {
   private final SettingsDialog settingsDialog;
   private final AboutDialog aboutDialog;
   private final ProgressDialog progressDialog;
-  private final MovePicturesDialog movePicturesDialog;
+  private final MoveMediaFilesDialog moveMediaFilesDialog;
   private final ImageViewerDialog imageViewerDialog;
   private final ManageSavedQueriesDialog manageSavedQueriesDialog;
   private final BatchOperationsDialog batchOperationsDialog;
-  private final MergeImagesTagsDialog mergeImagesTagsDialog;
+  private final MergeMediaTagsDialog mergeMediaTagsDialog;
 
   private final Map<MenuItem, Boolean> menuItemStates = new HashMap<>();
-  private MenuItem moveImagesMenuItem;
-  private Button moveImagesButton;
+  private MenuItem moveMediaFilesMenuItem;
+  private Button moveMediaFilesButton;
   private MenuItem editMenuItem;
   private Button editButton;
   private MenuItem deleteMenuItem;
   private Button deleteButton;
-  private MenuItem mergeImagesTagsMenuItem;
-  private Button mergeImagesTagsButton;
+  private MenuItem mergeMediaFilesTagsMenuItem;
+  private Button mergeMediaFilesTagsButton;
   private MenuItem slideshowMenuItem;
   private Button slideshowButton;
   private MenuItem slideshowSelectedMenuItem;
@@ -64,7 +64,7 @@ public class AppController implements ResultsView.SearchListener {
   private final TagsView tagsView;
   private final TabPane resultsTabPane = new TabPane();
 
-  private final List<Picture> selectedPictures = new ArrayList<>();
+  private final List<MediaFile> selectedMediaFiles = new ArrayList<>();
   private final List<Tag> selectedTags = new ArrayList<>();
   // Counts how many blocking tasks are ongoing to properly handle disabling/re-enabling of interactions
   private int onGoingTasksCount = 0;
@@ -92,7 +92,7 @@ public class AppController implements ResultsView.SearchListener {
     stage.setTitle(App.NAME + (config.isDebug() ? " [DEBUG]" : ""));
     stage.setMaximized(true);
 
-    this.editImagesDialog = new EditImagesDialog(config, db);
+    this.editMediasDialog = new EditMediasDialog(config, db);
     this.createTagDialog = new CreateTagDialog(config, db);
     this.createTagTypeDialog = new CreateTagTypeDialog(config, db);
     this.editTagTypeDialog = new EditTagTypeDialog(config, db);
@@ -100,11 +100,11 @@ public class AppController implements ResultsView.SearchListener {
     this.settingsDialog = new SettingsDialog(config);
     this.aboutDialog = new AboutDialog(config);
     this.progressDialog = new ProgressDialog(config, "converting_python_db");
-    this.movePicturesDialog = new MovePicturesDialog(config, db);
+    this.moveMediaFilesDialog = new MoveMediaFilesDialog(config, db);
     this.imageViewerDialog = new ImageViewerDialog(config);
     this.manageSavedQueriesDialog = new ManageSavedQueriesDialog(config, this.queriesManager);
     this.batchOperationsDialog = new BatchOperationsDialog(config, db, BatchOperationsManager.load(db));
-    this.mergeImagesTagsDialog = new MergeImagesTagsDialog(config, db);
+    this.mergeMediaTagsDialog = new MergeMediaTagsDialog(config, db);
 
     this.tagsView = new TagsView(config, this.db);
 
@@ -152,13 +152,13 @@ public class AppController implements ResultsView.SearchListener {
     final Theme theme = this.config.theme();
 
     final Menu fileMenu = new Menu(language.translate("menu.file"));
-    final MenuItem importImagesMenuItem = new MenuItem(
+    final MenuItem importFilesMenuItem = new MenuItem(
         language.translate("menu.file.import_images"),
-        theme.getIcon(Icon.IMPORT_IMAGES, Icon.Size.SMALL)
+        theme.getIcon(Icon.IMPORT_MEDIA_FILES, Icon.Size.SMALL)
     );
-    importImagesMenuItem.setOnAction(e -> this.onImportImages());
-    importImagesMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.I, KeyCombination.CONTROL_DOWN));
-    this.menuItemStates.put(importImagesMenuItem, importImagesMenuItem.isDisable());
+    importFilesMenuItem.setOnAction(e -> this.onImportMediaFiles());
+    importFilesMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.I, KeyCombination.CONTROL_DOWN));
+    this.menuItemStates.put(importFilesMenuItem, importFilesMenuItem.isDisable());
     final MenuItem importDirectoriesMenuItem = new MenuItem(
         language.translate("menu.file.import_directories"),
         theme.getIcon(Icon.IMPORT_DIRECTORIES, Icon.Size.SMALL)
@@ -181,7 +181,7 @@ public class AppController implements ResultsView.SearchListener {
     quitMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.Q, KeyCombination.CONTROL_DOWN));
     this.menuItemStates.put(quitMenuItem, quitMenuItem.isDisable());
     fileMenu.getItems().addAll(
-        importImagesMenuItem,
+        importFilesMenuItem,
         importDirectoriesMenuItem,
         new SeparatorMenuItem(),
         settingsMenuItem,
@@ -192,7 +192,7 @@ public class AppController implements ResultsView.SearchListener {
     final Menu editMenu = new Menu(language.translate("menu.edit"));
     this.editMenuItem = new MenuItem(
         language.translate("menu.edit.edit_images"),
-        theme.getIcon(Icon.EDIT_IMAGES, Icon.Size.SMALL)
+        theme.getIcon(Icon.EDIT_MEDIA_FILES, Icon.Size.SMALL)
     );
     this.editMenuItem.setOnAction(e -> this.onEdit());
     this.editMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN));
@@ -200,33 +200,33 @@ public class AppController implements ResultsView.SearchListener {
     this.menuItemStates.put(this.editMenuItem, this.editMenuItem.isDisable());
     this.deleteMenuItem = new MenuItem(
         language.translate("menu.edit.delete_images"),
-        theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.SMALL)
+        theme.getIcon(Icon.DELETE_MEDIA_FILES, Icon.Size.SMALL)
     );
     this.deleteMenuItem.setOnAction(e -> this.onDelete());
     this.deleteMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.DELETE));
     this.deleteMenuItem.setDisable(true);
     this.menuItemStates.put(this.deleteMenuItem, this.deleteMenuItem.isDisable());
-    this.moveImagesMenuItem = new MenuItem(
+    this.moveMediaFilesMenuItem = new MenuItem(
         language.translate("menu.edit.move_images"),
-        theme.getIcon(Icon.MOVE_IMAGES, Icon.Size.SMALL)
+        theme.getIcon(Icon.MOVE_MEDIAS, Icon.Size.SMALL)
     );
-    this.moveImagesMenuItem.setOnAction(e -> this.onBatchMoveSelectedImages());
-    this.moveImagesMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.M, KeyCombination.CONTROL_DOWN));
-    this.moveImagesMenuItem.setDisable(true);
-    this.menuItemStates.put(this.moveImagesMenuItem, this.moveImagesMenuItem.isDisable());
-    this.mergeImagesTagsMenuItem = new MenuItem(
+    this.moveMediaFilesMenuItem.setOnAction(e -> this.onBatchMoveSelectedMediaFiles());
+    this.moveMediaFilesMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.M, KeyCombination.CONTROL_DOWN));
+    this.moveMediaFilesMenuItem.setDisable(true);
+    this.menuItemStates.put(this.moveMediaFilesMenuItem, this.moveMediaFilesMenuItem.isDisable());
+    this.mergeMediaFilesTagsMenuItem = new MenuItem(
         language.translate("menu.edit.merge_images_tags"),
-        theme.getIcon(Icon.MERGE_IMAGES_TAGS, Icon.Size.SMALL)
+        theme.getIcon(Icon.MERGE_MEDIA_FILES_TAGS, Icon.Size.SMALL)
     );
-    this.mergeImagesTagsMenuItem.setOnAction(e -> this.onMergeSelectedImagesTags());
-    this.mergeImagesTagsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.M, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
-    this.mergeImagesTagsMenuItem.setDisable(true);
-    this.menuItemStates.put(this.mergeImagesTagsMenuItem, this.mergeImagesTagsMenuItem.isDisable());
+    this.mergeMediaFilesTagsMenuItem.setOnAction(e -> this.onMergeSelectedMediaFilesTags());
+    this.mergeMediaFilesTagsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.M, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
+    this.mergeMediaFilesTagsMenuItem.setDisable(true);
+    this.menuItemStates.put(this.mergeMediaFilesTagsMenuItem, this.mergeMediaFilesTagsMenuItem.isDisable());
     editMenu.getItems().addAll(
         this.editMenuItem,
         this.deleteMenuItem,
-        this.moveImagesMenuItem,
-        this.mergeImagesTagsMenuItem
+        this.moveMediaFilesMenuItem,
+        this.mergeMediaFilesTagsMenuItem
     );
 
     final Menu viewMenu = new Menu(language.translate("menu.view"));
@@ -273,21 +273,21 @@ public class AppController implements ResultsView.SearchListener {
         language.translate("menu.queries.show_images_with_no_tags"),
         theme.getIcon(Icon.SEARCH_NO_TAGS, Icon.Size.SMALL)
     );
-    showNoTagsMenuItem.setOnAction(e -> this.onShowImagesWithNoTags());
+    showNoTagsMenuItem.setOnAction(e -> this.onShowMediasWithNoTags());
     showNoTagsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.T, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
     this.menuItemStates.put(showNoTagsMenuItem, showNoTagsMenuItem.isDisable());
     final MenuItem showNoFileMenuItem = new MenuItem(
         language.translate("menu.queries.show_images_with_no_file"),
         theme.getIcon(Icon.SEARCH_NO_FILE, Icon.Size.SMALL)
     );
-    showNoFileMenuItem.setOnAction(e -> this.onShowImagesWithNoFile());
+    showNoFileMenuItem.setOnAction(e -> this.onShowMediasWithNoFile());
     showNoFileMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
     this.menuItemStates.put(showNoFileMenuItem, showNoFileMenuItem.isDisable());
     final MenuItem showNoHashMenuItem = new MenuItem(
         language.translate("menu.queries.show_images_with_no_hash"),
         theme.getIcon(Icon.SEARCH_NO_HASH, Icon.Size.SMALL)
     );
-    showNoHashMenuItem.setOnAction(e -> this.onShowImagesWithNoHash());
+    showNoHashMenuItem.setOnAction(e -> this.onShowMediasWithNoHash());
     showNoHashMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.H, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
     this.menuItemStates.put(showNoHashMenuItem, showNoHashMenuItem.isDisable());
     final MenuItem showVideosMenuItem = new MenuItem(
@@ -367,29 +367,29 @@ public class AppController implements ResultsView.SearchListener {
     final Language language = this.config.language();
     final Theme theme = this.config.theme();
 
-    final Button importImagesButton = new Button(null, theme.getIcon(Icon.IMPORT_IMAGES, Icon.Size.BIG));
-    importImagesButton.setOnAction(e -> this.onImportImages());
-    importImagesButton.setTooltip(new Tooltip(language.translate("toolbar.file.import_images")));
+    final Button importMediaFilesButton = new Button(null, theme.getIcon(Icon.IMPORT_MEDIA_FILES, Icon.Size.BIG));
+    importMediaFilesButton.setOnAction(e -> this.onImportMediaFiles());
+    importMediaFilesButton.setTooltip(new Tooltip(language.translate("toolbar.file.import_images")));
     final Button importDirectoriesButton = new Button(null, theme.getIcon(Icon.IMPORT_DIRECTORIES, Icon.Size.BIG));
     importDirectoriesButton.setOnAction(e -> this.onImportDirectories());
     importDirectoriesButton.setTooltip(new Tooltip(language.translate("toolbar.file.import_directories")));
 
-    this.editButton = new Button(null, theme.getIcon(Icon.EDIT_IMAGES, Icon.Size.BIG));
+    this.editButton = new Button(null, theme.getIcon(Icon.EDIT_MEDIA_FILES, Icon.Size.BIG));
     this.editButton.setOnAction(e -> this.onEdit());
     this.editButton.setTooltip(new Tooltip(language.translate("toolbar.edit.edit_images")));
     this.editButton.setDisable(true);
-    this.deleteButton = new Button(null, theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.BIG));
+    this.deleteButton = new Button(null, theme.getIcon(Icon.DELETE_MEDIA_FILES, Icon.Size.BIG));
     this.deleteButton.setOnAction(e -> this.onDelete());
     this.deleteButton.setTooltip(new Tooltip(language.translate("toolbar.edit.delete_images")));
     this.deleteButton.setDisable(true);
-    this.moveImagesButton = new Button(null, theme.getIcon(Icon.MOVE_IMAGES, Icon.Size.BIG));
-    this.moveImagesButton.setOnAction(e -> this.onBatchMoveSelectedImages());
-    this.moveImagesButton.setTooltip(new Tooltip(language.translate("toolbar.edit.move_images")));
-    this.moveImagesButton.setDisable(true);
-    this.mergeImagesTagsButton = new Button(null, theme.getIcon(Icon.MERGE_IMAGES_TAGS, Icon.Size.BIG));
-    this.mergeImagesTagsButton.setOnAction(e -> this.onMergeSelectedImagesTags());
-    this.mergeImagesTagsButton.setTooltip(new Tooltip(language.translate("toolbar.edit.merge_images_tags")));
-    this.mergeImagesTagsButton.setDisable(true);
+    this.moveMediaFilesButton = new Button(null, theme.getIcon(Icon.MOVE_MEDIAS, Icon.Size.BIG));
+    this.moveMediaFilesButton.setOnAction(e -> this.onBatchMoveSelectedMediaFiles());
+    this.moveMediaFilesButton.setTooltip(new Tooltip(language.translate("toolbar.edit.move_images")));
+    this.moveMediaFilesButton.setDisable(true);
+    this.mergeMediaFilesTagsButton = new Button(null, theme.getIcon(Icon.MERGE_MEDIA_FILES_TAGS, Icon.Size.BIG));
+    this.mergeMediaFilesTagsButton.setOnAction(e -> this.onMergeSelectedMediaFilesTags());
+    this.mergeMediaFilesTagsButton.setTooltip(new Tooltip(language.translate("toolbar.edit.merge_images_tags")));
+    this.mergeMediaFilesTagsButton.setDisable(true);
 
     final Button operationsButton = new Button(null, theme.getIcon(Icon.BATCH_OPERATIONS, Icon.Size.BIG));
     operationsButton.setOnAction(e -> this.onOperationsAction());
@@ -405,13 +405,13 @@ public class AppController implements ResultsView.SearchListener {
     this.slideshowSelectedButton.setDisable(true);
 
     final Button showNoTagsButton = new Button(null, theme.getIcon(Icon.SEARCH_NO_TAGS, Icon.Size.BIG));
-    showNoTagsButton.setOnAction(e -> this.onShowImagesWithNoTags());
+    showNoTagsButton.setOnAction(e -> this.onShowMediasWithNoTags());
     showNoTagsButton.setTooltip(new Tooltip(language.translate("toolbar.queries.show_images_with_no_tags")));
     final Button showNoFileButton = new Button(null, theme.getIcon(Icon.SEARCH_NO_FILE, Icon.Size.BIG));
-    showNoFileButton.setOnAction(e -> this.onShowImagesWithNoFile());
+    showNoFileButton.setOnAction(e -> this.onShowMediasWithNoFile());
     showNoFileButton.setTooltip(new Tooltip(language.translate("toolbar.queries.show_images_with_no_file")));
     final Button showNoHashButton = new Button(null, theme.getIcon(Icon.SEARCH_NO_HASH, Icon.Size.BIG));
-    showNoHashButton.setOnAction(e -> this.onShowImagesWithNoHash());
+    showNoHashButton.setOnAction(e -> this.onShowMediasWithNoHash());
     showNoHashButton.setTooltip(new Tooltip(language.translate("toolbar.queries.show_images_with_no_hash")));
     final Button showVideosButton = new Button(null, theme.getIcon(Icon.SEARCH_VIDEOS, Icon.Size.BIG));
     showVideosButton.setOnAction(e -> this.onShowVideos());
@@ -423,13 +423,13 @@ public class AppController implements ResultsView.SearchListener {
     helpButton.setDisable(true); // TEMP until help is done
 
     return new ToolBar(
-        importImagesButton,
+        importMediaFilesButton,
         importDirectoriesButton,
         new Separator(),
         this.editButton,
         this.deleteButton,
-        this.moveImagesButton,
-        this.mergeImagesTagsButton,
+        this.moveMediaFilesButton,
+        this.mergeMediaFilesTagsButton,
         new Separator(),
         operationsButton,
         new Separator(),
@@ -496,7 +496,7 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void onResultsTabSelectionChanged(@NotNull Tab tab) {
-    this.onImageSelectionChange(((ResultsView) tab.getContent()).getSelectedImages());
+    this.onMediaSelectionChange(((ResultsView) tab.getContent()).getSelectedMediaFiles());
     this.onResultsTabsUpdate();
   }
 
@@ -511,8 +511,8 @@ public class AppController implements ResultsView.SearchListener {
     if (title == null)
       title = this.config.language().translate("results_tabs.new_tab.title");
     final ResultsView view = new ResultsView(this.config, this.db, this.queriesManager);
-    view.addImageDoubleClickListener(this::onImageDoubleClick);
-    view.addImageSelectionListener(this::onImageSelectionChange);
+    view.addMediaItemDoubleClickListener(this::onMediaDoubleClick);
+    view.addMediaItemSelectionListener(this::onMediaSelectionChange);
     view.addSimilarImagesListener(this::onSimilarImages);
     view.addSearchListener(this);
     final Tab tab = new Tab(title, view);
@@ -538,9 +538,9 @@ public class AppController implements ResultsView.SearchListener {
     if (filesOrDirs.isEmpty())
       return;
 
-    final LoadingResult res = this.loadPictures(filesOrDirs);
-    final List<Picture> pictures = res.pictures();
-    pictures.sort(null);
+    final LoadingResult res = this.loadMediaFiles(filesOrDirs);
+    final List<MediaFile> mediaFiles = res.mediaFiles();
+    mediaFiles.sort(null);
     final List<Path> skipped = res.skipped();
     skipped.sort(null);
     final List<Path> errors = res.errors();
@@ -564,7 +564,7 @@ public class AppController implements ResultsView.SearchListener {
       );
     }
 
-    if (pictures.isEmpty()) {
+    if (mediaFiles.isEmpty()) {
       Alerts.info(
           this.config,
           "alert.no_files.header",
@@ -574,8 +574,8 @@ public class AppController implements ResultsView.SearchListener {
       return;
     }
 
-    this.editImagesDialog.setPictures(pictures, true);
-    this.editImagesDialog.showAndWait().ifPresent(anyUpdate -> {
+    this.editMediasDialog.setMedias(mediaFiles, true);
+    this.editMediasDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
         this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
@@ -583,8 +583,8 @@ public class AppController implements ResultsView.SearchListener {
     });
   }
 
-  private LoadingResult loadPictures(final @NotNull List<Path> filesOrDirs) {
-    final List<Picture> pictures = new LinkedList<>();
+  private LoadingResult loadMediaFiles(final @NotNull List<Path> filesOrDirs) {
+    final List<MediaFile> mediaFiles = new LinkedList<>();
     final List<Path> errors = new LinkedList<>();
     final List<Path> skipped = new LinkedList<>();
 
@@ -593,8 +593,8 @@ public class AppController implements ResultsView.SearchListener {
         try (final var tree = Files.newDirectoryStream(fileOrDir)) {
           final List<Path> files = new LinkedList<>();
           tree.iterator().forEachRemaining(files::add);
-          final var res = this.loadPictures(files);
-          pictures.addAll(res.pictures());
+          final var res = this.loadMediaFiles(files);
+          mediaFiles.addAll(res.mediaFiles());
           skipped.addAll(res.skipped());
           errors.addAll(res.errors());
         } catch (final IOException | SecurityException e) {
@@ -604,22 +604,22 @@ public class AppController implements ResultsView.SearchListener {
         try {
           if (this.db.isFileRegistered(fileOrDir))
             skipped.add(fileOrDir);
-          else // Gain time by not computing hashes now as the EditImagesDialog will do when needed
-            pictures.add(new Picture(0, fileOrDir, null));
+          else // Gain time by not computing hashes now as the EditMediasDialog will do when needed
+            mediaFiles.add(new MediaFile(0, fileOrDir, null));
         } catch (final Exception e) {
           errors.add(fileOrDir);
         }
 
-    return new LoadingResult(pictures, skipped, errors);
+    return new LoadingResult(mediaFiles, skipped, errors);
   }
 
   private record LoadingResult(
-      @NotNull List<Picture> pictures,
+      @NotNull List<MediaFile> mediaFiles,
       @NotNull List<Path> skipped,
       @NotNull List<Path> errors
   ) {
     private LoadingResult {
-      Objects.requireNonNull(pictures);
+      Objects.requireNonNull(mediaFiles);
       Objects.requireNonNull(skipped);
       Objects.requireNonNull(errors);
     }
@@ -630,14 +630,14 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void onTagSelectionChange(final @NotNull List<Tag> tags) {
-    this.selectedPictures.clear();
+    this.selectedMediaFiles.clear();
     this.selectedTags.clear();
     this.selectedTags.addAll(tags);
 
-    this.moveImagesMenuItem.setDisable(true);
-    this.moveImagesButton.setDisable(true);
-    this.mergeImagesTagsMenuItem.setDisable(true);
-    this.mergeImagesTagsButton.setDisable(true);
+    this.moveMediaFilesMenuItem.setDisable(true);
+    this.moveMediaFilesButton.setDisable(true);
+    this.mergeMediaFilesTagsMenuItem.setDisable(true);
+    this.mergeMediaFilesTagsButton.setDisable(true);
     this.deleteMenuItem.setDisable(true);
     this.deleteButton.setDisable(true);
     this.slideshowSelectedMenuItem.setDisable(true);
@@ -716,9 +716,9 @@ public class AppController implements ResultsView.SearchListener {
     }
   }
 
-  private void onImageDoubleClick(@NotNull Picture picture) {
-    this.editImagesDialog.setPictures(List.of(picture), false);
-    this.editImagesDialog.showAndWait().ifPresent(anyUpdate -> {
+  private void onMediaDoubleClick(@NotNull MediaFile mediaFile) {
+    this.editMediasDialog.setMedias(List.of(mediaFile), false);
+    this.editMediasDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
         this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
@@ -726,38 +726,38 @@ public class AppController implements ResultsView.SearchListener {
     });
   }
 
-  private void onImageSelectionChange(final @NotNull List<Picture> pictures) {
+  private void onMediaSelectionChange(final @NotNull List<MediaFile> mediaFiles) {
     this.selectedTags.clear();
-    this.selectedPictures.clear();
-    this.selectedPictures.addAll(pictures);
+    this.selectedMediaFiles.clear();
+    this.selectedMediaFiles.addAll(mediaFiles);
 
     final Language language = this.config.language();
     final Theme theme = this.config.theme();
 
-    final boolean empty = pictures.isEmpty();
-    final boolean notTwoSelected = pictures.size() != 2;
+    final boolean empty = mediaFiles.isEmpty();
+    final boolean notTwoSelected = mediaFiles.size() != 2;
     this.editMenuItem.setDisable(empty);
-    this.editMenuItem.setGraphic(theme.getIcon(Icon.EDIT_IMAGES, Icon.Size.SMALL));
+    this.editMenuItem.setGraphic(theme.getIcon(Icon.EDIT_MEDIA_FILES, Icon.Size.SMALL));
     this.editMenuItem.setText(language.translate("menu.edit.edit_images"));
     this.editButton.setDisable(empty);
-    this.editButton.setGraphic(theme.getIcon(Icon.EDIT_IMAGES, Icon.Size.BIG));
+    this.editButton.setGraphic(theme.getIcon(Icon.EDIT_MEDIA_FILES, Icon.Size.BIG));
     this.editButton.setTooltip(new Tooltip(language.translate("toolbar.edit.edit_images")));
     this.deleteMenuItem.setDisable(empty);
-    this.deleteMenuItem.setGraphic(theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.SMALL));
+    this.deleteMenuItem.setGraphic(theme.getIcon(Icon.DELETE_MEDIA_FILES, Icon.Size.SMALL));
     this.deleteMenuItem.setText(language.translate("menu.edit.delete_images"));
     this.deleteButton.setDisable(empty);
-    this.deleteButton.setGraphic(theme.getIcon(Icon.DELETE_IMAGES, Icon.Size.BIG));
+    this.deleteButton.setGraphic(theme.getIcon(Icon.DELETE_MEDIA_FILES, Icon.Size.BIG));
     this.deleteButton.setTooltip(new Tooltip(language.translate("toolbar.edit.delete_images")));
-    this.moveImagesMenuItem.setDisable(empty);
-    this.moveImagesButton.setDisable(empty);
-    this.mergeImagesTagsMenuItem.setDisable(notTwoSelected);
-    this.mergeImagesTagsButton.setDisable(notTwoSelected);
+    this.moveMediaFilesMenuItem.setDisable(empty);
+    this.moveMediaFilesButton.setDisable(empty);
+    this.mergeMediaFilesTagsMenuItem.setDisable(notTwoSelected);
+    this.mergeMediaFilesTagsButton.setDisable(notTwoSelected);
     this.slideshowSelectedMenuItem.setDisable(empty);
     this.slideshowSelectedButton.setDisable(empty);
   }
 
-  private void onSimilarImages(@NotNull Picture picture) {
-    final String escapedPath = picture.path().toString()
+  private void onSimilarImages(@NotNull MediaFile mediaFile) {
+    final String escapedPath = mediaFile.path().toString()
         .replace("\"", "\\\"")
         .replace("\\", "\\\\");
     final String query = "similar_to=\"%s\"".formatted(escapedPath);
@@ -815,8 +815,8 @@ public class AppController implements ResultsView.SearchListener {
     this.menuItemStates.forEach(MenuItem::setDisable);
   }
 
-  private void onImportImages() {
-    this.loadFiles(FileChoosers.showImagesFileChooser(this.config, this.stage));
+  private void onImportMediaFiles() {
+    this.loadFiles(FileChoosers.showMediaFilesChooser(this.config, this.stage));
   }
 
   private void onImportDirectories() {
@@ -833,20 +833,20 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   /**
-   * Open the dialog to edit selected tags/images.
+   * Open the dialog to edit selected tags/medias.
    */
   private void onEdit() {
-    if (!this.selectedPictures.isEmpty())
-      this.editSelectedPictures();
+    if (!this.selectedMediaFiles.isEmpty())
+      this.editSelectedMedias();
     else if (this.selectedTags.size() == 1)
       this.editTag(this.selectedTags.get(0));
   }
 
-  private void editSelectedPictures() {
-    if (this.selectedPictures.isEmpty())
+  private void editSelectedMedias() {
+    if (this.selectedMediaFiles.isEmpty())
       return;
-    this.editImagesDialog.setPictures(this.selectedPictures, false);
-    this.editImagesDialog.showAndWait().ifPresent(anyUpdate -> {
+    this.editMediasDialog.setMedias(this.selectedMediaFiles, false);
+    this.editMediasDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
         this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
@@ -863,40 +863,40 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   /**
-   * Open the dialog to confirm the deletion of selected tags/images
+   * Open the dialog to confirm the deletion of selected tags/medias
    * then delete them if the user confirms.
    */
   private void onDelete() {
-    if (!this.selectedPictures.isEmpty())
-      this.deleteSelectedPictures();
+    if (!this.selectedMediaFiles.isEmpty())
+      this.deleteSelectedMedias();
     else if (!this.selectedTags.isEmpty())
       this.deleteSelectedTags();
   }
 
-  private void deleteSelectedPictures() {
+  private void deleteSelectedMedias() {
     final var fromDisk = Alerts.confirmCheckbox(
         this.config,
         "alert.delete_images.header",
         "alert.delete_images.label",
         null,
         false,
-        new FormatArg("count", this.selectedPictures.size())
+        new FormatArg("count", this.selectedMediaFiles.size())
     );
     if (fromDisk.isEmpty())
       return;
 
-    final List<Picture> notDeleted = new LinkedList<>();
-    for (final var picture : this.selectedPictures) {
+    final List<MediaFile> notDeleted = new LinkedList<>();
+    for (final var mediaFile : this.selectedMediaFiles) {
       try {
-        this.db.deletePicture(picture, fromDisk.get());
+        this.db.deleteMedia(mediaFile, fromDisk.get());
       } catch (final DatabaseOperationException e) {
-        notDeleted.add(picture);
+        notDeleted.add(mediaFile);
       }
     }
     if (!notDeleted.isEmpty()) {
       Alerts.error(this.config, "alert.deletion_error.header", null, null);
       this.addResultsTab(this.config.language().translate("results_tabs.not_deleted.title"));
-      this.getSelectedResultsView().listImages(notDeleted);
+      this.getSelectedResultsView().listMedias(notDeleted);
     } else {
       this.getResultsViews().forEach(ResultsView::refresh);
       this.tagsView.refresh();
@@ -919,13 +919,13 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   /**
-   * Open the dialog to move the selected images in batch.
+   * Open the dialog to move the selected media files in batch.
    */
-  private void onBatchMoveSelectedImages() {
-    if (this.selectedPictures.isEmpty())
+  private void onBatchMoveSelectedMediaFiles() {
+    if (this.selectedMediaFiles.isEmpty())
       return;
-    this.movePicturesDialog.setPictures(this.selectedPictures);
-    this.movePicturesDialog.showAndWait().ifPresent(anyUpdate -> {
+    this.moveMediaFilesDialog.setMedias(this.selectedMediaFiles);
+    this.moveMediaFilesDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
         this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
@@ -933,21 +933,21 @@ public class AppController implements ResultsView.SearchListener {
     });
   }
 
-  private void onMergeSelectedImagesTags() {
-    if (this.selectedPictures.size() != 2)
+  private void onMergeSelectedMediaFilesTags() {
+    if (this.selectedMediaFiles.size() != 2)
       return;
-    final Picture picture1 = this.selectedPictures.get(0);
-    final Picture picture2 = this.selectedPictures.get(1);
-    final Set<Tag> imageTags1, imageTags2;
+    final MediaFile mediaFile1 = this.selectedMediaFiles.get(0);
+    final MediaFile mediaFile2 = this.selectedMediaFiles.get(1);
+    final Set<Tag> mediaTags1, mediaTags2;
     try {
-      imageTags1 = this.db.getImageTags(picture1);
-      imageTags2 = this.db.getImageTags(picture2);
+      mediaTags1 = this.db.getMediaTags(mediaFile1);
+      mediaTags2 = this.db.getMediaTags(mediaFile2);
     } catch (final DatabaseOperationException e) {
       Alerts.databaseError(this.config, e.errorCode());
       return;
     }
-    this.mergeImagesTagsDialog.setPictures(picture1, imageTags1, picture2, imageTags2);
-    this.mergeImagesTagsDialog.showAndWait().ifPresent(anyUpdate -> {
+    this.mergeMediaTagsDialog.setMedias(mediaFile1, mediaTags1, mediaFile2, mediaTags2);
+    this.mergeMediaTagsDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
         this.getResultsViews().forEach(ResultsView::refresh);
         this.tagsView.refresh();
@@ -956,7 +956,7 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   private void onOperationsAction() {
-    this.batchOperationsDialog.setPictures(this.getSelectedResultsView().pictures(), this.selectedPictures);
+    this.batchOperationsDialog.setMedias(this.getSelectedResultsView().mediasFiles(), this.selectedMediaFiles);
     this.batchOperationsDialog.showAndWait().ifPresent(anyUpdate -> {
       if (anyUpdate) {
         this.getResultsViews().forEach(ResultsView::refresh);
@@ -970,36 +970,36 @@ public class AppController implements ResultsView.SearchListener {
   }
 
   /**
-   * Open the slideshow dialog for the current query results or selected pictures.
+   * Open the slideshow dialog for the current query results or selected medias.
    */
   private void onSlideshow(boolean onlySelected) {
-    final List<Picture> pictures = new LinkedList<>();
+    final List<MediaFile> mediaFiles = new LinkedList<>();
     if (onlySelected)
-      pictures.addAll(this.selectedPictures);
+      mediaFiles.addAll(this.selectedMediaFiles);
     else
-      pictures.addAll(this.getSelectedResultsView().pictures());
-    this.imageViewerDialog.setPictures(pictures);
+      mediaFiles.addAll(this.getSelectedResultsView().mediasFiles());
+    this.imageViewerDialog.setImages(mediaFiles);
     this.imageViewerDialog.showAndWait();
   }
 
   /**
-   * Launch a search for images with no tags.
+   * Launch a search for medias with no tags.
    */
-  private void onShowImagesWithNoTags() {
+  private void onShowMediasWithNoTags() {
     this.searchFlag("no_tags");
   }
 
   /**
-   * Launch a search for images with no file.
+   * Launch a search for medias with no file.
    */
-  private void onShowImagesWithNoFile() {
+  private void onShowMediasWithNoFile() {
     this.searchFlag("no_file");
   }
 
   /**
-   * Launch a search for images with no hash.
+   * Launch a search for medias with no hash.
    */
-  private void onShowImagesWithNoHash() {
+  private void onShowMediasWithNoHash() {
     this.searchFlag("no_hash");
   }
 
@@ -1012,7 +1012,7 @@ public class AppController implements ResultsView.SearchListener {
 
   private void searchFlag(String flag) {
     this.addResultsTab(flag);
-    this.getSelectedResultsView().searchImagesWithFlag(flag);
+    this.getSelectedResultsView().searchMediasWithFlag(flag);
   }
 
   /**

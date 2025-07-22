@@ -6,7 +6,7 @@ import org.jetbrains.annotations.*;
 import java.util.*;
 
 /**
- * A flag is an element of a tag query that is used to filter images based on a boolean property.
+ * A flag is an element of a tag query that is used to filter medias based on a boolean property.
  *
  * @param sqlTemplate The SQL query template for this flag.
  * @param predicate   A predicate representing this flag.

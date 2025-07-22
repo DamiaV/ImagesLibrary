@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.stream.*;
 
 /**
- * This dialog allows applying batches of operations to many images at once.
+ * This dialog allows applying batches of operations to many media files at once.
  */
 public class BatchOperationsDialog extends DialogBase<Boolean>
     implements OperationView.OperationUpdateListener, ClickableListCellFactory.ClickListener<String> {
@@ -40,9 +40,9 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
   private final ProgressDialog progressDialog;
 
   private final DatabaseConnection db;
-  private final List<Picture> resultPictures = new ArrayList<>();
-  private final List<Picture> selectedPictures = new ArrayList<>();
-  private boolean anyPictureUpdate;
+  private final List<MediaFile> resultMediaFiles = new ArrayList<>();
+  private final List<MediaFile> selectedMediaFiles = new ArrayList<>();
+  private boolean anyMediaUpdate;
   private boolean unsavedChanges;
   private String loadedOperationBatchName;
 
@@ -168,7 +168,7 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
     stage.setMinWidth(800);
     stage.setMinHeight(600);
 
-    this.setResultConverter(buttonType -> this.anyPictureUpdate);
+    this.setResultConverter(buttonType -> this.anyMediaUpdate);
 
     this.setOnCloseRequest(event -> {
       JavaFxUtils.checkNoOngoingTask(config, event, this.progressDialog);
@@ -181,19 +181,19 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
   }
 
   /**
-   * Set pictures to potentially apply operations on.
+   * Set medias to potentially apply operations on.
    *
-   * @param resultPictures   Pictures the current query returned.
-   * @param selectedPictures Pictures currently selected.
+   * @param resultMediaFiles   Medias the current query returned.
+   * @param selectedMediaFiles Medias currently selected.
    */
-  public void setPictures(@NotNull List<Picture> resultPictures, @NotNull List<Picture> selectedPictures) {
-    this.resultPictures.clear();
-    this.resultPictures.addAll(resultPictures);
-    this.selectedPictures.clear();
-    this.selectedPictures.addAll(selectedPictures);
+  public void setMedias(@NotNull List<MediaFile> resultMediaFiles, @NotNull List<MediaFile> selectedMediaFiles) {
+    this.resultMediaFiles.clear();
+    this.resultMediaFiles.addAll(resultMediaFiles);
+    this.selectedMediaFiles.clear();
+    this.selectedMediaFiles.addAll(selectedMediaFiles);
 
-    this.applyToSelectedRadio.setDisable(selectedPictures.isEmpty());
-    this.applyToResultsRadio.setDisable(resultPictures.isEmpty());
+    this.applyToSelectedRadio.setDisable(selectedMediaFiles.isEmpty());
+    this.applyToResultsRadio.setDisable(resultMediaFiles.isEmpty());
     if (!this.applyToSelectedRadio.isDisabled())
       this.applyToSelectedRadio.setSelected(true);
     else if (!this.applyToResultsRadio.isDisabled())
@@ -210,7 +210,7 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
           this.savedOperationBatchesList.getItems().add(e.getKey());
         });
 
-    this.anyPictureUpdate = false;
+    this.anyMediaUpdate = false;
     this.unsavedChanges = false;
     this.setCurrentBatchName(null);
     this.updateButtons();
@@ -503,17 +503,17 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
     public void run() {
       final var dialog = this.dialog();
       final int total;
-      final Stream<Picture> stream;
+      final Stream<MediaFile> stream;
       if (dialog.applyToSelectedRadio.isSelected()) {
-        total = dialog.selectedPictures.size();
-        stream = dialog.selectedPictures.stream();
+        total = dialog.selectedMediaFiles.size();
+        stream = dialog.selectedMediaFiles.stream();
       } else if (dialog.applyToResultsRadio.isSelected()) {
-        total = dialog.resultPictures.size();
-        stream = dialog.resultPictures.stream();
+        total = dialog.resultMediaFiles.size();
+        stream = dialog.resultMediaFiles.stream();
       } else {
         total = -1;
         try {
-          stream = dialog.db.getAllPictures();
+          stream = dialog.db.getAllMedias();
         } catch (final DatabaseOperationException e) {
           this.onAbort(0, e.errorCode());
           return;
@@ -521,9 +521,9 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
       }
 
       int count = 0;
-      dialog.anyPictureUpdate = true;
+      dialog.anyMediaUpdate = true;
       try {
-        final Iterator<Picture> iterator = stream.iterator();
+        final Iterator<MediaFile> iterator = stream.iterator();
         this.notifyProgress(total, count);
         while (iterator.hasNext()) {
           if (dialog.progressDialog.isCancelled()) {
@@ -532,7 +532,7 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
             this.onCancel(count);
             return;
           }
-          Picture picture = iterator.next();
+          MediaFile mediaFile = iterator.next();
 
           final List<? extends Operation> operations = dialog.operationBatchList.getItems()
               .stream()
@@ -542,9 +542,9 @@ public class BatchOperationsDialog extends DialogBase<Boolean>
           boolean anyApplied = false;
           for (final Operation operation : operations)
             try {
-              final var result = operation.apply(picture, dialog.db, dialog.config);
+              final var result = operation.apply(mediaFile, dialog.db, dialog.config);
               anyApplied |= result.getKey();
-              picture = result.getValue();
+              mediaFile = result.getValue();
             } catch (final DatabaseOperationException | DatabaseOperationRuntimeException e) {
               App.logger().error("Batch operation failed.", e);
             }

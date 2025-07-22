@@ -58,7 +58,7 @@ public class MediaViewer extends VBox {
    *
    * @param mediaFile The media file to show. Can be null.
    */
-  public void setMedia(Picture mediaFile) {
+  public void setMedia(MediaFile mediaFile) {
     this.imageView.setImage(null);
     this.videoPlayer.setMediaPlayer(null, true);
     this.mediaPlayer = null;

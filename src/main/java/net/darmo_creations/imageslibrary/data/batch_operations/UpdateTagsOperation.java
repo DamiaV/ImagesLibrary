@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.stream.*;
 
 /**
- * An operation that updates the tags of a {@link Picture}.
+ * An operation that updates the tags of a {@link MediaFile}.
  */
 public final class UpdateTagsOperation extends Operation {
   public static final String KEY = "update_tags";
@@ -18,7 +18,7 @@ public final class UpdateTagsOperation extends Operation {
   private final Set<Tag> tagsToRemove = new HashSet<>();
 
   /**
-   * Create a new operation that the updates tags of {@link Picture}s.
+   * Create a new operation that the updates tags of {@link MediaFile}s.
    *
    * @param tagsToAdd    The set of tags to add.
    * @param tagsToRemove The set of tags to remove.
@@ -31,12 +31,12 @@ public final class UpdateTagsOperation extends Operation {
   }
 
   @Override
-  protected Pair<Boolean, Picture> execute(@NotNull Picture picture, @NotNull DatabaseConnection db)
+  protected Pair<Boolean, MediaFile> execute(@NotNull MediaFile mediaFile, @NotNull DatabaseConnection db)
       throws DatabaseOperationException {
-    final Set<Tag> oldTags = db.getImageTags(picture);
-    db.updatePicture(new PictureUpdate(picture.id(), picture.path(), picture.hash(), this.tagsToAdd, this.tagsToRemove));
-    final Set<Tag> newTags = db.getImageTags(picture);
-    return new Pair<>(!oldTags.equals(newTags), picture);
+    final Set<Tag> oldTags = db.getMediaTags(mediaFile);
+    db.updateMedia(new MediaFileUpdate(mediaFile.id(), mediaFile.path(), mediaFile.hash(), this.tagsToAdd, this.tagsToRemove));
+    final Set<Tag> newTags = db.getMediaTags(mediaFile);
+    return new Pair<>(!oldTags.equals(newTags), mediaFile);
   }
 
   @UnmodifiableView

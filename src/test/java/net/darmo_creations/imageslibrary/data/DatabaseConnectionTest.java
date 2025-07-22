@@ -483,11 +483,11 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void updateTags_addDefinitionButAlreadyLinkedToImageError() throws DatabaseOperationException {
+  void updateTags_addDefinitionButAlreadyLinkedToMediaError() throws DatabaseOperationException {
     this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null)
     ));
-    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.png"), Optional.of(new Hash(0)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, Path.of("test_file.png"), Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.empty(), "test1")
     ), Set.of()));
     assertThrows(DatabaseOperationException.class, () -> this.db.updateTags(Set.of(
@@ -550,188 +550,188 @@ class DatabaseConnectionTest {
   }
 
   // endregion
-  // region queryPictures
+  // region queryMedias
 
-  private FormulaFactory initQueryPicturesTest() throws DatabaseOperationException {
-    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.jpeg"), Optional.of(new Hash(0)), Set.of(
+  private FormulaFactory initQueryMediasTest() throws DatabaseOperationException {
+    this.db.insertMedia(new MediaFileUpdate(0, Path.of("test_file.jpeg"), Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.empty(), "test1"),
         new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
-    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file_2.jpg"), Optional.of(new Hash(1)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, Path.of("test_file_2.jpg"), Optional.of(new Hash(1)), Set.of(
         new ParsedTag(Optional.empty(), "test1"),
         new ParsedTag(Optional.empty(), "test3")
     ), Set.of()));
-    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file_3.png"), Optional.of(new Hash(-1)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, Path.of("test_file_3.png"), Optional.of(new Hash(-1)), Set.of(), Set.of()));
     return new FormulaFactory();
   }
 
   @Test
-  void queryPictures_trueReturnsAll() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.verum(), Map.of(), null));
-    assertEquals(3, pictures.size());
+  void queryMedias_trueReturnsAll() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(new TagQuery(ff.verum(), Map.of(), null));
+    assertEquals(3, medias.size());
   }
 
   @Test
-  void queryPictures_falseReturnsNone() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.falsum(), Map.of(), null));
-    assertTrue(pictures.isEmpty());
+  void queryMedias_falseReturnsNone() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(new TagQuery(ff.falsum(), Map.of(), null));
+    assertTrue(medias.isEmpty());
   }
 
   @Test
-  void queryPictures_or() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.or(ff.variable("test2"), ff.variable("test3")), Map.of(), null));
-    assertEquals(2, pictures.size());
+  void queryMedias_or() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(new TagQuery(ff.or(ff.variable("test2"), ff.variable("test3")), Map.of(), null));
+    assertEquals(2, medias.size());
   }
 
   @Test
-  void queryPictures_and() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.and(ff.variable("test1"), ff.variable("test2")), Map.of(), null));
-    assertEquals(1, pictures.size());
+  void queryMedias_and() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(new TagQuery(ff.and(ff.variable("test1"), ff.variable("test2")), Map.of(), null));
+    assertEquals(1, medias.size());
     //noinspection OptionalGetWithoutIsPresent
-    assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
+    assertEquals(new MediaFile(1, Path.of("test_file.jpeg"), new Hash(0)), medias.stream().findFirst().get());
   }
 
   @Test
-  void queryPictures_not() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.not(ff.variable("test2")), Map.of(), null));
-    assertEquals(2, pictures.size());
+  void queryMedias_not() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(new TagQuery(ff.not(ff.variable("test2")), Map.of(), null));
+    assertEquals(2, medias.size());
     assertEquals(Set.of(
-        new Picture(2, Path.of("test_file_2.jpg"), new Hash(1)),
-        new Picture(3, Path.of("test_file_3.png"), new Hash(-1))
-    ), pictures);
+        new MediaFile(2, Path.of("test_file_2.jpg"), new Hash(1)),
+        new MediaFile(3, Path.of("test_file_3.png"), new Hash(-1))
+    ), medias);
   }
 
   @Test
-  void queryPictures_pseudoTag_extPlainString() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_extPlainString() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("ext:string::jpeg"), DatabaseConnection.PSEUDO_TAGS, null));
-    assertEquals(1, pictures.size());
+    assertEquals(1, medias.size());
     //noinspection OptionalGetWithoutIsPresent
-    assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
+    assertEquals(new MediaFile(1, Path.of("test_file.jpeg"), new Hash(0)), medias.stream().findFirst().get());
   }
 
   @Test
-  void queryPictures_pseudoTag_extTemplateString() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_extTemplateString() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("ext:string::jp?g"), DatabaseConnection.PSEUDO_TAGS, null));
-    assertEquals(2, pictures.size());
+    assertEquals(2, medias.size());
   }
 
   @Test
-  void queryPictures_pseudoTag_extRegex() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_extRegex() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("ext:regex::jp[e]?g"), DatabaseConnection.PSEUDO_TAGS, null));
-    assertEquals(2, pictures.size());
+    assertEquals(2, medias.size());
   }
 
   @Test
-  void queryPictures_pseudoTag_namePlainString() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_namePlainString() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("name:string::test_file.jpeg"), DatabaseConnection.PSEUDO_TAGS, null));
-    assertEquals(1, pictures.size());
+    assertEquals(1, medias.size());
     //noinspection OptionalGetWithoutIsPresent
-    assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
+    assertEquals(new MediaFile(1, Path.of("test_file.jpeg"), new Hash(0)), medias.stream().findFirst().get());
   }
 
   @Test
-  void queryPictures_pseudoTag_nameTemplateString() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_nameTemplateString() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("name:string::test_file*.jp?g"), DatabaseConnection.PSEUDO_TAGS, null));
-    assertEquals(2, pictures.size());
+    assertEquals(2, medias.size());
   }
 
   @Test
-  void queryPictures_pseudoTag_nameRegex() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_nameRegex() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("name:regex::test_file.*\\.jpe?g"), DatabaseConnection.PSEUDO_TAGS, null));
-    assertEquals(2, pictures.size());
+    assertEquals(2, medias.size());
   }
 
   @Test
-  void queryPictures_pseudoTag_pathPlainString() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_pathPlainString() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("path:string::%s/test_file.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS, null));
-    assertEquals(1, pictures.size());
+    assertEquals(1, medias.size());
     //noinspection OptionalGetWithoutIsPresent
-    assertEquals(new Picture(1, Path.of("test_file.jpeg"), new Hash(0)), pictures.stream().findFirst().get());
+    assertEquals(new MediaFile(1, Path.of("test_file.jpeg"), new Hash(0)), medias.stream().findFirst().get());
   }
 
   @Test
-  void queryPictures_pseudoTag_pathTemplateString() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_pathTemplateString() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("path:string::*/test_file*.jp?g"), DatabaseConnection.PSEUDO_TAGS, null));
-    assertEquals(2, pictures.size());
+    assertEquals(2, medias.size());
   }
 
   @Test
-  void queryPictures_pseudoTag_pathRegex() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_pathRegex() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("path:regex::.*/test_file.*\\.jpe?g"), DatabaseConnection.PSEUDO_TAGS, null));
-    assertEquals(2, pictures.size());
+    assertEquals(2, medias.size());
   }
 
   @Test
-  void queryPictures_pseudoTag_similar_toPlainString() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_similar_toPlainString() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("similar_to:string::%s/test_file.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS, null));
-    assertEquals(2, pictures.size());
+    assertEquals(2, medias.size());
   }
 
   @Test
-  void queryPictures_pseudoTag_similar_toTemplateStringNoError() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(
+  void queryMedias_pseudoTag_similar_toTemplateStringNoError() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(
         new TagQuery(ff.variable("similar_to:string::%s/test_file.jp?g".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS, null));
-    assertTrue(pictures.isEmpty());
+    assertTrue(medias.isEmpty());
   }
 
   @Test
-  void queryPictures_pseudoTag_similar_toRegexError() throws DatabaseOperationException {
-    final var ff = this.initQueryPicturesTest();
+  void queryMedias_pseudoTag_similar_toRegexError() throws DatabaseOperationException {
+    final var ff = this.initQueryMediasTest();
     assertThrows(InvalidPseudoTagException.class,
-        () -> this.db.queryPictures(new TagQuery(ff.variable("similar_to:regex::%s/test_file\\.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS, null)));
+        () -> this.db.queryMedias(new TagQuery(ff.variable("similar_to:regex::%s/test_file\\.jpeg".formatted(Path.of("").toAbsolutePath())), DatabaseConnection.PSEUDO_TAGS, null)));
   }
 
   @Test
-  void queryPictures_nonExistentTagNoError() throws DatabaseOperationException, InvalidPseudoTagException {
-    final var ff = this.initQueryPicturesTest();
-    final var pictures = this.db.queryPictures(new TagQuery(ff.variable("yo"), Map.of(), null));
-    assertTrue(pictures.isEmpty());
+  void queryMedias_nonExistentTagNoError() throws DatabaseOperationException, InvalidPseudoTagException {
+    final var ff = this.initQueryMediasTest();
+    final var medias = this.db.queryMedias(new TagQuery(ff.variable("yo"), Map.of(), null));
+    assertTrue(medias.isEmpty());
   }
 
   @Test
-  void queryPictures_nonExistentPseudoTagError() throws DatabaseOperationException {
-    final var ff = this.initQueryPicturesTest();
-    assertThrows(InvalidPseudoTagException.class, () -> this.db.queryPictures(new TagQuery(ff.variable("invalid:string::a"), Map.of(), null)));
+  void queryMedias_nonExistentPseudoTagError() throws DatabaseOperationException {
+    final var ff = this.initQueryMediasTest();
+    assertThrows(InvalidPseudoTagException.class, () -> this.db.queryMedias(new TagQuery(ff.variable("invalid:string::a"), Map.of(), null)));
   }
 
   // endregion
-  // region getImageTags
+  // region getMediaTags
 
   @Test
-  void getImageTags() throws DatabaseOperationException {
+  void getMediaTags() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.empty(), "test"),
         new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
-    final Set<Tag> imageTags = this.db.getImageTags(new Picture(1, path, new Hash(0)));
-    assertEquals(this.db.getAllTags(), imageTags);
+    final Set<Tag> mediaTags = this.db.getMediaTags(new MediaFile(1, path, new Hash(0)));
+    assertEquals(this.db.getAllTags(), mediaTags);
   }
 
   // endregion
@@ -740,13 +740,13 @@ class DatabaseConnectionTest {
   @Test
   void isFileRegistered() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     assertTrue(this.db.isFileRegistered(path));
   }
 
   @Test
   void isFileRegistered_not() throws DatabaseOperationException {
-    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.png"), Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, Path.of("test_file.png"), Optional.of(new Hash(0)), Set.of(), Set.of()));
     assertFalse(this.db.isFileRegistered(Path.of("test_file_2.png")));
   }
 
@@ -755,17 +755,17 @@ class DatabaseConnectionTest {
 
   @Test
   void getSimilarImages() throws DatabaseOperationException {
-    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.png"), Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, Path.of("test_file.png"), Optional.of(new Hash(0)), Set.of(), Set.of()));
     final Path path = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(-1)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(-1)), Set.of(), Set.of()));
     final var similarImages = this.db.getSimilarImages(new Hash(-1), null);
     assertEquals(1, similarImages.size());
-    assertEquals(new Picture(2, path, new Hash(-1)), similarImages.get(0).getKey());
+    assertEquals(new MediaFile(2, path, new Hash(-1)), similarImages.get(0).getKey());
   }
 
   @Test
   void getSimilarImages_returnsSameConfidenceIndexAsHashClass() throws DatabaseOperationException {
-    this.db.insertPicture(new PictureUpdate(0, Path.of("test_file.png"), Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, Path.of("test_file.png"), Optional.of(new Hash(0)), Set.of(), Set.of()));
     assertEquals(
         new Hash(0).computeSimilarity(new Hash(0)).confidence(),
         this.db.getSimilarImages(new Hash(0), null).get(0).getValue(),
@@ -774,23 +774,23 @@ class DatabaseConnectionTest {
   }
 
   // endregion
-  // region insertPicture
+  // region insertMedia
 
   @Test
-  void insertPicture() throws DatabaseOperationException {
+  void insertMedia() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     assertTrue(this.db.isFileRegistered(path));
   }
 
   @Test
-  void insertPicture_addsTagsToPicture() throws DatabaseOperationException {
+  void insertMedia_addsTagsToMedia() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null),
         new TagUpdate(0, "test2", null, null)
     ));
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.empty(), "test1"),
         new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
@@ -803,16 +803,16 @@ class DatabaseConnectionTest {
     assertEquals(Set.of(
         new Tag(id1, "test1", null, null),
         new Tag(id2, "test2", null, null)
-    ), this.db.getImageTags(new Picture(1, path, new Hash(0))));
+    ), this.db.getMediaTags(new MediaFile(1, path, new Hash(0))));
   }
 
   @Test
-  void insertPicture_createsTags() throws DatabaseOperationException {
+  void insertMedia_createsTags() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.of(tagType), "test1")
     ), Set.of()));
     assertEquals(Set.of(
@@ -821,9 +821,9 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void insertPicture_updatesTagCounts() throws DatabaseOperationException {
+  void insertMedia_updatesTagCounts() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.empty(), "test1"),
         new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
@@ -834,12 +834,12 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void insertPicture_updatesTagTypeCounts() throws DatabaseOperationException {
+  void insertMedia_updatesTagTypeCounts() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.of(tagType), "test1")
     ), Set.of()));
     assertEquals(Map.of(
@@ -848,55 +848,55 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void insertPicture_tagsToRemoveNotEmptyError() {
+  void insertMedia_tagsToRemoveNotEmptyError() {
     final Path path = Path.of("test_file.png");
     assertThrows(IllegalArgumentException.class,
-        () -> this.db.insertPicture(
-            new PictureUpdate(0, path, Hash.computeForFile(path), Set.of(),
+        () -> this.db.insertMedia(
+            new MediaFileUpdate(0, path, Hash.computeForFile(path), Set.of(),
                 Set.of(new Tag(1, "test", null, null)))));
   }
 
   @Test
-  void insertPicture_undefinedTagTypeError() {
+  void insertMedia_undefinedTagTypeError() {
     final Path path = Path.of("test_file.png");
     final TagType tagType = new TagType(0, "test", '/', 0);
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.insertPicture(new PictureUpdate(0, path, Hash.computeForFile(path), Set.of(
+        () -> this.db.insertMedia(new MediaFileUpdate(0, path, Hash.computeForFile(path), Set.of(
             new ParsedTag(Optional.of(tagType), "test1")
         ), Set.of()))
     );
   }
 
   @Test
-  void insertPicture_addTagsWithDefinitionsError() throws DatabaseOperationException {
+  void insertMedia_addTagsWithDefinitionsError() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, "a b")
     ));
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+        () -> this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
             new ParsedTag(Optional.empty(), "test1")
         ), Set.of()))
     );
   }
 
   @Test
-  void insertPicture_duplicatePathsError() throws DatabaseOperationException {
+  void insertMedia_duplicatePathsError() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()))
+        () -> this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()))
     );
   }
 
   @Test
-  void insertPicture_duplicateTagNamesError() throws DatabaseOperationException {
+  void insertMedia_duplicateTagNamesError() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+        () -> this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
             new ParsedTag(Optional.of(tagType), "test"),
             new ParsedTag(Optional.empty(), "test")
         ), Set.of()))
@@ -904,13 +904,13 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void insertPicture_errorRollbacksEverything() throws DatabaseOperationException {
+  void insertMedia_errorRollbacksEverything() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+        () -> this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
             new ParsedTag(Optional.of(tagType), "test"),
             new ParsedTag(Optional.empty(), "test")
         ), Set.of()))
@@ -920,28 +920,28 @@ class DatabaseConnectionTest {
   }
 
   // endregion
-  // region updatePicture
+  // region updateMedia
 
   @Test
-  void updatePicture_hash() throws DatabaseOperationException {
+  void updateMedia_hash() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.updatePicture(new PictureUpdate(1, path, Optional.of(new Hash(1)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.updateMedia(new MediaFileUpdate(1, path, Optional.of(new Hash(1)), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
-    final var picture = this.getAllPictures()
+    final var media = this.getAllMedias()
         .stream().findFirst().get();
-    assertEquals(Optional.of(new Hash(1)), picture.hash());
+    assertEquals(Optional.of(new Hash(1)), media.hash());
   }
 
   @Test
-  void updatePicture_addsTagsToPicture() throws DatabaseOperationException {
+  void updateMedia_addsTagsToMedia() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null),
         new TagUpdate(0, "test2", null, null)
     ));
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.updatePicture(new PictureUpdate(1, path, Optional.of(new Hash(1)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.updateMedia(new MediaFileUpdate(1, path, Optional.of(new Hash(1)), Set.of(
         new ParsedTag(Optional.empty(), "test1"),
         new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
@@ -954,17 +954,17 @@ class DatabaseConnectionTest {
     assertEquals(Set.of(
         new Tag(id1, "test1", null, null),
         new Tag(id2, "test2", null, null)
-    ), this.db.getImageTags(new Picture(1, path, new Hash(0))));
+    ), this.db.getMediaTags(new MediaFile(1, path, new Hash(0))));
   }
 
   @Test
-  void updatePicture_removesTagsFromPicture() throws DatabaseOperationException {
+  void updateMedia_removesTagsFromMedia() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, null),
         new TagUpdate(0, "test2", null, null)
     ));
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.empty(), "test1"),
         new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
@@ -974,21 +974,21 @@ class DatabaseConnectionTest {
         .findFirst()
         .get();
     final int id1 = t.id(), id2 = id1 == 1 ? 2 : 1;
-    this.db.updatePicture(new PictureUpdate(1, path, Optional.of(new Hash(1)), Set.of(), Set.of(
+    this.db.updateMedia(new MediaFileUpdate(1, path, Optional.of(new Hash(1)), Set.of(), Set.of(
         new Tag(id1, "test1", null, null),
         new Tag(id2, "test2", null, null)
     )));
-    assertTrue(this.db.getImageTags(new Picture(1, path, new Hash(0))).isEmpty());
+    assertTrue(this.db.getMediaTags(new MediaFile(1, path, new Hash(0))).isEmpty());
   }
 
   @Test
-  void updatePicture_createsTags() throws DatabaseOperationException {
+  void updateMedia_createsTags() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.updatePicture(new PictureUpdate(1, path, Optional.of(new Hash(1)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.updateMedia(new MediaFileUpdate(1, path, Optional.of(new Hash(1)), Set.of(
         new ParsedTag(Optional.of(tagType), "test1")
     ), Set.of()));
     assertEquals(Set.of(
@@ -997,10 +997,10 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void updatePicture_updatesTagCounts() throws DatabaseOperationException {
+  void updateMedia_updatesTagCounts() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.updatePicture(new PictureUpdate(1, path, Optional.of(new Hash(1)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.updateMedia(new MediaFileUpdate(1, path, Optional.of(new Hash(1)), Set.of(
         new ParsedTag(Optional.empty(), "test1"),
         new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
@@ -1011,13 +1011,13 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void updatePicture_updatesTagTypeCounts() throws DatabaseOperationException {
+  void updateMedia_updatesTagTypeCounts() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.updatePicture(new PictureUpdate(1, path, Optional.of(new Hash(1)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.updateMedia(new MediaFileUpdate(1, path, Optional.of(new Hash(1)), Set.of(
         new ParsedTag(Optional.of(tagType), "test")
     ), Set.of()));
     assertEquals(Map.of(
@@ -1026,21 +1026,21 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void updatePicture_undefinedTagTypeError() throws DatabaseOperationException {
+  void updateMedia_undefinedTagTypeError() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     final TagType tagType = new TagType(0, "test", '/', 0);
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    assertThrows(DatabaseOperationException.class, () -> this.db.updatePicture(new PictureUpdate(1, path, Optional.of(new Hash(1)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    assertThrows(DatabaseOperationException.class, () -> this.db.updateMedia(new MediaFileUpdate(1, path, Optional.of(new Hash(1)), Set.of(
         new ParsedTag(Optional.of(tagType), "test")
     ), Set.of())));
   }
 
   @Test
-  void updatePicture_pathDoesNotImpactFile() throws DatabaseOperationException {
+  void updateMedia_pathDoesNotImpactFile() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     final Path path2 = Path.of("test_file_10.png");
-    this.db.updatePicture(new PictureUpdate(1, path2, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.updateMedia(new MediaFileUpdate(1, path2, Optional.of(new Hash(0)), Set.of(), Set.of()));
     assertFalse(this.db.isFileRegistered(path));
     assertTrue(this.db.isFileRegistered(path2));
     assertTrue(Files.exists(path));
@@ -1048,14 +1048,14 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void updatePicture_duplicateTagNamesError() throws DatabaseOperationException {
+  void updateMedia_duplicateTagNamesError() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.updatePicture(new PictureUpdate(1, path, Optional.of(new Hash(0)), Set.of(
+        () -> this.db.updateMedia(new MediaFileUpdate(1, path, Optional.of(new Hash(0)), Set.of(
             new ParsedTag(Optional.of(tagType), "test"),
             new ParsedTag(Optional.empty(), "test")
         ), Set.of()))
@@ -1063,215 +1063,215 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void updatePicture_addTagsWithDefinitionsError() throws DatabaseOperationException {
+  void updateMedia_addTagsWithDefinitionsError() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTags(Set.of(
         new TagUpdate(0, "test1", null, "a b")
     ));
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.updatePicture(new PictureUpdate(1, path, Optional.of(new Hash(0)), Set.of(
+        () -> this.db.updateMedia(new MediaFileUpdate(1, path, Optional.of(new Hash(0)), Set.of(
             new ParsedTag(Optional.empty(), "test1")
         ), Set.of()))
     );
   }
 
   @Test
-  void updatePicture_errorRollbacksEverything() throws DatabaseOperationException {
+  void updateMedia_errorRollbacksEverything() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     this.db.insertTagTypes(Set.of(new TagTypeUpdate(0, "type", '/', 0)));
     //noinspection OptionalGetWithoutIsPresent
     final TagType tagType = this.db.getAllTagTypes().stream().findFirst().get();
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.updatePicture(new PictureUpdate(0, path, Optional.of(new Hash(1)), Set.of(
+        () -> this.db.updateMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(1)), Set.of(
             new ParsedTag(Optional.of(tagType), "test"),
             new ParsedTag(Optional.empty(), "test")
         ), Set.of()))
     );
     assertTrue(this.db.getAllTags().isEmpty());
     //noinspection OptionalGetWithoutIsPresent
-    final var picture = this.getAllPictures()
+    final var media = this.getAllMedias()
         .stream().findFirst().get();
-    assertEquals(Optional.of(new Hash(0)), picture.hash());
+    assertEquals(Optional.of(new Hash(0)), media.hash());
   }
 
   @Test
-  void updatePicture_notInDbError() {
+  void updateMedia_notInDbError() {
     final Path path = Path.of("test_file.png");
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.updatePicture(new PictureUpdate(1, path, Optional.of(new Hash(0)), Set.of(), Set.of()))
+        () -> this.db.updateMedia(new MediaFileUpdate(1, path, Optional.of(new Hash(0)), Set.of(), Set.of()))
     );
   }
 
   // endregion
-  // region moveOrRenamePicture rename only
+  // region moveOrRenameMedia rename only
 
   @Test
-  void renamePicture_updatesPath() throws DatabaseOperationException {
+  void renameMedia_updatesPath() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
-    var pic = this.getAllPictures().stream().findFirst().get();
+    var pic = this.getAllMedias().stream().findFirst().get();
     final Path targetPath = Path.of("test_file_3.png");
-    this.db.moveOrRenamePicture(pic, targetPath, false);
+    this.db.moveOrRenameMedia(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
-    pic = this.getAllPictures().stream().findFirst().get();
+    pic = this.getAllMedias().stream().findFirst().get();
     assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
-  void renamePicture_renamesFile() throws DatabaseOperationException {
+  void renameMedia_renamesFile() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
-    final var pic = this.getAllPictures().stream().findFirst().get();
+    final var pic = this.getAllMedias().stream().findFirst().get();
     final Path targetPath = Path.of("test_file_3.png");
-    this.db.moveOrRenamePicture(pic, targetPath, false);
+    this.db.moveOrRenameMedia(pic, targetPath, false);
     assertTrue(Files.exists(targetPath));
   }
 
   @Test
-  void renamePicture_worksIfFileDoesNotExist() throws DatabaseOperationException {
+  void renameMedia_worksIfFileDoesNotExist() throws DatabaseOperationException {
     final Path path = Path.of("test_file_0.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
-    var pic = this.getAllPictures().stream().findFirst().get();
+    var pic = this.getAllMedias().stream().findFirst().get();
     final Path targetPath = Path.of("test_file_3.png");
-    this.db.moveOrRenamePicture(pic, targetPath, false);
+    this.db.moveOrRenameMedia(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
-    pic = this.getAllPictures().stream().findFirst().get();
+    pic = this.getAllMedias().stream().findFirst().get();
     assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
-  void renamePicture_worksIfTargetExistsButFileDoesNotExist() throws DatabaseOperationException {
+  void renameMedia_worksIfTargetExistsButFileDoesNotExist() throws DatabaseOperationException {
     final Path path = Path.of("test_file_0.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
-    var pic = this.getAllPictures().stream().findFirst().get();
+    var pic = this.getAllMedias().stream().findFirst().get();
     final Path targetPath = Path.of("test_file_2.png");
-    this.db.moveOrRenamePicture(pic, targetPath, false);
+    this.db.moveOrRenameMedia(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
-    pic = this.getAllPictures().stream().findFirst().get();
+    pic = this.getAllMedias().stream().findFirst().get();
     assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
-  void renamePicture_targetFileExistsError() {
+  void renameMedia_targetFileExistsError() {
     final Path path = Path.of("test_file.png");
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.moveOrRenamePicture(new Picture(1, path, new Hash(0)), Path.of("test_file_2.png"), false));
+        () -> this.db.moveOrRenameMedia(new MediaFile(1, path, new Hash(0)), Path.of("test_file_2.png"), false));
   }
 
   @Test
-  void renamePicture_notInDbError() {
+  void renameMedia_notInDbError() {
     final Path path = Path.of("test_file.png");
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.moveOrRenamePicture(new Picture(1, path, new Hash(0)), Path.of("test_file_3.png"), false));
+        () -> this.db.moveOrRenameMedia(new MediaFile(1, path, new Hash(0)), Path.of("test_file_3.png"), false));
   }
 
   // endregion
-  // region moveOrRenamePicture move
+  // region moveOrrenameMedia move
 
   @Test
-  void movePicture_updatesPath() throws DatabaseOperationException {
+  void moveMedia_updatesPath() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
-    var pic = this.getAllPictures().stream().findFirst().get();
+    var pic = this.getAllMedias().stream().findFirst().get();
     final Path targetPath = Path.of("dest", "test_file.png");
-    this.db.moveOrRenamePicture(pic, targetPath, false);
+    this.db.moveOrRenameMedia(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
-    pic = this.getAllPictures().stream().findFirst().get();
+    pic = this.getAllMedias().stream().findFirst().get();
     assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
-  void movePicture_movesFile() throws DatabaseOperationException {
+  void moveMedia_movesFile() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
-    final var pic = this.getAllPictures().stream().findFirst().get();
+    final var pic = this.getAllMedias().stream().findFirst().get();
     final Path targetPath = Path.of("dest", "test_file.png");
-    this.db.moveOrRenamePicture(pic, targetPath, false);
+    this.db.moveOrRenameMedia(pic, targetPath, false);
     assertTrue(Files.exists(targetPath));
   }
 
   @Test
-  void movePicture_worksIfFileDoesNotExist() throws DatabaseOperationException {
+  void moveMedia_worksIfFileDoesNotExist() throws DatabaseOperationException {
     final Path path = Path.of("test_file_0.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
-    var pic = this.getAllPictures().stream().findFirst().get();
+    var pic = this.getAllMedias().stream().findFirst().get();
     final Path targetPath = Path.of("dest", "test_file_0.png");
-    this.db.moveOrRenamePicture(pic, targetPath, false);
+    this.db.moveOrRenameMedia(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
-    pic = this.getAllPictures().stream().findFirst().get();
+    pic = this.getAllMedias().stream().findFirst().get();
     assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
-  void movePicture_worksIfTargetExistsButFileDoesNotExist() throws DatabaseOperationException {
+  void moveMedia_worksIfTargetExistsButFileDoesNotExist() throws DatabaseOperationException {
     final Path path = Path.of("test_file_0.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
     //noinspection OptionalGetWithoutIsPresent
-    var pic = this.getAllPictures().stream().findFirst().get();
+    var pic = this.getAllMedias().stream().findFirst().get();
     final Path targetPath = Path.of("dest", "test_file_0.png");
-    this.db.moveOrRenamePicture(pic, targetPath, false);
+    this.db.moveOrRenameMedia(pic, targetPath, false);
     //noinspection OptionalGetWithoutIsPresent
-    pic = this.getAllPictures().stream().findFirst().get();
+    pic = this.getAllMedias().stream().findFirst().get();
     assertEquals(targetPath.toAbsolutePath(), pic.path());
   }
 
   @Test
-  void movePicture_targetFileExistsError() {
+  void moveMedia_targetFileExistsError() {
     final Path path = Path.of("test_file_2.png");
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.moveOrRenamePicture(new Picture(1, path, new Hash(0)), Path.of("dest", "test_file_2"), false));
+        () -> this.db.moveOrRenameMedia(new MediaFile(1, path, new Hash(0)), Path.of("dest", "test_file_2"), false));
   }
 
   @Test
-  void movePicture_notInDbError() {
+  void moveMedia_notInDbError() {
     final Path path = Path.of("test_file.png");
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.moveOrRenamePicture(new Picture(1, path, new Hash(0)), Path.of("dest", "test_file.png"), false));
+        () -> this.db.moveOrRenameMedia(new MediaFile(1, path, new Hash(0)), Path.of("dest", "test_file.png"), false));
   }
 
   // endregion
-  // region mergePictures
+  // region mergeMedias
 
   @Test
-  void mergePictures_mergesTags() throws DatabaseOperationException {
+  void mergeMedias_mergesTags() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     final Path path1 = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.empty(), "test1")
     ), Set.of()));
-    this.db.insertPicture(new PictureUpdate(0, path1, Optional.of(new Hash(1)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path1, Optional.of(new Hash(1)), Set.of(
         new ParsedTag(Optional.empty(), "test2")
     ), Set.of()));
-    this.db.mergePictures(
-        new Picture(1, path, new Hash(0)),
-        new Picture(2, path1, new Hash(0)),
+    this.db.mergeMedias(
+        new MediaFile(1, path, new Hash(0)),
+        new MediaFile(2, path1, new Hash(0)),
         false
     );
-    final var imageTags = this.db.getImageTags(new Picture(2, path1, new Hash(0)));
+    final var mediaTags = this.db.getMediaTags(new MediaFile(2, path1, new Hash(0)));
     assertEquals(Set.of(
         new Tag(1, "test1", null, null),
         new Tag(2, "test2", null, null)
-    ), imageTags);
+    ), mediaTags);
   }
 
   @Test
-  void mergePictures_deletesFirstImageEntry() throws DatabaseOperationException {
+  void mergeMedias_deletesFirstMediaEntry() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     final Path path1 = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.insertPicture(new PictureUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
-    this.db.mergePictures(
-        new Picture(1, path, new Hash(0)),
-        new Picture(2, path1, new Hash(0)),
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
+    this.db.mergeMedias(
+        new MediaFile(1, path, new Hash(0)),
+        new MediaFile(2, path1, new Hash(0)),
         false
     );
     assertFalse(this.db.isFileRegistered(path));
@@ -1279,14 +1279,14 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void mergePictures_deletesFirstImageFileIfRequested() throws DatabaseOperationException {
+  void mergeMedias_deletesFirstMediaFileIfRequested() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     final Path path1 = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.insertPicture(new PictureUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
-    this.db.mergePictures(
-        new Picture(2, path1, new Hash(0)),
-        new Picture(1, path, new Hash(0)),
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
+    this.db.mergeMedias(
+        new MediaFile(2, path1, new Hash(0)),
+        new MediaFile(1, path, new Hash(0)),
         true
     );
     assertTrue(Files.exists(path));
@@ -1294,14 +1294,14 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void mergePictures_worksIfFirstFileDoesNotExist() throws DatabaseOperationException {
+  void mergeMedias_worksIfFirstFileDoesNotExist() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     final Path path1 = Path.of("test_file_3.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.insertPicture(new PictureUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
-    this.db.mergePictures(
-        new Picture(2, path1, new Hash(0)),
-        new Picture(1, path, new Hash(0)),
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
+    this.db.mergeMedias(
+        new MediaFile(2, path1, new Hash(0)),
+        new MediaFile(1, path, new Hash(0)),
         true
     );
     assertFalse(this.db.isFileRegistered(path1));
@@ -1309,14 +1309,14 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void mergePictures_worksIfSecondFileDoesNotExist() throws DatabaseOperationException {
+  void mergeMedias_worksIfSecondFileDoesNotExist() throws DatabaseOperationException {
     final Path path = Path.of("test_file_0.png");
     final Path path1 = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.insertPicture(new PictureUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
-    this.db.mergePictures(
-        new Picture(2, path1, new Hash(0)),
-        new Picture(1, path, new Hash(0)),
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
+    this.db.mergeMedias(
+        new MediaFile(2, path1, new Hash(0)),
+        new MediaFile(1, path, new Hash(0)),
         true
     );
     assertFalse(this.db.isFileRegistered(path1));
@@ -1324,123 +1324,123 @@ class DatabaseConnectionTest {
   }
 
   @Test
-  void mergePictures_updateTagsCounts() throws DatabaseOperationException {
+  void mergeMedias_updateTagsCounts() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     final Path path1 = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.empty(), "test")
     ), Set.of()));
-    this.db.insertPicture(new PictureUpdate(0, path1, Optional.of(new Hash(1)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path1, Optional.of(new Hash(1)), Set.of(
         new ParsedTag(Optional.empty(), "test")
     ), Set.of()));
     assertEquals(Map.of(1, 2), this.db.getAllTagsCounts());
-    this.db.mergePictures(
-        new Picture(1, path, new Hash(0)),
-        new Picture(2, path1, new Hash(1)),
+    this.db.mergeMedias(
+        new MediaFile(1, path, new Hash(0)),
+        new MediaFile(2, path1, new Hash(1)),
         false
     );
     assertEquals(Map.of(1, 1), this.db.getAllTagsCounts());
   }
 
   @Test
-  void mergePictures_sameIdsError() throws DatabaseOperationException {
+  void mergeMedias_sameIdsError() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     final Path path1 = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.insertPicture(new PictureUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
-    assertThrows(IllegalArgumentException.class, () -> this.db.mergePictures(
-        new Picture(1, path, new Hash(0)),
-        new Picture(1, path1, new Hash(0)),
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
+    assertThrows(IllegalArgumentException.class, () -> this.db.mergeMedias(
+        new MediaFile(1, path, new Hash(0)),
+        new MediaFile(1, path1, new Hash(0)),
         false
     ));
   }
 
   @Test
-  void mergePictures_samePathsError() throws DatabaseOperationException {
+  void mergeMedias_samePathsError() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
     final Path path1 = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.insertPicture(new PictureUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
-    assertThrows(IllegalArgumentException.class, () -> this.db.mergePictures(
-        new Picture(1, path, new Hash(0)),
-        new Picture(2, path, new Hash(0)),
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.insertMedia(new MediaFileUpdate(0, path1, Optional.of(new Hash(1)), Set.of(), Set.of()));
+    assertThrows(IllegalArgumentException.class, () -> this.db.mergeMedias(
+        new MediaFile(1, path, new Hash(0)),
+        new MediaFile(2, path, new Hash(0)),
         false
     ));
   }
 
   @Test
-  void mergePictures_firstNotInDbError() throws DatabaseOperationException {
+  void mergeMedias_firstNotInDbError() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    assertThrows(DatabaseOperationException.class, () -> this.db.mergePictures(
-        new Picture(2, Path.of("test_file_2.png"), new Hash(0)),
-        new Picture(1, path, new Hash(0)),
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    assertThrows(DatabaseOperationException.class, () -> this.db.mergeMedias(
+        new MediaFile(2, Path.of("test_file_2.png"), new Hash(0)),
+        new MediaFile(1, path, new Hash(0)),
         false
     ));
   }
 
   @Test
-  void mergePictures_secondNotInDbError() throws DatabaseOperationException {
+  void mergeMedias_secondNotInDbError() throws DatabaseOperationException {
     final Path path = Path.of("test_file.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    assertThrows(DatabaseOperationException.class, () -> this.db.mergePictures(
-        new Picture(1, path, new Hash(0)),
-        new Picture(2, Path.of("test_file_2.png"), new Hash(0)),
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    assertThrows(DatabaseOperationException.class, () -> this.db.mergeMedias(
+        new MediaFile(1, path, new Hash(0)),
+        new MediaFile(2, Path.of("test_file_2.png"), new Hash(0)),
         false
     ));
   }
 
   // endregion
-  // region deletePicture
+  // region deleteMedia
 
   @Test
-  void deletePicture_deletesFileIfRequested() throws DatabaseOperationException {
+  void deleteMedia_deletesIfRequested() throws DatabaseOperationException {
     final Path path = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.deletePicture(new Picture(1, path, new Hash(0)), true);
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.deleteMedia(new MediaFile(1, path, new Hash(0)), true);
     assertFalse(this.db.isFileRegistered(path));
     assertFalse(Files.exists(path));
   }
 
   @Test
-  void deletePicture_doesNotDeleteFileIfNotRequested() throws DatabaseOperationException {
+  void deleteMedia_doesNotDeleteFileIfNotRequested() throws DatabaseOperationException {
     final Path path = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.deletePicture(new Picture(1, path, new Hash(0)), false);
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.deleteMedia(new MediaFile(1, path, new Hash(0)), false);
     assertFalse(this.db.isFileRegistered(path));
     assertTrue(Files.exists(path));
   }
 
   @Test
-  void deletePicture_worksIfFileDoesNotExist() throws DatabaseOperationException {
+  void deleteMedia_worksIfDoesNotExist() throws DatabaseOperationException {
     final Path path = Path.of("test_file_3.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
-    this.db.deletePicture(new Picture(1, path, new Hash(0)), true);
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(), Set.of()));
+    this.db.deleteMedia(new MediaFile(1, path, new Hash(0)), true);
     assertFalse(this.db.isFileRegistered(path));
   }
 
   @Test
-  void deletePicture_updatesTagCount() throws DatabaseOperationException {
+  void deleteMedia_updatesTagCount() throws DatabaseOperationException {
     final Path path = Path.of("test_file_2.png");
-    this.db.insertPicture(new PictureUpdate(0, path, Optional.of(new Hash(0)), Set.of(
+    this.db.insertMedia(new MediaFileUpdate(0, path, Optional.of(new Hash(0)), Set.of(
         new ParsedTag(Optional.empty(), "test")
     ), Set.of()));
     assertEquals(Map.of(1, 1), this.db.getAllTagsCounts());
-    this.db.deletePicture(new Picture(1, path, new Hash(0)), false);
+    this.db.deleteMedia(new MediaFile(1, path, new Hash(0)), false);
     assertEquals(Map.of(1, 0), this.db.getAllTagsCounts());
   }
 
   @Test
-  void deletePicture_notInDbError() {
+  void deleteMedia_notInDbError() {
     assertThrows(DatabaseOperationException.class,
-        () -> this.db.deletePicture(new Picture(1, Path.of("test_file_2.png"), new Hash(0)), false));
+        () -> this.db.deleteMedia(new MediaFile(1, Path.of("test_file_2.png"), new Hash(0)), false));
   }
 
   // endregion
 
-  private Set<Picture> getAllPictures() {
+  private Set<MediaFile> getAllMedias() {
     try {
-      return this.db.queryPictures(TagQueryParser.parse("a + -a", Map.of(), DatabaseConnection.PSEUDO_TAGS, null));
+      return this.db.queryMedias(TagQueryParser.parse("a + -a", Map.of(), DatabaseConnection.PSEUDO_TAGS, null));
     } catch (final InvalidPseudoTagException | DatabaseOperationException e) {
       throw new RuntimeException(e);
     }
