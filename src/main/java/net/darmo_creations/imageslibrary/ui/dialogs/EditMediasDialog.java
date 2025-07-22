@@ -290,6 +290,7 @@ public class EditMediasDialog extends DialogBase<Boolean> {
         Alerts.error(this.config, "dialog.edit_images.tags_querying_error.header", null, null);
       }
     this.mediaViewer.setMedia(this.currentMediaFile);
+    this.fileNameField.setText(this.currentMediaFile.path().getFileName().toString());
 
     final var joiner = new StringJoiner(" ");
     if (!this.insert) {
