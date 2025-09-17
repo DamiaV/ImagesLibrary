@@ -266,7 +266,8 @@ public class FileUtils {
     if (!isSupportedVideoFile(path))
       throw new IllegalArgumentException("Unsupported file format: " + ext);
 
-    final MediaPlayer mediaPlayer = new MediaPlayer(new Media(path.toUri().toURL().toString()));
+    final String uri = path.toUri().toString();
+    final MediaPlayer mediaPlayer = new MediaPlayer(new Media(uri));
     mediaPlayer.setOnReady(() -> successCallback.accept(mediaPlayer));
 
     return mediaPlayer;
