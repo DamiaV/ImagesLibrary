@@ -112,6 +112,7 @@ public class MediaViewer extends VBox {
           );
         } catch (final MalformedURLException | MediaException e) {
           this.onFileLoadingError(e);
+          this.loadImage(path);
         }
       } else this.loadImage(path);
     }
